@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<FEEDBACK VERSION="200701" COMMENT="XML-Importfile for mod/feedback">
+     <ITEMS>
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[1]]></ITEMID>
+               <ITEMTEXT><![CDATA[Os conteúdos abordados foram relevantes para as suas responsabilidades profissionais?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Nada Relevante)|2|3|4|5 (Totalmente Relevante)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[2]]></ITEMID>
+               <ITEMTEXT><![CDATA[O equilíbrio entre a componente teórica e a componente prática foi adequado?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Inadequado)|2|3|4|5 (Muito Adequado)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[3]]></ITEMID>
+               <ITEMTEXT><![CDATA[O formador demonstrou domínio técnico e segurança nos temas apresentados?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Fraco)|2|3|4|5 (Excelente)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[4]]></ITEMID>
+               <ITEMTEXT><![CDATA[A capacidade de comunicação e o dinamismo do formador facilitaram a aprendizagem?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Discordo Totalmente)|2|3|4|5 (Concordo Totalmente)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[5]]></ITEMID>
+               <ITEMTEXT><![CDATA[Considera que conseguirá aplicar os conhecimentos adquiridos no seu quotidiano profissional?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Improvável)|2|3|4|5 (Muito Provável)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[6]]></ITEMID>
+               <ITEMTEXT><![CDATA[As tecnologias e ferramentas utilizadas (plataformas, software) foram eficazes para o sucesso da formação?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Pouco Eficazes)|2|3|4|5 (Muito Eficazes)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="multichoice" REQUIRED="1">
+               <ITEMID><![CDATA[7]]></ITEMID>
+               <ITEMTEXT><![CDATA[Como avalia o impacto desta formação na sua produtividade ou qualidade de trabalho?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[r>>>>>1 (Baixo Impacto)|2|3|4|5 (Elevado Impacto)<<<<<1]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="textarea" REQUIRED="0">
+               <ITEMID><![CDATA[8]]></ITEMID>
+               <ITEMTEXT><![CDATA[Identifique o ponto forte ou o aspeto mais valioso desta formação.]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[40|5]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="textarea" REQUIRED="0">
+               <ITEMID><![CDATA[9]]></ITEMID>
+               <ITEMTEXT><![CDATA[Que melhorias ou ajustes recomendaria para futuras edições deste programa?]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[40|5]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+
+          <ITEM TYPE="textarea" REQUIRED="0">
+               <ITEMID><![CDATA[10]]></ITEMID>
+               <ITEMTEXT><![CDATA[Indique outros temas de formação que considere relevantes para o seu desenvolvimento na empresa.]]></ITEMTEXT>
+               <ITEMLABEL><![CDATA[]]></ITEMLABEL>
+               <PRESENTATION><![CDATA[40|5]]></PRESENTATION>
+               <OPTIONS><![CDATA[]]></OPTIONS>
+               <DEPENDITEM><![CDATA[0]]></DEPENDITEM>
+               <DEPENDVALUE><![CDATA[]]></DEPENDVALUE>
+          </ITEM>
+     </ITEMS>
+</FEEDBACK>

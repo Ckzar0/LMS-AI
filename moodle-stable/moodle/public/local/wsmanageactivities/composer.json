@@ -1,0 +1,9 @@
+{
+"name": "local/wsmanageactivities",
+"description": "Gestor de Atividades via YAML",
+"type": "moodle-local",
+"license": "GPL-3.0-or-later",
+"require": {
+"symfony/yaml": "^5.0 || ^6.0"
+}
+}

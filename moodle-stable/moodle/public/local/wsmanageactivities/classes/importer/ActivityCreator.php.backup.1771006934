@@ -1,0 +1,196 @@
+<?php
+namespace local_wsmanageactivities\importer;
+defined('MOODLE_INTERNAL') || die();
+
+class ActivityCreator {
+    
+    /**
+     * Limpa transações pendentes antes de criar atividades
+     * CORREÇÃO: Previne erro de transações aninhadas
+     */
+    private static function clear_pending_transactions() {
+        global $DB;
+        $cleared = 0;
+        while ($DB->is_transaction_started()) {
+            try {
+                error_log("ActivityCreator - Limpando transação pendente (tentativa " . ($cleared + 1) . ")");
+                $DB->force_transaction_rollback();
+                $cleared++;
+            } catch (Exception $e) {
+                error_log("ActivityCreator - Erro ao limpar transação: " . $e->getMessage());
+                break;
+            }
+        }
+        if ($cleared > 0) {
+            error_log("ActivityCreator - Total de transações limpas: $cleared");
+        }
+    }
+    
+    public static function create_page($course_id, $activity) {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/modlib.php');
+        require_once($CFG->dirroot . '/course/lib.php');
+        
+        // CORREÇÃO: Limpar transações pendentes
+        self::clear_pending_transactions();
+        
+        $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
+        
+        // Garantir que a secção existe
+        $section_num = $activity['section'] ?? 0;
+        course_create_sections_if_missing($course, $section_num);
+
+        // Preparar objeto para criação padrão do Moodle
+        $moduleinfo = new \stdClass();
+        $moduleinfo->modulename = 'page';
+        $moduleinfo->course = $course_id;
+        $moduleinfo->section = $section_num;
+        $moduleinfo->name = $activity['name'];
+        $moduleinfo->intro = $activity['intro'] ?? '';
+        $moduleinfo->introformat = FORMAT_HTML;
+        $moduleinfo->content = $activity['content'] ?? '';
+        $moduleinfo->contentformat = FORMAT_HTML;
+        $moduleinfo->display = 5; // OPEN
+        $moduleinfo->visible = 1;
+        $moduleinfo->coursemodule = 0;
+        $moduleinfo->cmidnumber = '';
+        
+        // Completion settings
+        $moduleinfo->completion = COMPLETION_TRACKING_MANUAL;
+        if (isset($activity['completionview']) && $activity['completionview']) {
+            $moduleinfo->completion = COMPLETION_TRACKING_AUTOMATIC;
+            $moduleinfo->completionview = 1;
+        }
+        
+        // Cria a atividade usando a API core (gera eventos, gradebook, cache, etc)
+        try {
+            $info = add_moduleinfo($moduleinfo, $course);
+            error_log("ActivityCreator::create_page - Página criada com sucesso: CM ID " . $info->coursemodule);
+            return $info->coursemodule;
+        } catch (Exception $e) {
+            error_log("ActivityCreator::create_page - ERRO ao criar página: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    public static function create_quiz($course_id, $activity) {
+        global $DB, $CFG;
+        
+        require_once(__DIR__ . '/QuestionCreator.php');
+        require_once($CFG->dirroot . '/course/modlib.php');
+        require_once($CFG->dirroot . '/mod/quiz/locallib.php');
+        require_once($CFG->dirroot . '/course/lib.php');
+        
+        // CORREÇÃO: Limpar transações pendentes
+        self::clear_pending_transactions();
+        
+        $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
+        
+        // Garantir que a secção existe
+        $section_num = $activity['section'] ?? 0;
+        course_create_sections_if_missing($course, $section_num);
+
+        // 1. Configurar Quiz usando add_moduleinfo
+        $moduleinfo = new \stdClass();
+        $moduleinfo->modulename = 'quiz';
+        $moduleinfo->course = $course_id;
+        $moduleinfo->section = $section_num;
+        $moduleinfo->name = $activity['name'];
+        $moduleinfo->intro = $activity['intro'] ?? '';
+        $moduleinfo->introformat = FORMAT_HTML;
+        $moduleinfo->coursemodule = 0;
+        $moduleinfo->cmidnumber = '';
+        $moduleinfo->overduehandling = 'autosubmit';
+        $moduleinfo->graceperiod = 86400;
+        $moduleinfo->reviewattempt = 69904;
+        $moduleinfo->reviewcorrectness = 4352;
+        $moduleinfo->reviewmarks = 4352;
+        $moduleinfo->reviewspecificfeedback = 4352;
+        $moduleinfo->reviewgeneralfeedback = 4352;
+        $moduleinfo->reviewrightanswer = 4352;
+        $moduleinfo->reviewoverallfeedback = 4352;
+        
+        // Configurações específicas
+        $moduleinfo->timelimit = $activity['timelimit'] ?? 0;
+        $moduleinfo->attempts = $activity['attempts'] ?? 0;
+        $moduleinfo->grade = $activity['grade'] ?? 10.0;
+        $moduleinfo->grademethod = 1; // Highest grade
+        $moduleinfo->questionsperpage = 1;
+        $moduleinfo->shuffleanswers = 1;
+        $moduleinfo->preferredbehaviour = 'deferredfeedback';
+        $moduleinfo->visible = 1;
+        
+        // Cria o quiz e o item de nota no gradebook
+        try {
+            error_log("ActivityCreator::create_quiz - Iniciando criação do quiz: " . $activity['name']);
+            $info = add_moduleinfo($moduleinfo, $course);
+            error_log("ActivityCreator::create_quiz - Quiz criado com sucesso: CM ID " . $info->coursemodule);
+        } catch (Exception $e) {
+            error_log("ActivityCreator::create_quiz - ERRO ao criar quiz: " . $e->getMessage());
+            error_log("ActivityCreator::create_quiz - Stack trace: " . $e->getTraceAsString());
+            throw $e;
+        }
+        
+        $quiz = $DB->get_record('quiz', ['id' => $info->instance], '*', MUST_EXIST);
+        
+        $ctx = \context_course::instance($course_id);
+        
+        // Questions from bank
+        if (!empty($activity['questions_from_bank'])) {
+            $b = $activity['questions_from_bank'];
+            $cat = $DB->get_record('question_categories', [
+                'contextid' => $ctx->id,
+                'name' => $b['bank_name']
+            ]);
+            
+            if ($cat) {
+                $qs = $DB->get_records_sql(
+                    "SELECT q.id FROM {question} q
+                     JOIN {question_versions} qv ON qv.questionid = q.id
+                     WHERE q.category = ? AND qv.status = 'ready'
+                     ORDER BY RAND() LIMIT ?",
+                    [$cat->id, $b['count'] ?? 5]
+                );
+                
+                foreach ($qs as $q) {
+                    // Usa API nativa para adicionar questão
+                    quiz_add_quiz_question($q->id, $quiz);
+                }
+                error_log("ActivityCreator::create_quiz - Adicionadas " . count($qs) . " questões do banco");
+            } else {
+                error_log("ActivityCreator::create_quiz - AVISO: Banco de questões não encontrado: " . $b['bank_name']);
+            }
+        }
+        
+        // Inline questions
+        if (!empty($activity['questions'])) {
+            $cat = new \stdClass();
+            $cat->name = 'Quiz - ' . $activity['name'];
+            $cat->contextid = $ctx->id;
+            $cat->info = '';
+            $cat->infoformat = FORMAT_HTML;
+            $cat->stamp = make_unique_id_code();
+            $cat->parent = 0;
+            $cat->sortorder = 999;
+            $cat_id = $DB->insert_record('question_categories', $cat);
+            
+            $questions_added = 0;
+            foreach ($activity['questions'] as $qd) {
+                try {
+                    $qid = QuestionCreator::create_question($cat_id, $ctx->id, $qd);
+                    quiz_add_quiz_question($qid, $quiz, 0, $qd['mark'] ?? 1.0);
+                    $questions_added++;
+                } catch (\Exception $e) {
+                    error_log("ActivityCreator::create_quiz - Erro ao criar questão inline: " . $e->getMessage());
+                }
+            }
+            error_log("ActivityCreator::create_quiz - Adicionadas $questions_added questões inline");
+        }
+        
+        // Recalcular notas do quiz
+        quiz_update_sumgrades($quiz);
+        error_log("ActivityCreator::create_quiz - Notas do quiz recalculadas");
+        
+        return $info->coursemodule;
+    }
+}
