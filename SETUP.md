@@ -31,33 +31,48 @@ GEMINI_API_KEY=SUA_CHAVE_AQUI
 ```
 
 ### 2. Iniciar o Backend (Moodle)
-Navegue até à pasta `moodle-stable/` e execute:
+Navegue até à pasta `moodle-stable/`. Para garantir que os contentores arrancam e comunicam corretamente, utilize a sequência abaixo.
 
+**Comando de Arranque Seguro (Recomendado):**
 ```bash
 cd moodle-stable
-# Definir o caminho absoluto para a pasta public do Moodle
-export MOODLE_DOCKER_WWWROOT="$(pwd)/moodle"
-export MOODLE_DOCKER_DB="mariadb"
-export MOODLE_DOCKER_WEB_PORT="8080"
+# 1. Limpar estados anteriores (importante para a rede Docker)
+./bin/moodle-docker-compose down
 
-# Arrancar os contentores
+# 2. Definir variáveis e arrancar em background
+export MOODLE_DOCKER_WWWROOT="$(pwd)/moodle" && \
+export MOODLE_DOCKER_DB="mariadb" && \
+export MOODLE_DOCKER_WEB_PORT="8080" && \
 ./bin/moodle-docker-compose up -d
+
+# 3. AGUARDAR o Banco de Dados estar pronto (CRÍTICO)
+./bin/moodle-docker-wait-for-db
 ```
 
-### 3. Restaurar a Base de Dados (Obrigatório no Setup inicial)
-Este passo irá criar todas as tabelas e configurações de API necessárias:
+### 3. Restaurar a Base de Dados
+Este passo cria as tabelas e configura a API. **Certifique-se de que está na raiz do projeto.**
 ```bash
-# Executar este comando na raiz do projeto (onde está o ficheiro .sql)
+# 1. Restaurar o Dump SQL
 docker exec -i moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle < moodle_base_setup.sql
 
-# ATIVAÇÃO CRÍTICA (Caso a API dê erro 403 ou 404):
-# 1. Ativar Web Services
+# 2. ATIVAÇÃO E ATUALIZAÇÃO:
 docker exec moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle -e "update m_config set value = '1' where name = 'enablewebservices';"
-# 2. Registar novas funções do plugin local_wsmanageactivities
 docker exec moodle-stable-webserver-1 php admin/cli/upgrade.php --non-interactive
-# 3. Garantir permissões das funções no Serviço ID 3
 docker exec moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle -e "insert ignore into m_external_services_functions (externalserviceid, functionname) values (3, 'local_wsmanageactivities_create_course_with_content'), (3, 'core_webservice_get_site_info'), (3, 'core_course_get_courses'), (3, 'core_course_get_contents'), (3, 'core_user_get_users');"
 ```
+
+---
+
+## 🔍 Resolução de Problemas (Troubleshooting)
+
+### "Error: Database connection failed"
+Se este erro aparecer ao rodar comandos `docker exec` ou ao aceder ao browser:
+1. **Causa:** O banco de dados ainda não terminou de inicializar ou a rede Docker está em cache.
+2. **Solução:**
+   - Corra `./bin/moodle-docker-wait-for-db` na pasta `moodle-stable/`.
+   - Verifique se no `moodle-stable/moodle/config.php` o `$CFG->dbtype` está como `'mariadb'`.
+   - Se persistir, faça `./bin/moodle-docker-compose down` e repita o "Comando de Arranque Seguro".
+
 
 ### 4. Iniciar o Frontend (Next.js)
 ```bash

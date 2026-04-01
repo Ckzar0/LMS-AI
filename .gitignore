@@ -33,4 +33,16 @@ moodle-stable/moodle/public/local/*
 # Ignorar pastas de dados e assets do Docker
 moodle-stable/assets/
 moodle-stable/moodledata/
+moodle-stable/mariadb_data/
 moodle-stable/moodle/Cursos/
+
+# --- Project Documentation and Workspace Logs ---
+Guias e Logs/
+LOG_*.md
+GUIA_*.md
+Relatório_Contexto_LLM.txt
+Descritivo e objetivos.txt
+Requisitos-projeto.txt
+*.docx
+*.pdf
+GEMINI.md
