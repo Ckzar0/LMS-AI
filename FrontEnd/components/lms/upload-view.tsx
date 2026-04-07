@@ -443,7 +443,7 @@ export function UploadView() {
           </TabsTrigger>
           <TabsTrigger value="json" className="gap-2">
             <Factory className="h-4 w-4" />
-            Fábrica de cursos
+            Gerar com JSON
           </TabsTrigger>
         </TabsList>
 

@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: 'LMS AI - Umain Works',
-  description: 'Sistema de Gestão de Aprendizagem Inteligente e Personalizado powered by IBM watsonx',
+  description: 'Sistema de Gestão de Aprendizagem Inteligente e Personalizado powered by Umain Works',
   generator: 'Umain Works',
   icons: {
     icon: [

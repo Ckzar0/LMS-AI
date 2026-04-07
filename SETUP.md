@@ -28,29 +28,22 @@ MOODLE_TOKEN=14c68ff68a1a57cdc4cf4d72f443b87d
 
 # Chave API do Google Gemini (para a IA gerar os cursos)
 GEMINI_API_KEY=SUA_CHAVE_AQUI
-```
-
 ### 2. Iniciar o Backend (Moodle)
-Navegue até à pasta `moodle-stable/`. Para garantir que os contentores arrancam e comunicam corretamente, utilize a sequência abaixo.
+Navegue até à pasta raiz do projeto. O método mais seguro e automatizado é utilizar o script de arranque:
 
-**Comando de Arranque Seguro (Recomendado):**
 ```bash
-cd moodle-stable
-# 1. Limpar estados anteriores (importante para a rede Docker)
-./bin/moodle-docker-compose down
+# Dar permissão (apenas na primeira vez)
+chmod +x start-moodle.sh
 
-# 2. Definir variáveis e arrancar em background
-export MOODLE_DOCKER_WWWROOT="$(pwd)/moodle" && \
-export MOODLE_DOCKER_DB="mariadb" && \
-export MOODLE_DOCKER_WEB_PORT="8080" && \
-./bin/moodle-docker-compose up -d
-
-# 3. AGUARDAR o Banco de Dados estar pronto (CRÍTICO)
-./bin/moodle-docker-wait-for-db
+# Correr o arranque seguro (limpa redes, inicia docker e aguarda DB)
+./start-moodle.sh
 ```
 
-### 3. Restaurar a Base de Dados
-Este passo cria as tabelas e configura a API. **Certifique-se de que está na raiz do projeto.**
+---
+
+### 3. Restaurar a Base de Dados (Apenas se necessário ou primeira vez)
+Este passo cria as tabelas e configura a API. **Certifique-se de que o Moodle já arrancou.**
+
 ```bash
 # 1. Restaurar o Dump SQL
 docker exec -i moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle < moodle_base_setup.sql
