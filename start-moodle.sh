@@ -24,6 +24,10 @@ fi
 echo "⏳ Aguardando que a base de dados aceite ligações..."
 ./bin/moodle-docker-wait-for-db
 
+# 5. Instalar dependências (pdfimages, python, etc)
+chmod +x system_requirements.sh
+./system_requirements.sh
+
 # Voltar à raiz
 cd ..
 

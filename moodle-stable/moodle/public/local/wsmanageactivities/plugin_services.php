@@ -57,6 +57,30 @@ $functions = array(
         'ajax'        => true,
         'loginrequired' => true,
     ),
+
+    'local_wsmanageactivities_create_course_with_content' => array(
+        'classname'   => 'local_wsmanageactivities\external\create_course_with_content',
+        'methodname'  => 'execute',
+        'classpath'   => '',
+        'description' => 'Create a complete course with contents from JSON',
+        'type'        => 'write',
+        'capabilities'=> 'moodle/course:create',
+        'services'    => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+        'ajax'        => true,
+        'loginrequired' => true,
+    ),
+
+    'local_wsmanageactivities_process_pdf' => array(
+        'classname'   => 'local_wsmanageactivities\external\process_pdf',
+        'methodname'  => 'execute',
+        'classpath'   => '',
+        'description' => 'Upload a PDF and extract images for course generation',
+        'type'        => 'write',
+        'capabilities'=> 'moodle/course:create',
+        'services'    => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+        'ajax'        => true,
+        'loginrequired' => true,
+    ),
 );
 
 $services = array(
@@ -65,7 +89,9 @@ $services = array(
             'local_wsmanageactivities_create_page',
             'local_wsmanageactivities_create_quiz', 
             'local_wsmanageactivities_add_quiz_questions',
-            'local_wsmanageactivities_get_module_types'
+            'local_wsmanageactivities_get_module_types',
+            'local_wsmanageactivities_create_course_with_content',
+            'local_wsmanageactivities_process_pdf'
         ),
         'restrictedusers' => 0,
         'enabled' => 1,

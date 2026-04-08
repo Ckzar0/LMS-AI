@@ -24,14 +24,17 @@ $PAGE->set_heading("🖼️ Ajustar Conteúdo Visual");
 echo $OUTPUT->header();
 
 $img_base_dir = __DIR__ . '/extracted_images/';
+// Mover assets para fora da pasta public para contornar bloqueios do Moodle 5.1
 $public_assets_dir = $CFG->dirroot . '/course_assets/' . ($courseid ? $courseid . '/' : '');
 
 // --- LÓGICA DE PROCESSAMENTO ---
 if ($pageid && confirm_sesskey()) {
     $page = $DB->get_record('page', ['id' => $pageid], '*', MUST_EXIST);
-    
+
     $final_url = "";
+    // A URL aponta agora para a raiz do servidor web
     $public_assets_url = $CFG->wwwroot . '/course_assets/' . ($courseid ? $courseid . '/' : '');
+
 
     // 1. Processar Upload Direto
     if (!empty($_FILES['uploadimg']['name'])) {
@@ -168,23 +171,43 @@ if (!$courseid) {
         // Adicionar placeholders primeiro
         foreach ($div_matches[0] as $div_html) {
             $label = "Placeholder de Tabela";
-            if (preg_match('/\[SUBSTITUIR POR PRINT DA TABELA - (PÁG \d+)\]/', $div_html, $lm)) $label = $lm[0];
-            $items_to_fix[] = ['type' => 'placeholder', 'html' => $div_html, 'label' => $label];
+            $hint = "";
+            if (preg_match('/\[SUBSTITUIR POR PRINT DA TABELA - (PÁG \d+)\]/', $div_html, $lm)) {
+                $label = $lm[0];
+                $hint = "Esta tabela deve ser extraída da página " . $lm[1] . " do manual original.";
+            }
+            $items_to_fix[] = ['type' => 'placeholder', 'html' => $div_html, 'label' => $label, 'hint' => $hint];
         }
         
         // Adicionar erros de "Imagem em Falta"
         foreach ($error_matches as $em) {
-            $items_to_fix[] = ['type' => 'error', 'html' => $em[0], 'label' => "FALTA: " . $em[1]];
+            $items_to_fix[] = ['type' => 'error', 'html' => $em[0], 'label' => "FALTA: " . $em[1], 'hint' => "A IA solicitou a imagem do placeholder " . $em[1] . ", mas não foi encontrada na extração automática."];
         }
 
-        // Adicionar imagens normais (apenas se não estiverem dentro de um placeholder já processado)
+        // Adicionar imagens normais
         foreach ($img_matches as $im) {
-            $already_in = false;
-            foreach ($items_to_fix as $itf) { if (strpos($itf['html'], $im[1]) !== false) $already_in = true; }
-            if (!$already_in) {
-                $items_to_fix[] = ['type' => 'image', 'html' => $im[0], 'url' => $im[1], 'label' => 'Imagem do Curso'];
+            $full_img_tag = $im[0];
+            $img_url_found = $im[1];
+            
+            $label = 'Imagem do Curso';
+            $hint = "Imagem sem legenda detetada.";
+            
+            // 1. Tentar extrair do atributo data-legend (que o image_processor agora preenche com a legenda completa)
+            if (preg_match('/data-legend\s*=\s*["\']([^"]+)["\']/i', $full_img_tag, $pm)) {
+                $hint = htmlspecialchars_decode($pm[1]);
+            } 
+            // 2. Fallback para alt
+            elseif (preg_match('/alt\s*=\s*["\']([^"]+)["\']/i', $full_img_tag, $pm) && !in_array($pm[1], ['Imagem do Curso', 'Figura'])) {
+                $hint = $pm[1];
             }
+            // 3. Fallback para title (contém o placeholder técnico)
+            elseif (preg_match('/title\s*=\s*["\']([^"]+)["\']/i', $full_img_tag, $pm)) {
+                $hint = "Ref: " . $pm[1];
+            }
+            
+            $items_to_fix[] = ['type' => 'image', 'html' => $full_img_tag, 'url' => $img_url_found, 'label' => $label, 'hint' => $hint];
         }
+
 
         if (empty($items_to_fix)) continue;
 
@@ -215,6 +238,11 @@ if (!$courseid) {
 
             // LADO DIREITO: AÇÕES
             echo '<div class="actions">';
+            if (!empty($item['hint'])) {
+                echo '<div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; color: #92400e;">';
+                echo '💡 <strong>Legenda do Sistema:</strong> ' . s($item['hint']);
+                echo '</div>';
+            }
             echo '<form method="POST" enctype="multipart/form-data">';
             echo '<input type="hidden" name="sesskey" value="'.sesskey().'">';
             echo '<input type="hidden" name="pageid" value="'.$page->id.'">';

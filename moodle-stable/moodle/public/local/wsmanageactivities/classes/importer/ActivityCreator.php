@@ -27,15 +27,15 @@ class ActivityCreator {
         } catch (\Throwable $e) {}
     }
     
-    public static function create_page($course_id, $activity, $skip = null) {
+    public static function create_page($course_id, $activity, $section = 1) {
         global $DB, $CFG;
         require_once($CFG->dirroot . '/course/modlib.php');
         self::clear_pending_transactions();
         $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
-        course_create_sections_if_missing($course, 1);
+        course_create_sections_if_missing($course, $section);
         $module = $DB->get_record('modules', ['name' => 'page'], '*', MUST_EXIST);
         $moduleinfo = new \stdClass();
-        $moduleinfo->modulename = 'page'; $moduleinfo->module = (int)$module->id; $moduleinfo->course = (int)$course_id; $moduleinfo->section = 1;
+        $moduleinfo->modulename = 'page'; $moduleinfo->module = (int)$module->id; $moduleinfo->course = (int)$course_id; $moduleinfo->section = $section;
         $moduleinfo->name = self::force_string($activity['name'] ?? 'Página AI');
         $moduleinfo->intro = self::force_string($activity['intro'] ?? '');
         $moduleinfo->content = self::force_string($activity['content'] ?? '');
@@ -74,7 +74,7 @@ class ActivityCreator {
         return $info->coursemodule;
     }
     
-    public static function create_quiz($course_id, $activity, $json_data = null) {
+    public static function create_quiz($course_id, $activity, $json_data = null, $section = 1) {
         global $DB, $CFG, $USER;
         require_once(__DIR__ . '/QuestionCreator.php');
         require_once($CFG->dirroot . '/course/modlib.php');
@@ -85,11 +85,11 @@ class ActivityCreator {
         self::clear_pending_transactions();
         
         $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
-        course_create_sections_if_missing($course, 1);
+        course_create_sections_if_missing($course, $section);
         
         $module = $DB->get_record('modules', ['name' => 'quiz'], '*', MUST_EXIST);
         $moduleinfo = new \stdClass();
-        $moduleinfo->modulename = 'quiz'; $moduleinfo->module = (int)$module->id; $moduleinfo->course = (int)$course_id; $moduleinfo->section = 1;
+        $moduleinfo->modulename = 'quiz'; $moduleinfo->module = (int)$module->id; $moduleinfo->course = (int)$course_id; $moduleinfo->section = $section;
         $moduleinfo->name = self::force_string($activity['name'] ?? 'Quiz AI');
         $moduleinfo->intro = self::force_string($activity['intro'] ?? '');
         $moduleinfo->introformat = 1;

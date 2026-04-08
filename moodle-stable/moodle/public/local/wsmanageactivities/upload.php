@@ -58,8 +58,9 @@ if ($action === 'upload' && confirm_sesskey()) {
             $pdf_name = str_ireplace('.pdf', '', $global_folder);
             
             // Procurar na pasta Cursos dentro do projeto (visível pelo Docker)
+            // No Moodle 5.1, o plugin está em public/local/, por isso a pasta Cursos está 3 níveis acima
             $pdf_path_docker = $CFG->dirroot . "/../Cursos/" . $pdf_name . ".pdf";
-            $target_dir = $CFG->dirroot . "/local/wsmanageactivities/extracted_images/" . $pdf_name;
+            $target_dir = __DIR__ . "/extracted_images/" . $pdf_name;
             
             if (file_exists($pdf_path_docker)) {
                 echo "📦 PDF localizado: $pdf_name.pdf\n⏳ A extrair imagens... (Aguarde)\n";

@@ -49,7 +49,7 @@ class create_course_with_content extends external_api {
         $course_data->category = $category->id;
         $course_data->summary = $data['course_summary'];
         $course_data->format = 'topics';
-        $course_data->numsections = count($data['activities'] ?? []);
+        $course_data->numsections = 1;
         
         $course = create_course($course_data);
         $courseid = $course->id;
@@ -76,14 +76,21 @@ class create_course_with_content extends external_api {
 
         // 3. Process Activities
         $importer = new ActivityCreator($courseid);
+        $global_folder = $data['image_folder'] ?? $data['source_file'] ?? '';
+
         foreach ($data['activities'] as $index => $activity) {
-            $section = $index + 1;
+            // Injetar pasta global se a atividade não tiver uma local
+            if (empty($activity['image_folder']) && empty($activity['source_file'])) {
+                $activity['image_folder'] = $global_folder;
+            }
+
             if ($activity['type'] === 'page') {
-                $importer->create_page($courseid, $activity);
+                $importer->create_page($courseid, $activity, 1);
             } else if ($activity['type'] === 'quiz') {
-                $importer->create_quiz($courseid, $activity, $data);
+                $importer->create_quiz($courseid, $activity, $data, 1);
             }
         }
+
 
         return [
             'status' => 'success',

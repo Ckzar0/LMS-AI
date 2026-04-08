@@ -25,11 +25,11 @@ def optimize_and_deduplicate(folder_path):
     for filename in files:
         filepath = os.path.join(folder_path, filename)
         
-        # 1. Converter PPM para JPG se necessário
-        if filename.endswith('.ppm'):
+        # 1. Converter PPM/PBM para JPG se necessário
+        if filename.endswith('.ppm') or filename.endswith('.pbm'):
             try:
                 img = Image.open(filepath)
-                new_filename = filename.replace('.ppm', '.jpg')
+                new_filename = filename.replace('.ppm', '.jpg').replace('.pbm', '.jpg')
                 new_filepath = os.path.join(folder_path, new_filename)
                 img.save(new_filepath, 'JPEG', quality=85)
                 os.remove(filepath)

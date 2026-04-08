@@ -5,7 +5,10 @@ export const maxDuration = 300 // 5 minutos
 
 export async function POST(request: NextRequest) {
   try {
-    const { course } = await request.json() as { course: MoodleCourse }
+    const { course, pdfFile } = await request.json() as { 
+      course: MoodleCourse, 
+      pdfFile?: { name: string, content: string } 
+    }
     
     if (!course) {
       return NextResponse.json(
@@ -24,26 +27,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare the data for wsmanageactivities plugin
-    const wsFunction = "local_wsmanageactivities_create_course_with_content"
-    
-    // Build the Moodle web service URL
     const wsUrl = `${moodleUrl}/webservice/rest/server.php`
 
-    // Send to Moodle
-    const formData = new URLSearchParams()
-    formData.append("wstoken", moodleToken)
-    formData.append("wsfunction", wsFunction)
-    formData.append("moodlewsrestformat", "json")
-    formData.append("coursedata", JSON.stringify(course))
+    // 1. If PDF is provided, send it first to extract images
+    if (pdfFile && pdfFile.content) {
+      console.log(`Processing PDF for image extraction: ${pdfFile.name}`);
+      
+      const pdfFormData = new FormData();
+      pdfFormData.append("wstoken", moodleToken);
+      pdfFormData.append("wsfunction", "local_wsmanageactivities_process_pdf");
+      pdfFormData.append("moodlewsrestformat", "json");
+      pdfFormData.append("filename", pdfFile.name);
+      pdfFormData.append("filecontent", pdfFile.content);
+
+      try {
+        const pdfResponse = await fetch(wsUrl, {
+          method: "POST",
+          body: pdfFormData
+        });
+        const pdfData = await pdfResponse.json();
+        
+        if (pdfData.status === 'success') {
+          console.log(`Images extracted successfully into folder: ${pdfData.image_folder} (${pdfData.count} images)`);
+          // Inject the image folder into the course data so ActivityCreator knows where to look
+          course.image_folder = pdfData.image_folder;
+        } else {
+          console.warn("PDF extraction warning:", pdfData.message);
+        }
+      } catch (pdfErr) {
+        console.error("Failed to process PDF images:", pdfErr);
+      }
+    }
+
+    // 2. Create the course
+    const wsFunction = "local_wsmanageactivities_create_course_with_content";
+    const courseFormData = new FormData();
+    courseFormData.append("wstoken", moodleToken);
+    courseFormData.append("wsfunction", wsFunction);
+    courseFormData.append("moodlewsrestformat", "json");
+    courseFormData.append("coursedata", JSON.stringify(course));
 
     const response = await fetch(wsUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: formData.toString()
-    })
+      body: courseFormData
+    });
 
     const data = await response.json()
 

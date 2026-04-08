@@ -53,6 +53,7 @@ export function UploadView() {
   // States for Factory tab
   const [masterPrompt, setMasterPrompt] = useState("")
   const [dynamicPrompt, setDynamicPrompt] = useState("")
+  const [factoryPdfFile, setFactoryPdfFile] = useState<File | null>(null)
   
   const [generationState, setGenerationState] = useState<GenerationProgress>({
     status: "idle",
@@ -369,16 +370,33 @@ export function UploadView() {
     setGenerationState({
       status: "sending",
       progress: 80,
-      message: "A enviar para o Moodle..."
+      message: "A enviar para o Moodle e a processar imagens..."
     })
 
     try {
+      let pdfFileData = null;
+      
+      // 1. Verificar se há ficheiros na aba AI
+      if (files.length > 0) {
+        const file = files[0].file;
+        const base64Content = await fileToBase64(file);
+        pdfFileData = { name: file.name, content: base64Content };
+      } 
+      // 2. Fallback para o PDF manual da aba JSON (Factory)
+      else if (factoryPdfFile) {
+        const base64Content = await fileToBase64(factoryPdfFile);
+        pdfFileData = { name: factoryPdfFile.name, content: base64Content };
+      }
+
       const response = await fetch("/api/send-to-moodle", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ course: generatedCourse })
+        body: JSON.stringify({ 
+          course: generatedCourse,
+          pdfFile: pdfFileData
+        })
       })
 
       const data = await response.json()
@@ -415,6 +433,19 @@ export function UploadView() {
   const isGenerating = generationState.status === "extracting" || 
                        generationState.status === "generating" || 
                        generationState.status === "sending"
+
+  // Helper to convert file to base64
+  async function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // Remove the data:...;base64, prefix
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   if (showPreview && generatedCourse) {
     return (
@@ -833,10 +864,29 @@ export function UploadView() {
                 />
               </div>
 
+              <div className="space-y-4 pt-6 border-t border-border bg-amber-50/30 p-4 rounded-lg">
+                <h4 className="font-medium text-amber-700 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Passo 2 (Opcional): PDF para Extração de Imagens
+                </h4>
+                <div className="grid w-full items-center gap-1.5">
+                  <Input
+                    id="factory-pdf-upload"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setFactoryPdfFile(e.target.files?.[0] || null)}
+                    className="cursor-pointer bg-white border-amber-200"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Se o curso tiver placeholders de imagem, carregue o PDF original aqui para o Moodle extrair as imagens.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-4 pt-6 border-t border-border bg-blue-50/30 p-4 rounded-lg">
                 <h4 className="font-medium text-blue-700 flex items-center gap-2">
                   <Upload className="h-4 w-4" />
-                  Passo 2: Upload do JSON Gerado
+                  Passo 3: Upload do JSON Gerado
                 </h4>
                 <div className="grid w-full items-center gap-1.5">
                   <Input
