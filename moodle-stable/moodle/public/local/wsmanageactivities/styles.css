@@ -1,5 +1,35 @@
 /* Design Global para Cursos Gerados por IA */
 
+/* Reset do contador na raiz e no container do curso */
+body, .ailms-page-container, #fix-images-container {
+    counter-reset: ailms-figure-counter 0 !important;
+}
+
+.ailms-figure {
+    counter-increment: ailms-figure-counter !important;
+    display: block;
+}
+
+/* Forçar a exibição do prefixo "Figura X - " */
+.ailms-img-caption::before {
+    content: "Figura " counter(ailms-figure-counter) " - " !important;
+    font-weight: bold !important;
+    color: #111 !important;
+}
+
+.ailms-img-caption {
+    font-size: 0.95em !important;
+    color: #222 !important;
+    font-style: italic !important;
+    margin-top: 12px !important;
+    display: block !important;
+}
+
+.ailms-figure-hidden {
+    display: none !important;
+}
+
+/* Resto dos estilos existentes */
 .ailms-page-container {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.7;
@@ -11,82 +41,4 @@
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     border: 1px solid #eee;
-}
-
-.ailms-page-container h2 {
-    color: #1a73e8;
-    border-bottom: 2px solid #e8f0fe;
-    padding-bottom: 12px;
-    margin-bottom: 25px;
-    font-weight: 700;
-}
-
-.ailms-page-container h3 {
-    color: #202124;
-    margin-top: 30px;
-    font-weight: 600;
-}
-
-.ailms-info-box {
-    background: #f8f9fa;
-    border-left: 6px solid #1a73e8;
-    padding: 20px;
-    margin: 25px 0;
-    border-radius: 4px;
-}
-
-.ailms-dica {
-    background-color: #e7f3ff;
-    color: #174ea6;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 20px 0;
-    display: flex;
-    align-items: flex-start;
-}
-
-.ailms-atencao {
-    background-color: #fef7e0;
-    color: #b06000;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 20px 0;
-    border: 1px solid #ffe4a3;
-}
-
-.ailms-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-}
-
-.ailms-table th {
-    background-color: #f1f3f4;
-    padding: 12px;
-    border: 1px solid #dadce0;
-    text-align: left;
-}
-
-.ailms-table td {
-    padding: 12px;
-    border: 1px solid #dadce0;
-}
-
-.ailms-img-container {
-    text-align: center;
-    margin: 25px 0;
-}
-
-.ailms-img-container img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.ailms-img-caption {
-    font-size: 0.9em;
-    color: #70757a;
-    font-style: italic;
-    margin-top: 8px;
 }

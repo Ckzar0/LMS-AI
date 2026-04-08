@@ -1,6 +1,6 @@
 <?php
 /**
- * Ferramenta de Substituição de Imagens e Tabelas - v3.1 (Complete Fix)
+ * Ferramenta de Substituição de Imagens e Tabelas - v5.3 (Centered Compact Layout)
  */
 
 require_once(__DIR__ . '/../../config.php');
@@ -12,9 +12,9 @@ require_capability('moodle/site:config', $context);
 
 $courseid = optional_param('courseid', 0, PARAM_INT);
 $pageid = optional_param('pageid', 0, PARAM_INT);
-$oldimg_full = optional_param('oldimg', '', PARAM_RAW); // Pode ser a tag inteira ou URL
+$placeholder_id = optional_param('placeholder_id', '', PARAM_RAW); 
 $newimg = optional_param('newimg', '', PARAM_RAW);
-$subfolder = optional_param('subfolder', '', PARAM_TEXT);
+$deleteimg = optional_param('deleteimg', 0, PARAM_INT);
 
 $PAGE->set_url(new moodle_url('/local/wsmanageactivities/fix_images.php'), ['courseid' => $courseid]);
 $PAGE->set_context($context);
@@ -24,261 +24,185 @@ $PAGE->set_heading("🖼️ Ajustar Conteúdo Visual");
 echo $OUTPUT->header();
 
 $img_base_dir = __DIR__ . '/extracted_images/';
-// Mover assets para fora da pasta public para contornar bloqueios do Moodle 5.1
 $public_assets_dir = $CFG->dirroot . '/course_assets/' . ($courseid ? $courseid . '/' : '');
 
-// --- LÓGICA DE PROCESSAMENTO ---
-if ($pageid && confirm_sesskey()) {
-    $page = $DB->get_record('page', ['id' => $pageid], '*', MUST_EXIST);
+/**
+ * Lógica de Renumeração (NÃO TOCAR)
+ */
+function renumber_all_figures($courseid) {
+    global $DB;
+    $pages = $DB->get_records('page', ['course' => $courseid], 'id ASC');
+    $count = 0;
+    foreach ($pages as $p) {
+        $content = $p->content;
+        $pattern = '/<(figure|div)[^>]*class="[^"]*ailms-figure[^"]*"[^>]*>.*?<\/\1>/is';
+        if (preg_match_all($pattern, $content, $blocks)) {
+            foreach ($blocks[0] as $block) {
+                $count++;
+                if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\/(?:figcaption|div)>/is', $block, $lm)) {
+                    $old_caption_html = $lm[0];
+                    $current_text = trim(strip_tags($lm[1]));
+                    $clean_text = preg_replace('/^Figura\s*\d+\s*(?:-\s*)?/i', '', $current_text);
+                    $new_text = "Figura " . $count . (!empty($clean_text) ? " - " . $clean_text : "");
+                    $tag = (stripos($old_caption_html, '<figcaption') !== false) ? 'figcaption' : 'div';
+                    $style = (stripos($old_caption_html, '<figcaption') !== false) 
+                             ? 'style="margin-top:15px; font-style:italic; font-weight:bold; color:#111; text-align:center;"'
+                             : 'style="margin-top:15px; font-style:italic; font-weight:bold; color:#333;"';
+                    $new_caption_html = '<' . $tag . ' class="ailms-img-caption" ' . $style . '>' . $new_text . '</' . $tag . '>';
+                    $new_block = str_replace($old_caption_html, $new_caption_html, $block);
+                    $content = str_replace($block, $new_block, $content);
+                    $block = $new_block;
+                }
+            }
+            $DB->set_field('page', 'content', $content, ['id' => $p->id]);
+        }
+    }
+}
 
+// --- LÓGICA DE PROCESSAMENTO ---
+if ($pageid && confirm_sesskey() && $placeholder_id) {
+    $page = $DB->get_record('page', ['id' => $pageid], '*', MUST_EXIST);
     $final_url = "";
-    // A URL aponta agora para a raiz do servidor web
     $public_assets_url = $CFG->wwwroot . '/course_assets/' . ($courseid ? $courseid . '/' : '');
 
-
-    // 1. Processar Upload Direto
     if (!empty($_FILES['uploadimg']['name'])) {
         $file = $_FILES['uploadimg'];
-        $name = clean_param($file['name'], PARAM_FILE);
-        $final_filename = "up_" . time() . "_" . $name;
-        
-        // Garantir que o diretório existe dentro do container
-        if (!is_dir($public_assets_dir)) {
-            mkdir($public_assets_dir, 0777, true);
-        }
-        
-        if (move_uploaded_file($file['tmp_name'], $public_assets_dir . $final_filename)) {
-            // URL RELATIVO PARA O NAVEGADOR
-            $final_url = $public_assets_url . $final_filename;
-        } else {
-            echo $OUTPUT->notification("Erro ao mover ficheiro para: " . $public_assets_dir, 'notifyproblem');
-        }
-    } 
-    // 2. Processar Galeria
-    elseif ($newimg) {
+        if (!is_dir($public_assets_dir)) mkdir($public_assets_dir, 0777, true);
+        $fname = "up_" . time() . "_" . clean_param($file['name'], PARAM_FILE);
+        if (move_uploaded_file($file['tmp_name'], $public_assets_dir . $fname)) $final_url = $public_assets_url . $fname;
+    } elseif ($newimg) {
         $source = $img_base_dir . $newimg;
         if (file_exists($source)) {
             if (!is_dir($public_assets_dir)) mkdir($public_assets_dir, 0777, true);
             $fname = basename($newimg);
-            copy($source, $public_assets_dir . $fname);
+            @copy($source, $public_assets_dir . $fname);
             $final_url = $public_assets_url . $fname;
         }
     }
 
-    if ($final_url) {
-        // Se estivermos a substituir um placeholder laranja (ailms-placeholder-box), 
-        // temos de trocar o div inteiro por uma tag img limpa
-        $new_img_tag = '<p dir="ltr" style="text-align: center;"><img src="'.$final_url.'" class="img-fluid" width="600" height="auto"></p>';
-        
-        // Tentar encontrar o bloco pai no conteúdo
-        if (strpos($page->content, $oldimg_full) !== false) {
-            $new_content = str_replace($oldimg_full, $new_img_tag, $page->content);
-        } else {
-            // Fallback para URL simples se não encontrar o bloco completo
-            $new_content = str_replace($oldimg_full, $final_url, $page->content);
+    $pattern_find = '/<(figure|div)[^>]*data-placeholder="' . preg_quote($placeholder_id, '/') . '"[^>]*>.*?<\/\1>/is';
+    if (preg_match($pattern_find, $page->content, $m)) {
+        $old_block = $m[0];
+        $new_block = "";
+        if (!$deleteimg && $final_url) {
+            $legend = "";
+            if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\/(?:figcaption|div)>/is', $old_block, $lm)) {
+                $legend = trim(strip_tags($lm[1]));
+                $legend = preg_replace('/^Figura\s*\d+\s*(?:-\s*)?/i', '', $legend);
+            }
+            $new_block = '<figure class="ailms-figure" data-placeholder="'.$placeholder_id.'" style="text-align: center; margin: 30px auto; max-width: 90%; border: 1px solid #ddd; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">' .
+                           '<img src="' . $final_url . '" data-legend="'.htmlspecialchars($legend).'" class="img-fluid" style="border-radius: 8px; max-width: 100%; height: auto;">' .
+                           '<figcaption class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#111; text-align:center;">' . $legend . '</figcaption>' .
+                           '</figure>';
         }
-        
+        $new_content = str_replace($old_block, $new_block, $page->content);
         $DB->set_field('page', 'content', $new_content, ['id' => $pageid]);
-        echo $OUTPUT->notification("Substituído com sucesso!", 'notifysuccess');
+        renumber_all_figures($courseid);
+        echo $OUTPUT->notification("Ação concluída!", 'notifysuccess');
         rebuild_course_cache($page->course, true);
-        $page->content = $new_content; // Atualizar para exibição imediata abaixo
     }
 }
 
-?>
-<style>
-    .img-card { display: flex; align-items: stretch; gap: 20px; background: #fff; border: 1px solid #d1d5db; margin-bottom: 25px; padding: 20px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .preview-current { width: 300px; display: flex; flex-direction: column; align-items: center; background: #f9fafb; border-radius: 8px; padding: 10px; }
-    .preview-current img { max-width: 100%; max-height: 200px; border: 1px solid #eee; }
-    .actions { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
-    .box-upload { background: #eff6ff; padding: 15px; border-radius: 8px; border: 1px dashed #3b82f6; }
-    .box-gallery { background: #f3f4f6; padding: 15px; border-radius: 8px; }
-    .btn-apply { background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: fit-content; }
-    .btn-apply:hover { background: #047857; }
-    .preview-new-container { margin-top: 10px; text-align: center; background: #fff; padding: 10px; border-radius: 6px; display: none; border: 1px solid #ddd; }
-    .preview-new-container img { max-width: 200px; max-height: 150px; }
-    .label-pretendia { background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; margin-bottom: 10px; display: block; width: 100%; text-align: center; }
-</style>
+// --- INTERFACE ---
+// Container centralizador mais estreito (1000px)
+echo '<div style="max-width:1000px; margin:0 auto;">';
 
+if (!$courseid) {
+    echo '<h2>Selecione um Curso:</h2>';
+    $courses = $DB->get_records('course', [], 'fullname ASC');
+    foreach ($courses as $c) {
+        if ($c->id == 1) continue;
+        $url = new moodle_url('/local/wsmanageactivities/fix_images.php', ['courseid' => $c->id]);
+        echo '<div style="margin-bottom:10px;"><a href="'.$url.'" style="font-weight:bold; font-size:1.1em;">📁 '.s($c->fullname).'</a></div>';
+    }
+} else {
+    echo '<h2>Curso: '.s($DB->get_field('course', 'fullname', ['id' => $courseid])).'</h2>';
+    $pages = $DB->get_records('page', ['course' => $courseid]);
+    
+    $all_available = [];
+    if (is_dir($img_base_dir)) {
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($img_base_dir));
+        foreach ($it as $file) {
+            if ($file->isFile() && preg_match('/\.(jpg|jpeg|png)$/i', $file->getFilename())) {
+                $all_available[] = ['name' => $file->getFilename(), 'folder' => trim(str_replace($img_base_dir, '', $file->getPath()), '/')];
+            }
+        }
+    }
+    sort($all_available);
+
+    foreach ($pages as $page) {
+        preg_match_all('/<(figure|div)[^>]*class="[^"]*ailms-figure[^"]*"[^>]*>.*?<\/\1>/is', $page->content, $blocks);
+        if (empty($blocks[0])) continue;
+
+        echo '<div style="background:#f4f4f4; padding:25px; border:1px solid #ddd; margin-bottom:40px; border-radius:15px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">';
+        echo '<h3 style="margin-top:0; color:#1a73e8; border-bottom:2px solid #e1e4e8; padding-bottom:10px; margin-bottom:20px;">📄 Página: '.s($page->name).'</h3>';
+        
+        foreach ($blocks[0] as $idx => $block_html) {
+            $placeholder = "";
+            if (preg_match('/data-placeholder="([^"]+)"/i', $block_html, $pm)) $placeholder = $pm[1];
+            if (!$placeholder) continue;
+
+            $unique_id = "item_{$page->id}_{$idx}";
+            
+            echo '<table style="width:100%; border-collapse:collapse; background:#fff; border:1px solid #ccc; margin-bottom:25px; border-radius:10px; overflow:hidden; table-layout:fixed;">';
+            echo '<tr>';
+            
+            // Preview
+            echo '<td style="width:320px; padding:15px; border-right:1px solid #eee; vertical-align:middle; background:#fafafa; text-align:center;">';
+            if (stripos($block_html, 'ailms-error-block') !== false) {
+                echo '<div style="color:#d32f2f; font-weight:bold; background:#ffebee; padding:20px; border-radius:8px; border:1px dashed #f44336;">⚠️ IMAGEM EM FALTA<br><small style="opacity:0.7;">'.$placeholder.'</small></div>';
+            } else {
+                if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $block_html, $im)) {
+                    echo '<img src="'.$im[1].'" style="max-width:100%; max-height:250px; height:auto; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">';
+                } else {
+                    echo "Sem Preview";
+                }
+            }
+            echo '</td>';
+
+            // Ações
+            echo '<td style="padding:20px; vertical-align:top;">';
+            
+            $legend = "";
+            if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\//is', $block_html, $lm)) $legend = trim(strip_tags($lm[1]));
+            echo '<div style="background:#fffde7; padding:12px; border:1px solid #fff59d; border-radius:8px; margin-bottom:15px; font-size:13px; color:#5d4037; line-height:1.4;">';
+            echo '💡 <strong>Legenda do Sistema:</strong><br>' . ($legend ? s($legend) : 'Sem legenda');
+            echo '</div>';
+
+            echo '<form method="POST" enctype="multipart/form-data" style="margin:0;">';
+            echo '<input type="hidden" name="sesskey" value="'.sesskey().'"><input type="hidden" name="pageid" value="'.$page->id.'"><input type="hidden" name="placeholder_id" value="'.s($placeholder).'">';
+            
+            echo '<div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #eceff1;"><strong>📤 Upload Local:</strong><br><input type="file" name="uploadimg" style="margin-top:5px; font-size:12px;"></div>';
+            echo '<div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #eceff1;"><strong>🖼️ Galeria Extração:</strong><br><select name="newimg" style="width:100%; margin-top:5px; padding:5px; border-radius:4px; border:1px solid #cfd8dc;" onchange="previewNew(this, \''.$unique_id.'\')"><option value="">-- Selecionar --</option>';
+            foreach ($all_available as $img) echo '<option value="'.s($img['folder'].'/'.$img['name']).'">['.s($img['folder']).'] '.s($img['name']).'</option>';
+            echo '</select></div>';
+            
+            echo '<div id="new_container_'.$unique_id.'" style="display:none; margin-top:10px; border:2px dashed #4caf50; padding:10px; text-align:center; background:#e8f5e9; border-radius:8px;"><span style="color:#2e7d32; font-size:11px; font-weight:bold;">✨ Nova Seleção:</span><br><img id="new_img_'.$unique_id.'" src="" style="max-width:100%; max-height:120px; border-radius:4px; margin-top:5px;"></div>';
+
+            echo '<div style="margin-top:20px; display:flex; gap:10px;">';
+            echo '<button type="submit" style="background:#1b5e20; color:#fff; padding:12px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; flex:2;">✅ ATUALIZAR</button> ';
+            echo '<button type="submit" name="deleteimg" value="1" style="background:#b71c1c; color:#fff; padding:12px 20px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; flex:1;" onclick="return confirm(\'Apagar permanentemente?\')">🗑️ APAGAR</button>';
+            echo '</div>';
+            echo '</form>';
+            
+            echo '</td></tr></table>';
+        }
+        echo '</div>';
+    }
+}
+echo '</div>'; // Fecha container centralizador
+?>
 <script>
-function showNewPreview(select, id) {
+function previewNew(sel, id) {
     const container = document.getElementById('new_container_' + id);
     const img = document.getElementById('new_img_' + id);
-    if (select.value) {
-        const url = '<?php echo $CFG->wwwroot; ?>/local/wsmanageactivities/extracted_images/' + select.value;
-        img.src = url;
+    if (sel.value) {
+        img.src = '<?php echo $CFG->wwwroot; ?>/local/wsmanageactivities/extracted_images/' + sel.value;
         container.style.display = 'block';
     } else {
         container.style.display = 'none';
     }
 }
-function previewLocalFile(input, id) {
-    const container = document.getElementById('new_container_' + id);
-    const img = document.getElementById('new_img_' + id);
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            img.src = e.target.result;
-            container.style.display = 'block';
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
 </script>
-
 <?php
-echo '<div style="max-width: 1100px; margin: 0 auto; padding: 20px;">';
-$back_url = new moodle_url('/local/wsmanageactivities/courses.php');
-echo '<div style="margin-bottom: 20px;"><a href="' . $back_url . '" style="text-decoration: none; color: #6B46C1; font-weight: bold;">← Voltar para Meus Cursos</a></div>';
-
-if (!$courseid) {
-    echo '<h3>Selecione um curso para gerir:</h3>';
-    $courses = $DB->get_records('course', [], 'id DESC', 'id, fullname', 0, 20);
-    foreach ($courses as $c) { 
-        if ($c->id > 1) {
-            $c_url = new moodle_url('/local/wsmanageactivities/fix_images.php', ['courseid' => $c->id]);
-            echo '<div style="margin-bottom:10px;"><a href="'.$c_url.'" style="font-size:1.1em; font-weight:bold;">📁 '.$c->fullname.'</a></div>';
-        }
-    }
-} else {
-    echo '<h2>Curso: '.$DB->get_field('course', 'fullname', ['id' => $courseid]).'</h2>';
-    $pages = $DB->get_records('page', ['course' => $courseid]);
-    
-    // LISTA DE IMAGENS AGRUPADA
-    $all_available = [];
-    if (is_dir($img_base_dir)) {
-        $it = new RecursiveDirectoryIterator($img_base_dir);
-        foreach (new RecursiveIteratorIterator($it) as $file) {
-            if ($file->isFile() && preg_match('/\.(jpg|jpeg|png)$/i', $file->getFilename())) {
-                $f_folder = trim(str_replace($img_base_dir, '', $file->getPath()), '/');
-                $all_available[] = ['name' => $file->getFilename(), 'folder' => $f_folder];
-            }
-        }
-    }
-    // Ordenar para que a pasta do curso atual apareça primeiro (opcional)
-    sort($all_available);
-
-    foreach ($pages as $page) {
-        // Encontrar: 
-        // 1. Placeholders laranja (ailms-placeholder-box)
-        // 2. Imagens normais
-        // 3. Spans de erro de imagem em falta
-        preg_match_all('/<div class="ailms-placeholder-box"[^>]*>.*?<\/div>/is', $page->content, $div_matches);
-        preg_match_all('/<img[^>]+src="([^"]+)"[^>]*>/i', $page->content, $img_matches, PREG_SET_ORDER);
-        preg_match_all('/<span[^>]+style="color:red;[^>]*>\[IMAGEM EM FALTA: (.*?)\]<\/span>/is', $page->content, $error_matches, PREG_SET_ORDER);
-
-        $items_to_fix = [];
-        // Adicionar placeholders primeiro
-        foreach ($div_matches[0] as $div_html) {
-            $label = "Placeholder de Tabela";
-            $hint = "";
-            if (preg_match('/\[SUBSTITUIR POR PRINT DA TABELA - (PÁG \d+)\]/', $div_html, $lm)) {
-                $label = $lm[0];
-                $hint = "Esta tabela deve ser extraída da página " . $lm[1] . " do manual original.";
-            }
-            $items_to_fix[] = ['type' => 'placeholder', 'html' => $div_html, 'label' => $label, 'hint' => $hint];
-        }
-        
-        // Adicionar erros de "Imagem em Falta"
-        foreach ($error_matches as $em) {
-            $items_to_fix[] = ['type' => 'error', 'html' => $em[0], 'label' => "FALTA: " . $em[1], 'hint' => "A IA solicitou a imagem do placeholder " . $em[1] . ", mas não foi encontrada na extração automática."];
-        }
-
-        // Adicionar imagens normais
-        foreach ($img_matches as $im) {
-            $full_img_tag = $im[0];
-            $img_url_found = $im[1];
-            
-            $label = 'Imagem do Curso';
-            $hint = "Imagem sem legenda detetada.";
-            
-            // 1. Tentar extrair do atributo data-legend (que o image_processor agora preenche com a legenda completa)
-            if (preg_match('/data-legend\s*=\s*["\']([^"]+)["\']/i', $full_img_tag, $pm)) {
-                $hint = htmlspecialchars_decode($pm[1]);
-            } 
-            // 2. Fallback para alt
-            elseif (preg_match('/alt\s*=\s*["\']([^"]+)["\']/i', $full_img_tag, $pm) && !in_array($pm[1], ['Imagem do Curso', 'Figura'])) {
-                $hint = $pm[1];
-            }
-            // 3. Fallback para title (contém o placeholder técnico)
-            elseif (preg_match('/title\s*=\s*["\']([^"]+)["\']/i', $full_img_tag, $pm)) {
-                $hint = "Ref: " . $pm[1];
-            }
-            
-            $items_to_fix[] = ['type' => 'image', 'html' => $full_img_tag, 'url' => $img_url_found, 'label' => $label, 'hint' => $hint];
-        }
-
-
-        if (empty($items_to_fix)) continue;
-
-        echo '<div style="background: #f3f4f6; padding: 20px; border-radius: 12px; margin-bottom: 40px; border: 1px solid #e5e7eb;">';
-        echo '<h3 style="margin-top:0;">📄 Página: '.s($page->name).'</h3>';
-        
-        $idx = 0;
-        foreach ($items_to_fix as $item) {
-            $idx++;
-            $unique_id = "item_{$page->id}_{$idx}";
-            
-            // Extrair o que a IA pediu (do alt ou title se for imagem, ou da label se for placeholder)
-            $requested_label = $item['label'];
-            if ($item['type'] === 'image') {
-                if (preg_match('/\[\[IMG_P\d+_\d+\]\]/i', $item['html'], $pm)) $requested_label = "Imprescindível: " . $pm[0];
-            }
-
-            echo '<div class="img-card">';
-            // LADO ESQUERDO: PREVIEW ATUAL
-            echo '<div class="preview-current">';
-            echo '<span class="label-pretendia" style="background:#3b82f6; color:white;">' . $requested_label . '</span>';
-            if ($item['type'] === 'placeholder' || $item['type'] === 'error') {
-                echo '<img src="https://placehold.co/300x200?text=Aguardando+Substituicao" style="opacity:0.5;">';
-            } else {
-                echo '<img src="'.$item['url'].'" onerror="this.src=\'https://placehold.co/300x200?text=Erro+ao+Carregar\';">';
-            }
-            echo '</div>';
-
-            // LADO DIREITO: AÇÕES
-            echo '<div class="actions">';
-            if (!empty($item['hint'])) {
-                echo '<div style="background: #fffbeb; border: 1px solid #fef3c7; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; color: #92400e;">';
-                echo '💡 <strong>Legenda do Sistema:</strong> ' . s($item['hint']);
-                echo '</div>';
-            }
-            echo '<form method="POST" enctype="multipart/form-data">';
-            echo '<input type="hidden" name="sesskey" value="'.sesskey().'">';
-            echo '<input type="hidden" name="pageid" value="'.$page->id.'">';
-            echo '<input type="hidden" name="oldimg" value="'.s($item['html']).'">';
-
-            echo '<div class="box-upload">';
-            echo '<strong>📤 Carregar imagem (Computador):</strong><br>';
-            echo '<input type="file" name="uploadimg" accept="image/*" onchange="previewLocalFile(this, \''.$unique_id.'\')" style="margin-top:10px;">';
-            echo '</div>';
-
-            echo '<div style="text-align:center; font-weight:bold; color:#999; font-size:12px;">-- OU --</div>';
-
-            echo '<div class="box-gallery">';
-            echo '<strong>🖼️ Escolher da Galeria do PDF:</strong><br>';
-            echo '<select name="newimg" onchange="showNewPreview(this, \''.$unique_id.'\');" style="width:100%; margin-top:5px; padding:5px;">';
-            echo '<option value="">-- Selecione uma imagem --</option>';
-            foreach ($all_available as $avail) {
-                $val = ($avail['folder'] ? $avail['folder'] . '/' : '') . $avail['name'];
-                echo '<option value="'.$val.'">['.($avail['folder']?:'Raiz').'] '.$avail['name'].'</option>';
-            }
-            echo '</select>';
-            echo '</div>';
-
-            // PREVIEW DA NOVA ESCOLHA
-            echo '<div id="new_container_'.$unique_id.'" class="preview-new-container">';
-            echo '<span style="font-size:10px; color:#059669; font-weight:bold;">Nova Imagem Selecionada:</span><br>';
-            echo '<img id="new_img_'.$unique_id.'" src="">';
-            echo '</div>';
-
-            echo '<button type="submit" class="btn-apply">✅ APLICAR E SUBSTITUIR</button>';
-            echo '</form>';
-            echo '</div>';
-            echo '</div>';
-        }
-        echo '</div>';
-    }
-}
-echo '</div>';
 echo $OUTPUT->footer();
