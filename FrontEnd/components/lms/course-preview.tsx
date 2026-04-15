@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowLeft, Send, BookOpen, FileQuestion, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight } from "lucide-react"
+import { ArrowLeft, Send, BookOpen, FileQuestion, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,7 @@ interface CoursePreviewProps {
   onSendToMoodle: () => void
   isSending: boolean
   moodleConnected: boolean
+  createdCourseId?: number | null
 }
 
 function SafeRender({ value }: { value: any }) {
@@ -184,14 +185,16 @@ function ActivityPreview({ activity, index }: { activity: Activity; index: numbe
   )
 }
 
-export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodleConnected }: CoursePreviewProps) {
+export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodleConnected, createdCourseId }: CoursePreviewProps) {
   const totalQuestions = course.question_banks.reduce(
     (acc, bank) => acc + bank.questions.length, 
     0
   )
 
+  const isSuccess = createdCourseId && Number(createdCourseId) > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -203,25 +206,63 @@ export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodl
             <p className="text-muted-foreground">Revise o conteudo antes de enviar para o Moodle</p>
           </div>
         </div>
-        <Button 
-          size="lg" 
-          onClick={onSendToMoodle}
-          disabled={isSending || !moodleConnected}
-          className="gap-2"
-        >
-          {isSending ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              A Enviar...
-            </>
-          ) : (
-            <>
-              <Send className="h-5 w-5" />
-              Enviar para Moodle
-            </>
-          )}
-        </Button>
+        
+        {!isSuccess && (
+          <Button 
+            size="lg" 
+            onClick={onSendToMoodle}
+            disabled={isSending || !moodleConnected}
+            className="gap-2"
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                A Enviar...
+              </>
+            ) : (
+              <>
+                <Send className="h-5 w-5" />
+                Enviar para Moodle
+              </>
+            )}
+          </Button>
+        )}
       </div>
+
+      {/* Success Message */}
+      {isSuccess && (
+        <Card className="border-green-500 bg-green-50 shadow-md">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-green-800">Sucesso! Curso Criado no Moodle.</h3>
+                <p className="text-green-700 text-sm">
+                  O curso foi importado corretamente com {course.activities.length} atividades e {totalQuestions} questões. 
+                  <span className="font-bold ml-1">(ID Gerado: {createdCourseId})</span>
+                </p>
+                <div className="mt-4 flex gap-3">
+                  <Button asChild className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-sm">
+                    <a 
+                      href={`http://localhost:8080/course/view.php?id=${createdCourseId}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Abrir Curso Agora
+                    </a>
+                  </Button>
+                  <Button variant="outline" onClick={onBack} className="bg-white">
+                    Voltar para o Início
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Connection Warning */}
       {!moodleConnected && (

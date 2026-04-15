@@ -68,7 +68,7 @@ class ActivityCreator {
                 $DB->set_field('page', 'content', $new_content, ['id' => $page_id]);
             }
         } catch (\Throwable $e) {
-            echo "      ⚠️ Aviso: Falha ao processar imagens da página: " . $e->getMessage() . "\n";
+            // echo "      ⚠️ Aviso: Falha ao processar imagens da página: " . $e->getMessage() . "\n";
         }
 
         return $info->coursemodule;
@@ -101,7 +101,8 @@ class ActivityCreator {
         $moduleinfo->reviewspecificfeedback = 69904; $moduleinfo->reviewgeneralfeedback = 69904; $moduleinfo->reviewrightanswer = 69904; $moduleinfo->reviewoverallfeedback = 69904;
         $moduleinfo->visible = 1; $moduleinfo->completion = 1; $moduleinfo->completionusegrade = 0; $moduleinfo->completionpass = 0;
         $moduleinfo->gradepass = (float)($activity['passing_score'] ?? 15.0);
-        $moduleinfo->cmidnumber = ''; $moduleinfo->timeopen = 0; $moduleinfo->timeclose = 0; $moduleinfo->timelimit = 0;
+        $moduleinfo->cmidnumber = ''; $moduleinfo->timeopen = 0; $moduleinfo->timeclose = 0; 
+        $moduleinfo->timelimit = (int)($activity['timelimit'] ?? 0);
         
         // Novos campos para Moodle 5.x (OBRIGATÓRIOS)
         $moduleinfo->questionsperpage = 1; $moduleinfo->shuffleanswers = 1; $moduleinfo->sumgrades = 0;
@@ -118,7 +119,7 @@ class ActivityCreator {
             \context_helper::reset_caches();
             $quiz_context = \context_module::instance($info->coursemodule);
         } catch (\Throwable $e) {
-            echo "      ❌ Erro fatal ao criar Quiz: " . $e->getMessage() . "\n";
+            // echo "      ❌ Erro fatal ao criar Quiz: " . $e->getMessage() . "\n";
             throw $e;
         }
 
@@ -126,7 +127,7 @@ class ActivityCreator {
 
         // 1. OBTER CATEGORIA PADRÃO DO QUIZ (No contexto do Módulo)
         $default_category = \question_get_default_category($quiz_context->id);
-        echo "      📂 Banco de Questões do Quiz: {$default_category->name} (ID: {$default_category->id})\n";
+        // echo "      📂 Banco de Questões do Quiz: {$default_category->name} (ID: {$default_category->id})\n";
 
         // 2. IMPORTAR QUESTÕES PARA ESTA CATEGORIA
         if (!empty($json_data['question_banks'])) {
@@ -139,7 +140,7 @@ class ActivityCreator {
                     }
                 }
             }
-            echo "      ✅ Criadas $q_count questões diretamente no Banco do Quiz.\n";
+            // echo "      ✅ Criadas $q_count questões diretamente no Banco do Quiz.\n";
         }
 
         // 3. VINCULAR QUESTÕES ALEATÓRIAS AO QUIZ
@@ -174,10 +175,10 @@ class ActivityCreator {
                     $quizobj = \mod_quiz\quiz_settings::create($quiz->id);
                     \mod_quiz\grade_calculator::create($quizobj)->recompute_quiz_sumgrades();
                 }
-                echo "      ✅ Associadas " . ($slot_num-1) . " perguntas ao Quiz.\n";
+                // echo "      ✅ Associadas " . ($slot_num-1) . " perguntas ao Quiz.\n";
             }
         } catch (\Throwable $e) {
-            echo "      ❌ Erro na associação de questões: " . $e->getMessage() . "\n";
+            // echo "      ❌ Erro na associação de questões: " . $e->getMessage() . "\n";
         }
         return $info->coursemodule;
     }
@@ -214,7 +215,7 @@ class ActivityCreator {
                 $DB->insert_record('course_completion_aggr_methd', $aggr);
             }
         } catch (\Throwable $e) {
-            echo "      ⚠️ Erro ao configurar conclusão de curso: " . $e->getMessage() . "\n";
+            // echo "      ⚠️ Erro ao configurar conclusão de curso: " . $e->getMessage() . "\n";
         }
     }
 
@@ -254,7 +255,7 @@ class ActivityCreator {
             
             return $info->coursemodule;
         } catch (\Throwable $e) {
-            echo "      ⚠️ Erro ao criar atividade de Feedback: " . $e->getMessage() . "\n";
+            // echo "      ⚠️ Erro ao criar atividade de Feedback: " . $e->getMessage() . "\n";
             return null;
         }
     }

@@ -7,11 +7,14 @@ import {
   Award, 
   Users,
   Settings,
-  HelpCircle
+  HelpCircle,
+  ExternalLink
 } from "lucide-react"
 import { UmainLogo } from "@/components/umain-logo"
 import { cn } from "@/lib/utils"
 import type { ViewType } from "@/app/page"
+
+const MOODLE_URL = "http://localhost:8080";
 
 interface SidebarProps {
   currentView: ViewType
@@ -61,6 +64,17 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
 
       <div className="p-3 border-t border-sidebar-border">
         <ul className="space-y-1">
+          <li>
+            <a 
+              href={MOODLE_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+            >
+              <ExternalLink className="h-5 w-5" />
+              Administração Moodle
+            </a>
+          </li>
           <li>
             <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
               <Settings className="h-5 w-5" />
