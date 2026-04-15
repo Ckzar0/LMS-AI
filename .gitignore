@@ -1,0 +1,48 @@
+# Node.js
+node_modules/
+.next/
+out/
+build/
+*.log
+
+# Environment Variables (SENSITIVE)
+.env
+.env.local
+.env*.local
+
+# Database Backups
+*.sql
+!moodle_base_setup.sql
+Backups/
+
+# OS / IDE Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Moodle Core (Ignorar quase tudo para poupar espaço no Git)
+moodle-stable/moodle/*
+!moodle-stable/moodle/public/
+moodle-stable/moodle/public/*
+!moodle-stable/moodle/public/local/
+moodle-stable/moodle/public/local/*
+!moodle-stable/moodle/public/local/wsmanageactivities/
+
+# Ignorar pastas de dados e assets do Docker
+moodle-stable/assets/
+moodle-stable/moodledata/
+moodle-stable/mariadb_data/
+moodle-stable/moodle/Cursos/
+
+# --- Project Documentation and Workspace Logs ---
+Guias e Logs/
+LOG_*.md
+GUIA_*.md
+Relatório_Contexto_LLM.txt
+Descritivo e objetivos.txt
+Requisitos-projeto.txt
+*.docx
+*.pdf
+GEMINI.md

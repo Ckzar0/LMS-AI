@@ -1,0 +1,207 @@
+<?php
+namespace local_wsmanageactivities\importer;
+
+defined('MOODLE_INTERNAL') || die();
+
+class ActivityCreator {
+    
+    public static function create_page($course_id, $activity) {
+        global $DB;
+        
+        $section_num = $activity['section'] ?? 0;
+        $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
+        
+        course_create_sections_if_missing($course, $section_num);
+        $section = $DB->get_record('course_sections', [
+            'course' => $course_id,
+            'section' => $section_num
+        ], '*', MUST_EXIST);
+        
+        $page = new \stdClass();
+        $page->course = $course_id;
+        $page->name = $activity['name'];
+        $page->intro = '';
+        $page->introformat = FORMAT_HTML;
+        $page->content = $activity['content'] ?? '';
+        $page->contentformat = FORMAT_HTML;
+        $page->legacyfiles = 0;
+        $page->display = 5;
+        $page->displayoptions = 'a:1:{s:12:"printheading";s:1:"1";}';
+        $page->revision = 1;
+        $page->timemodified = time();
+        
+        $page_id = $DB->insert_record('page', $page);
+        
+        $module = $DB->get_record('modules', ['name' => 'page'], '*', MUST_EXIST);
+        
+        $cm = new \stdClass();
+        $cm->course = $course_id;
+        $cm->module = $module->id;
+        $cm->instance = $page_id;
+        $cm->section = $section->id;
+        $cm->idnumber = '';
+        $cm->added = time();
+        $cm->score = 0;
+        $cm->indent = 0;
+        $cm->visible = 1;
+        $cm->visibleoncoursepage = 1;
+        $cm->visibleold = 1;
+        $cm->groupmode = 0;
+        $cm->groupingid = 0;
+        $cm->completion = 2;
+        $cm->completionview = 1;
+        $cm->completionexpected = 0;
+        $cm->showdescription = 0;
+        $cm->downloadcontent = 1;
+        $cm->deletioninprogress = 0;
+        
+        if (!empty($activity['sequential'])) {
+            $cm->availability = json_encode([
+                'op' => '&',
+                'c' => [['type' => 'completion', 'cm' => -1, 'e' => 1]],
+                'showc' => [true]
+            ]);
+        }
+        
+        $cm_id = $DB->insert_record('course_modules', $cm);
+        
+        $sequence = $section->sequence;
+        $sequence = ($sequence) ? $sequence . ',' . $cm_id : $cm_id;
+        $DB->set_field('course_sections', 'sequence', $sequence, ['id' => $section->id]);
+        
+        rebuild_course_cache($course_id, true);
+        
+        return $cm_id;
+    }
+    
+    public static function create_quiz($course_id, $activity) {
+        global $DB;
+        
+        require_once(__DIR__ . '/QuestionCreator.php');
+        
+        $section_num = $activity['section'] ?? 0;
+        $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
+        
+        course_create_sections_if_missing($course, $section_num);
+        $section = $DB->get_record('course_sections', [
+            'course' => $course_id,
+            'section' => $section_num
+        ], '*', MUST_EXIST);
+        
+        $quiz = new \stdClass();
+        $quiz->course = $course_id;
+        $quiz->name = $activity['name'];
+        $quiz->intro = $activity['intro'] ?? '';
+        $quiz->introformat = FORMAT_HTML;
+        $quiz->timeopen = 0;
+        $quiz->timeclose = 0;
+        $quiz->timelimit = $activity['timelimit'] ?? 0;
+        $quiz->overduehandling = 'autosubmit';
+        $quiz->graceperiod = 0;
+        $quiz->preferredbehaviour = 'deferredfeedback';
+        $quiz->canredoquestions = 0;
+        $quiz->attempts = $activity['attempts'] ?? 0;
+        $quiz->attemptonlast = 0;
+        $quiz->grademethod = 1;
+        $quiz->decimalpoints = 2;
+        $quiz->questiondecimalpoints = -1;
+        $quiz->reviewattempt = 69904;
+        $quiz->reviewcorrectness = 4096;
+        $quiz->reviewmarks = 4352;
+        $quiz->reviewspecificfeedback = 4096;
+        $quiz->reviewgeneralfeedback = 4096;
+        $quiz->reviewrightanswer = 16;
+        $quiz->reviewoverallfeedback = 4112;
+        $quiz->questionsperpage = 1;
+        $quiz->navmethod = 'free';
+        $quiz->shuffleanswers = 1;
+        $quiz->sumgrades = 0;
+        $quiz->grade = $activity['grade'] ?? 10.0;
+        $quiz->timecreated = time();
+        $quiz->timemodified = time();
+        $quiz->password = '';
+        $quiz->subnet = '';
+        $quiz->browsersecurity = '-';
+        $quiz->delay1 = 0;
+        $quiz->delay2 = 0;
+        $quiz->showuserpicture = 0;
+        $quiz->showblocks = 0;
+        $quiz->completionattemptsexhausted = 0;
+        $quiz->completionpass = 0;
+        
+        $quiz_id = $DB->insert_record('quiz', $quiz);
+        
+        $module = $DB->get_record('modules', ['name' => 'quiz'], '*', MUST_EXIST);
+        
+        $cm = new \stdClass();
+        $cm->course = $course_id;
+        $cm->module = $module->id;
+        $cm->instance = $quiz_id;
+        $cm->section = $section->id;
+        $cm->added = time();
+        $cm->visible = 1;
+        $cm->visibleoncoursepage = 1;
+        $cm->completion = 2;
+        $cm->completionview = 0;
+        $cm->completionexpected = 0;
+        
+        if (!empty($activity['sequential'])) {
+            $cm->availability = json_encode([
+                'op' => '&',
+                'c' => [['type' => 'completion', 'cm' => -1, 'e' => 1]],
+                'showc' => [true]
+            ]);
+        }
+        
+        $cm_id = $DB->insert_record('course_modules', $cm);
+        
+        $sequence = $section->sequence;
+        $sequence = ($sequence) ? $sequence . ',' . $cm_id : $cm_id;
+        $DB->set_field('course_sections', 'sequence', $sequence, ['id' => $section->id]);
+        
+        if (!empty($activity['questions'])) {
+            $context = \context_course::instance($course_id);
+            
+            $cat = new \stdClass();
+            $cat->name = 'Quiz questions - ' . $activity['name'];
+            $cat->contextid = $context->id;
+            $cat->info = '';
+            $cat->infoformat = FORMAT_HTML;
+            $cat->stamp = make_unique_id_code();
+            $cat->parent = 0;
+            $cat->sortorder = 999;
+            $cat_id = $DB->insert_record('question_categories', $cat);
+            
+            $count = 0;
+            foreach ($activity['questions'] as $qd) {
+                try {
+                    $q_id = QuestionCreator::create_question($cat_id, $context->id, $qd);
+                    
+                    $slot = new \stdClass();
+                    $slot->quizid = $quiz_id;
+                    $slot->slot = $count + 1;
+                    $slot->page = $count + 1;
+                    $slot->requireprevious = 0;
+                    $slot->questionid = $q_id;
+                    $slot->questioncategoryid = $cat_id;
+                    $slot->includingsubcategories = 0;
+                    $slot->maxmark = $qd['mark'] ?? 1.0;
+                    
+                    $DB->insert_record('quiz_slots', $slot);
+                    $count++;
+                } catch (\Exception $e) {
+                    echo "   [ERRO Q] {$e->getMessage()}\n";
+                }
+            }
+            
+            if ($count > 0) {
+                $DB->set_field('quiz', 'sumgrades', $count, ['id' => $quiz_id]);
+            }
+        }
+        
+        rebuild_course_cache($course_id, true);
+        
+        return $cm_id;
+    }
+}
+
