@@ -96,11 +96,11 @@ class ActivityCreator {
         $moduleinfo->preferredbehaviour = 'deferredfeedback';
         $moduleinfo->attempts = (int)($activity['max_attempts'] ?? 0); 
         $moduleinfo->grademethod = 1; $moduleinfo->decimalpoints = 2;
-        $moduleinfo->grade = (float)($activity['grade'] ?? 10.0);
+        $moduleinfo->grade = (float)($activity['grade'] ?? 20.0);
         $moduleinfo->reviewattempt = 69904; $moduleinfo->reviewcorrectness = 69904; $moduleinfo->reviewmarks = 69904;
         $moduleinfo->reviewspecificfeedback = 69904; $moduleinfo->reviewgeneralfeedback = 69904; $moduleinfo->reviewrightanswer = 69904; $moduleinfo->reviewoverallfeedback = 69904;
         $moduleinfo->visible = 1; $moduleinfo->completion = 1; $moduleinfo->completionusegrade = 0; $moduleinfo->completionpass = 0;
-        $moduleinfo->gradepass = (float)($activity['passing_score'] ?? 7.0);
+        $moduleinfo->gradepass = (float)($activity['passing_score'] ?? 15.0);
         $moduleinfo->cmidnumber = ''; $moduleinfo->timeopen = 0; $moduleinfo->timeclose = 0; $moduleinfo->timelimit = 0;
         
         // Novos campos para Moodle 5.x (OBRIGATÓRIOS)

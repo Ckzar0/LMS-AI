@@ -163,7 +163,9 @@ function ActivityPreview({ activity, index }: { activity: Activity; index: numbe
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-muted-foreground">Nota Minima</p>
-                  <p className="font-medium">{activity.gradepass || 0}%</p>
+                  <p className="font-medium">
+                    {activity.gradepass ? `${activity.gradepass}/20 (${(activity.gradepass/20*100).toFixed(0)}%)` : "0%"}
+                  </p>
                 </div>
                 <div className="p-3 bg-muted rounded-lg">
                   <p className="text-muted-foreground">Banco de Questoes</p>

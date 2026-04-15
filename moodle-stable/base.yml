@@ -5,6 +5,7 @@ services:
       - db
     volumes:
       - "${MOODLE_DOCKER_WWWROOT}:/var/www/html"
+      - "../Prompts:/var/www/Prompts"
       - "${ASSETDIR}/web/apache2_faildumps.conf:/etc/apache2/conf-enabled/moodle-faildump.conf"
     environment:
       MOODLE_DOCKER_RUNNING: 1

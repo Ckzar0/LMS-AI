@@ -8,7 +8,7 @@ $context = context_system::instance();
 require_capability('moodle/site:config', $context);
 
 // LER O PROMPT INTEGRAL DO FICHEIRO
-$prompt_path = __DIR__ . '/PROMPT_GERACAO_CURSO.md';
+$prompt_path = __DIR__ . '/master_prompt.md';
 $full_prompt_content = file_exists($prompt_path) ? file_get_contents($prompt_path) : "Erro: Ficheiro de prompt não encontrado.";
 
 $PAGE->set_url(new moodle_url('/local/wsmanageactivities/upload.php'));
@@ -93,7 +93,7 @@ if ($action === 'upload' && confirm_sesskey()) {
 
         $course_manager = new \local_wsmanageactivities\CourseManager();
         $course_id = $course_manager->process_course(['name' => $name, 'shortname' => $shortname]);
-        echo "✅ Curso Criado: $course_id ($name)\n\n";
+        echo "✅ Curso Criado: [ID: $course_id] | [Código: $shortname] | [Nome: $name]\n\n";
         
         // As questões serão processadas dentro do Quiz para evitar erros de contexto
         if (!empty($data['activities'])) {
@@ -191,13 +191,13 @@ if ($action === 'upload' && confirm_sesskey()) {
             <input type="hidden" name="action" value="upload">
             <input type="hidden" name="sesskey" value="<?php echo sesskey(); ?>">
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                 <div>
                     <label style="font-weight:bold; display:block; margin-bottom:8px;">⏱️ Duração / Profundidade:</label>
                     <select id="course_depth" class="form-control" style="width:100%; padding:10px;">
-                        <option value="flash">Flash (1-2 horas) - Essencial e Direto</option>
-                        <option value="standard" selected>Standard (3-4 horas) - Equilibrado</option>
-                        <option value="deep">Deep Dive (8-10 horas) - Exaustivo e Académico</option>
+                        <option value="Resumo Executivo">Resumo Executivo - Direto ao essencial</option>
+                        <option value="Profissional" selected>Profissional - Equilibrado (Padrão)</option>
+                        <option value="Especialista Técnico">Especialista Técnico - Deep Dive Exaustivo</option>
                     </select>
                 </div>
                 <div>
@@ -207,6 +207,17 @@ if ($action === 'upload' && confirm_sesskey()) {
                         <option value="medium" selected>Média - Aplicação prática e análise</option>
                         <option value="hard">Difícil - Casos complexos e pensamento crítico</option>
                     </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                <div>
+                    <label style="font-weight:bold; display:block; margin-bottom:8px;">❓ Número de Questões:</label>
+                    <input type="number" id="num_questions" value="20" min="5" max="50" class="form-control" style="width:100%; padding:10px;">
+                </div>
+                <div>
+                    <label style="font-weight:bold; display:block; margin-bottom:8px;">⏲️ Duração do Quiz (min):</label>
+                    <input type="number" id="quiz_duration" value="30" min="5" max="120" class="form-control" style="width:100%; padding:10px;">
                 </div>
             </div>
 
@@ -236,24 +247,17 @@ const rawMasterPrompt = <?php echo json_encode($full_prompt_content); ?>;
 function updatePrompt() {
     let depth = document.getElementById('course_depth').value;
     let diff = document.getElementById('quiz_diff').value;
+    let numQuestions = parseInt(document.getElementById('num_questions').value) || 20;
+    let bankSize = numQuestions + 10;
     
-    let depthText = (depth === 'flash') ? "RESUMO EXECUTIVO (1-2h). Foco apenas nos pontos chave, linguagem direta, eliminando detalhes secundários." : 
-                    (depth === 'deep') ? "DEEP DIVE EXAUSTIVO (8-10h). Não resumas NADA. Expande cada tópico com explicações minuciosas e secções de aprofundamento." : 
-                    "ESTRUTURA STANDARD (3-4h). Equilibrado, preservando todo o detalhe técnico sem expansão excessiva.";
-                    
-    let diffText = (diff === 'easy') ? "FÁCIL. Perguntas diretas de verificação de leitura básica." : 
-                   (diff === 'hard') ? "DIFÍCIL. Perguntas complexas baseadas em análise de cenários e pensamento crítico." : 
-                   "MÉDIA. Aplicação prática dos conceitos.";
+    // Substituir placeholders {{DURATION}}, {{DIFFICULTY}}, {{NUM_QUESTIONS}}, {{BANK_SIZE}}
+    let finalPrompt = rawMasterPrompt
+        .replace(/{{DURATION}}/g, depth)
+        .replace(/{{DIFFICULTY}}/g, diff)
+        .replace(/{{NUM_QUESTIONS}}/g, numQuestions)
+        .replace(/{{BANK_SIZE}}/g, bankSize);
 
-    // Montar o cabeçalho dinâmico
-    let header = `###################################################\n`;
-    header += `# ORDENS DE PRODUÇÃO DINÂMICAS:\n`;
-    header += `# PROFUNDIDADE: ${depthText}\n`;
-    header += `# DIFICULDADE QUIZ: ${diffText}\n`;
-    header += `###################################################\n\n`;
-
-    // Juntar o cabeçalho ao texto INTEGRAL do ficheiro
-    document.getElementById('dynamic_prompt').value = header + rawMasterPrompt;
+    document.getElementById('dynamic_prompt').value = finalPrompt;
 }
 
 function copyPrompt() {
@@ -265,6 +269,7 @@ function copyPrompt() {
 
 document.getElementById('course_depth').addEventListener('change', updatePrompt);
 document.getElementById('quiz_diff').addEventListener('change', updatePrompt);
+document.getElementById('num_questions').addEventListener('input', updatePrompt);
 updatePrompt();
 </script>
 

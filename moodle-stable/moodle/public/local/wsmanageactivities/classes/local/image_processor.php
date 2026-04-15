@@ -26,11 +26,10 @@ class image_processor {
         }
 
         // 2. PROCESSAR IMAGENS
-        $pattern = '/\[\[IMG_P(\d+)_(\d+)\]\](?:\s*<br[^>]*>|\s+)*(?:<div class="ailms-img-caption">(.*?)<\/div>)?/is';
+        // Suporta [[IMG_Pxx_yy]] ou [[IMG_Pxx_yy_descricao]]
+        $pattern = '/\[\[IMG_P(\d+)_(\d+)(?:_([^\]]+))?\]\](?:\s*<br[^>]*>|\s+)*(?:<div class="ailms-img-caption">(.*?)<\/div>)?/is';
         preg_match_all($pattern, $content, $matches, PREG_SET_ORDER);
         
-        if (empty($matches)) return $content;
-
         $plugin_root = dirname(dirname(dirname(__FILE__)));
         $subfolder = !empty($image_folder) ? trim($image_folder, '/') : '';
         $base_path = $plugin_root . '/extracted_images/' . ($subfolder ? $subfolder . '/' : '');
@@ -38,13 +37,19 @@ class image_processor {
         foreach ($matches as $match) {
             $full_match_text = $match[0]; 
             $p_num = $match[1]; $s_num = $match[2];
-            $extracted_legend = !empty($match[3]) ? trim(strip_tags($match[3])) : "";
-            $placeholder = '[[IMG_P' . $p_num . '_' . $s_num . ']]';
+            $suffix = !empty($match[3]) ? $match[3] : "";
+            $extracted_legend = !empty($match[4]) ? trim(strip_tags($match[4])) : "";
+            
+            // O placeholder completo serve como ID único
+            $placeholder = !empty($suffix) ? '[[IMG_P' . $p_num . '_' . $s_num . '_' . $suffix . ']]' : '[[IMG_P' . $p_num . '_' . $s_num . ']]';
 
             self::$global_count++;
             
-            // Gerar legenda limpa
+            // Gerar legenda: Prioridade para a legenda extraída, depois para o sufixo
             $clean_description = preg_replace('/^Figura(?:\s*\d+)?\s*[:\-\s]*/i', '', $extracted_legend);
+            if (empty($clean_description) && !empty($suffix)) {
+                $clean_description = str_replace('_', ' ', $suffix);
+            }
             $final_legend = "Figura " . self::$global_count . (!empty($clean_description) ? " - " . $clean_description : "");
 
             $final_source = "";
@@ -69,9 +74,35 @@ class image_processor {
                              '<div class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#333;">' . $final_legend . '</div>' .
                              '</div>';
             }
-            
             $content = str_replace($full_match_text, $img_tag, $content);
         }
+
+        // 3. PROCESSAR TABELAS
+        // Suporta [[TABLE_Pxx]] ou [[TABLE_Pxx_descricao]]
+        $pattern_tables = '/\[\[TABLE_P(\d+)(?:_([^\]]+))?\]\](?:\s*<br[^>]*>|\s+)*(?:(?:Tabela|Figura)\s*\d+[:\-\s]*(.*?)(?:\(|$|<\/div>))?/is';
+        if (preg_match_all($pattern_tables, $content, $table_matches, PREG_SET_ORDER)) {
+            foreach ($table_matches as $t_match) {
+                $full_table_text = $t_match[0];
+                $p_num = $t_match[1];
+                $suffix = !empty($t_match[2]) ? $t_match[2] : "";
+                $extracted_legend = !empty($t_match[3]) ? trim(strip_tags($t_match[3])) : "";
+                
+                $placeholder = !empty($suffix) ? '[[TABLE_P' . $p_num . '_' . $suffix . ']]' : '[[TABLE_P' . $p_num . ']]';
+                
+                self::$global_count++;
+                $clean_description = !empty($extracted_legend) ? $extracted_legend : str_replace('_', ' ', $suffix);
+                if (empty($clean_description)) $clean_description = "Dados Técnicos";
+                
+                $final_legend = "Tabela " . self::$global_count . " - " . $clean_description;
+                
+                $table_tag = '<div class="ailms-figure ailms-error-block" data-placeholder="'.$placeholder.'" style="background:#f0f9ff; border:2px dashed #0284c7; padding:25px; border-radius:12px; margin:30px auto; text-align:center; max-width:90%;">' .
+                             '<strong style="color:#0369a1;">📊 TABELA EM FALTA (Manual Pág. '.$p_num.'): ' . $placeholder . '</strong>' .
+                             '<div class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#333;">' . $final_legend . '</div>' .
+                             '</div>';
+                $content = str_replace($full_table_text, $table_tag, $content);
+            }
+        }
+
         return $content;
     }
 }

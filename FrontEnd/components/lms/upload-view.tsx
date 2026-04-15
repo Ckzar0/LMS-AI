@@ -44,11 +44,13 @@ export function UploadView() {
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [courseName, setCourseName] = useState("")
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium")
-  const [depth, setDepth] = useState<"flash" | "standard" | "deep">("standard")
+  const [depth, setDepth] = useState<"Resumo Executivo" | "Profissional" | "Especialista Técnico">("Profissional")
   const [quizDuration, setQuizDuration] = useState(30)
   const [numberOfQuestions, setNumberOfQuestions] = useState(20)
   const [selectedOptions, setSelectedOptions] = useState<string[]>(["quizzes", "certificate", "modules"])
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isCopyingPrompt, setIsCopyingPrompt] = useState(false)
+  const [copiedPrompt, setCopiedPrompt] = useState(false)
   
   // States for Factory tab
   const [masterPrompt, setMasterPrompt] = useState("")
@@ -102,32 +104,24 @@ export function UploadView() {
   useEffect(() => {
     if (!masterPrompt) return
 
-    const depthText = (depth === 'flash') ? "RESUMO EXECUTIVO (1-2h). Foco apenas nos pontos chave, linguagem direta, eliminando detalhes secundários." : 
-                    (depth === 'deep') ? "DEEP DIVE EXAUSTIVO (8-10h). Não resumas NADA. Expande cada tópico com explicações minuciosas e secções de aprofundamento." : 
-                    "ESTRUTURA STANDARD (3-4h). Equilibrado, preservando todo o detalhe técnico sem expansão excessiva.";
-                    
-    const diffText = (difficulty === 'easy') ? "FÁCIL. Perguntas diretas de verificação de leitura básica." : 
-                   (difficulty === 'hard') ? "DIFÍCIL. Perguntas complexas baseadas em análise de cenários e pensamento crítico." : 
-                   "MÉDIA. Aplicação prática dos conceitos.";
+    // Substituir placeholders {{DURATION}}, {{DIFFICULTY}}, {{NUM_QUESTIONS}}, {{BANK_SIZE}}
+    const bankSize = numberOfQuestions + 10;
+    
+    let finalPrompt = masterPrompt
+      .replace(/{{DURATION}}/g, depth)
+      .replace(/{{DIFFICULTY}}/g, difficulty)
+      .replace(/{{NUM_QUESTIONS}}/g, numberOfQuestions.toString())
+      .replace(/{{BANK_SIZE}}/g, bankSize.toString())
+      .replace(/{{QUIZ_DURATION}}/g, quizDuration.toString())
+      .replace(/{{QUIZ_DURATION_SECONDS}}/g, (quizDuration * 60).toString());
 
-    let header = `###################################################\n`;
-    header += `# ORDENS DE PRODUÇÃO DINÂMICAS:\n`;
-    header += `# PROFUNDIDADE: ${depthText}\n`;
-    header += `# DIFICULDADE QUIZ: ${diffText}\n`;
-    header += `###################################################\n\n`;
-
-    setDynamicPrompt(header + masterPrompt)
-  }, [depth, difficulty, masterPrompt])
+    setDynamicPrompt(finalPrompt)
+  }, [depth, difficulty, numberOfQuestions, masterPrompt])
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
-    // For now, we'll read the file and send it to be processed
-    // In production, you'd use pdf-parse or similar library
     return new Promise((resolve) => {
       const reader = new FileReader()
       reader.onload = async (e) => {
-        const text = e.target?.result as string
-        // This is a placeholder - in production you'd extract text properly
-        // For now, we'll use the filename as a reference
         resolve(`[Conteudo do ficheiro: ${file.name}]\n\nPor favor, analise o manual anexado e crie um curso completo.`)
       }
       reader.readAsText(file)
@@ -153,14 +147,9 @@ export function UploadView() {
       }
       
       setFiles(prev => [...prev, newFile])
-      
-      // Extract text content
       const content = await extractTextFromPDF(file)
-      
       setFiles(prev => prev.map(f => 
-        f.id === newFile.id 
-          ? { ...f, status: "ready" as const, progress: 100, content }
-          : f
+        f.id === newFile.id ? { ...f, status: "ready" as const, progress: 100, content } : f
       ))
     }
   }, [])
@@ -182,13 +171,9 @@ export function UploadView() {
         }
         
         setFiles(prev => [...prev, newFile])
-        
         const content = await extractTextFromPDF(file)
-        
         setFiles(prev => prev.map(f => 
-          f.id === newFile.id 
-            ? { ...f, status: "ready" as const, progress: 100, content }
-            : f
+          f.id === newFile.id ? { ...f, status: "ready" as const, progress: 100, content } : f
         ))
       }
     }
@@ -257,32 +242,59 @@ export function UploadView() {
     }
   }
 
+  const [jsonError, setJsonError] = useState<string | null>(null)
+
+  const validateAndSetCourse = (raw: string) => {
+    try {
+      setJsonError(null);
+      let content = raw.trim();
+      if (!content) {
+        setGeneratedCourse(null);
+        return;
+      }
+
+      if (content.includes("```")) {
+        const matches = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (matches && matches[1]) {
+          content = matches[1].trim();
+        }
+      }
+
+      const json = JSON.parse(content);
+      
+      const normalizedCourse: Partial<MoodleCourse> = {
+        course_name: json.course_name || json.name || (json.course && json.course.name) || "Curso Sem Nome",
+        course_shortname: json.course_shortname || json.shortname || "IA_CURSO",
+        source_file: json.source_file || json.filename || "manual.pdf",
+        course_summary: json.course_summary || json.summary || json.description || "",
+        question_banks: json.question_banks || (json.course && json.course.question_banks) || [],
+        activities: json.activities || (json.course && json.course.activities) || []
+      };
+
+      if (normalizedCourse.activities!.length === 0) {
+        setJsonError("Erro: O JSON não contém atividades (atividades: []).");
+        setGeneratedCourse(null);
+        return;
+      }
+
+      setGeneratedCourse(normalizedCourse as MoodleCourse);
+      toast({
+        title: "JSON Válido!",
+        description: "Curso processado com sucesso.",
+      });
+      
+    } catch (err) {
+      setJsonError("Erro de sintaxe JSON: Verifique aspas, vírgulas ou se o texto está truncado.");
+      setGeneratedCourse(null);
+    }
+  };
+
   const handleJsonUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     const reader = new FileReader()
     reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string)
-        // Basic validation
-        if (json.course_name && json.activities) {
-          setGeneratedCourse(json)
-          setShowPreview(true)
-          toast({
-            title: "JSON Carregado",
-            description: "O curso foi carregado com sucesso.",
-          })
-        } else {
-          throw new Error("Formato de curso inválido")
-        }
-      } catch (error) {
-        toast({
-          title: "Erro no JSON",
-          description: "O ficheiro não é um JSON de curso válido.",
-          variant: "destructive"
-        })
-      }
+      validateAndSetCourse(event.target?.result as string);
     }
     reader.readAsText(file)
   }
@@ -302,32 +314,12 @@ export function UploadView() {
       divideInModules: selectedOptions.includes("modules")
     }
 
-    setGenerationState({
-      status: "extracting",
-      progress: 10,
-      message: "A extrair conteudo do PDF..."
-    })
+    setGenerationState({ status: "extracting", progress: 10, message: "A extrair conteudo do PDF..." })
 
     try {
-      // Combine content from all files
-      const pdfContent = files
-        .map(f => f.content || "")
-        .join("\n\n---\n\n")
-
-      setGenerationState({
-        status: "generating",
-        progress: 30,
-        message: "A gerar curso com IA (Gemini)..."
-      })
-
-      // Send the actual files and config
       const formData = new FormData()
-      files.forEach(f => {
-        formData.append("files", f.file)
-      })
+      files.forEach(f => formData.append("files", f.file))
       formData.append("config", JSON.stringify(config))
-      
-      // Enviar o prompt dinâmico sincronizado com a Fábrica de Cursos
       if (dynamicPrompt) {
         formData.append("customPrompt", dynamicPrompt)
       }
@@ -343,90 +335,59 @@ export function UploadView() {
       }
 
       const data = await response.json()
-      
-      setGenerationState({
-        status: "complete",
-        progress: 100,
-        message: "Curso gerado com sucesso!",
-        course: data.course
-      })
-      
+      setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: data.course })
       setGeneratedCourse(data.course)
       setShowPreview(true)
-
     } catch (error) {
-      setGenerationState({
-        status: "error",
-        progress: 0,
-        message: "Erro ao gerar curso",
-        error: error instanceof Error ? error.message : "Unknown error"
-      })
+      setGenerationState({ status: "error", progress: 0, message: "Erro ao gerar curso", error: error instanceof Error ? error.message : "Unknown error" })
     }
   }
 
   const handleSendToMoodle = async () => {
-    if (!generatedCourse) return
-
-    setGenerationState({
-      status: "sending",
-      progress: 80,
-      message: "A enviar para o Moodle e a processar imagens..."
-    })
-
+    if (!generatedCourse || !courseName) return
+    setGenerationState({ status: "sending", progress: 80, message: "A enviar para o Moodle..." })
     try {
+      // OVERRIDE: Garantir que o nome definido no FrontEnd é o que vai para o Moodle
+      const courseWithFinalName = {
+        ...generatedCourse,
+        course_name: courseName
+      };
+
       let pdfFileData = null;
-      
-      // 1. Verificar se há ficheiros na aba AI
       if (files.length > 0) {
         const file = files[0].file;
         const base64Content = await fileToBase64(file);
         pdfFileData = { name: file.name, content: base64Content };
-      } 
-      // 2. Fallback para o PDF manual da aba JSON (Factory)
-      else if (factoryPdfFile) {
+      } else if (factoryPdfFile) {
         const base64Content = await fileToBase64(factoryPdfFile);
         pdfFileData = { name: factoryPdfFile.name, content: base64Content };
       }
 
       const response = await fetch("/api/send-to-moodle", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ 
-          course: generatedCourse,
-          pdfFile: pdfFileData
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ course: courseWithFinalName, pdfFile: pdfFileData })
       })
 
       const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to send to Moodle")
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send to Moodle")
-      }
-
-      setGenerationState({
-        status: "complete",
-        progress: 100,
-        message: `Curso criado no Moodle com sucesso! (ID: ${data.courseId})`
+      setGenerationState({ 
+        status: "complete", 
+        progress: 100, 
+        message: `Sucesso! [ID: ${data.courseId}] | [Código: ${courseWithFinalName.course_shortname}]` 
       })
-
-      // Reset form after successful creation
+      
+      // Mostrar o nome original do JSON como feedback extra
+      toast({
+        title: "Curso Criado!",
+        description: `Nome Final: ${courseWithFinalName.course_name}\n(Baseado em: ${generatedCourse.course_name})`,
+      });
       setTimeout(() => {
-        setFiles([])
-        setCourseName("")
-        setGeneratedCourse(null)
-        setShowPreview(false)
-        setGenerationState({ status: "idle", progress: 0, message: "" })
+        setFiles([]); setCourseName(""); setGeneratedCourse(null); setShowPreview(false); setGenerationState({ status: "idle", progress: 0, message: "" })
       }, 3000)
-
     } catch (error) {
-      setGenerationState({
-        status: "error",
-        progress: 0,
-        message: "Erro ao enviar para o Moodle",
-        error: error instanceof Error ? error.message : "Unknown error"
-      })
+      setGenerationState({ status: "error", progress: 0, message: "Erro ao enviar", error: error instanceof Error ? error.message : "Unknown error" })
     }
   }
 
@@ -434,29 +395,17 @@ export function UploadView() {
                        generationState.status === "generating" || 
                        generationState.status === "sending"
 
-  // Helper to convert file to base64
   async function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]); // Remove the data:...;base64, prefix
-      };
+      reader.onload = () => resolve((reader.result as string).split(',')[1]);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }
 
   if (showPreview && generatedCourse) {
-    return (
-      <CoursePreview 
-        course={generatedCourse}
-        onBack={() => setShowPreview(false)}
-        onSendToMoodle={handleSendToMoodle}
-        isSending={generationState.status === "sending"}
-        moodleConnected={moodleStatus === "connected"}
-      />
-    )
+    return <CoursePreview course={generatedCourse} onBack={() => setShowPreview(false)} onSendToMoodle={handleSendToMoodle} isSending={generationState.status === "sending"} moodleConnected={moodleStatus === "connected"} />
   }
 
   return (
@@ -468,125 +417,40 @@ export function UploadView() {
 
       <Tabs defaultValue="ai" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="ai" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            Gerar com IA (PDF)
-          </TabsTrigger>
-          <TabsTrigger value="json" className="gap-2">
-            <Factory className="h-4 w-4" />
-            Gerar com JSON
-          </TabsTrigger>
+          <TabsTrigger value="ai" className="gap-2"><Sparkles className="h-4 w-4" />Gerar com IA (PDF)</TabsTrigger>
+          <TabsTrigger value="json" className="gap-2"><Factory className="h-4 w-4" />Gerar com JSON</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai" className="space-y-6 mt-6">
-          {/* Moodle Connection Status */}
-          <Card className={cn(
-            "border-2",
-            moodleStatus === "connected" && "border-green-500 bg-green-50",
-            moodleStatus === "disconnected" && "border-amber-500 bg-amber-50",
-            moodleStatus === "error" && "border-red-500 bg-red-50",
-            moodleStatus === "checking" && "border-muted"
-          )}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {moodleStatus === "checking" && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-                  {moodleStatus === "connected" && <CheckCircle2 className="h-5 w-5 text-green-600" />}
-                  {moodleStatus === "disconnected" && <AlertCircle className="h-5 w-5 text-amber-600" />}
-                  {moodleStatus === "error" && <AlertCircle className="h-5 w-5 text-red-600" />}
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {moodleStatus === "checking" && "A verificar conexao ao Moodle..."}
-                      {moodleStatus === "connected" && `Conectado ao Moodle: ${moodleInfo?.siteName}`}
-                      {moodleStatus === "disconnected" && "Moodle desconectado"}
-                      {moodleStatus === "error" && "Erro ao conectar ao Moodle"}
-                    </p>
-                    {moodleStatus === "connected" && moodleInfo?.username && (
-                      <p className="text-sm text-muted-foreground">Utilizador: {moodleInfo.username}</p>
-                    )}
-                    {(moodleStatus === "disconnected" || moodleStatus === "error") && (
-                      <p className="text-sm text-muted-foreground">Verifique as variaveis MOODLE_URL e MOODLE_TOKEN</p>
-                    )}
-                  </div>
+          <Card className={cn("border-2", moodleStatus === "connected" ? "border-green-500 bg-green-50" : moodleStatus === "error" ? "border-red-500 bg-red-50" : "border-muted")}>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {moodleStatus === "checking" ? <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /> : moodleStatus === "connected" ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <AlertCircle className="h-5 w-5 text-red-600" />}
+                <div>
+                  <p className="font-medium text-foreground">{moodleStatus === "connected" ? `Conectado ao Moodle: ${moodleInfo?.siteName}` : "Moodle desconectado"}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={checkMoodleConnection}>
-                  Testar Conexao
-                </Button>
               </div>
+              <Button variant="outline" size="sm" onClick={checkMoodleConnection}>Testar Conexao</Button>
             </CardContent>
           </Card>
 
-          {/* Upload Area */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                <Upload className="h-5 w-5 text-primary" />
-                Upload de Manuais PDF
-              </CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-lg font-semibold"><Upload className="h-5 w-5 text-primary" />Upload de Manuais PDF</CardTitle></CardHeader>
             <CardContent>
-              <div
-                onDrop={handleDrop}
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
-                onDragLeave={() => setIsDragOver(false)}
-                className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-                  isDragOver ? "border-primary bg-primary/5" : "border-border",
-                  "hover:border-primary/50"
-                )}
-              >
+              <div onDrop={handleDrop} onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }} onDragLeave={() => setIsDragOver(false)} className={cn("border-2 border-dashed rounded-lg p-8 text-center transition-colors", isDragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50")}>
                 <div className="flex flex-col items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-medium text-foreground">Arraste os ficheiros PDF aqui</p>
-                    <p className="text-sm text-muted-foreground mt-1">ou clique para selecionar</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    multiple
-                    onChange={handleFileInput}
-                    className="hidden"
-                    id="file-upload"
-                    disabled={isGenerating}
-                  />
-                  <Button asChild variant="outline" disabled={isGenerating}>
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      Selecionar Ficheiros
-                    </label>
-                  </Button>
+                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-8 w-8 text-primary" /></div>
+                  <p className="text-lg font-medium">Arraste os ficheiros PDF aqui</p>
+                  <input type="file" accept=".pdf" multiple onChange={handleFileInput} className="hidden" id="file-upload" />
+                  <Button asChild variant="outline"><label htmlFor="file-upload" className="cursor-pointer">Selecionar Ficheiros</label></Button>
                 </div>
               </div>
-
-              {/* Uploaded Files List */}
               {files.length > 0 && (
                 <div className="mt-6 space-y-3">
-                  <h4 className="font-medium text-foreground">Ficheiros Carregados</h4>
                   {files.map((file) => (
                     <div key={file.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted">
-                      <FileText className="h-8 w-8 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">{file.size}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {file.status === "ready" && (
-                          <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        )}
-                        {file.status === "processing" && (
-                          <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => removeFile(file.id)}
-                          disabled={isGenerating}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <FileText className="h-8 w-8 text-primary" /><div className="flex-1 truncate"><p className="font-medium">{file.name}</p></div>
+                      <Button variant="ghost" size="icon" onClick={() => removeFile(file.id)}><X className="h-4 w-4" /></Button>
                     </div>
                   ))}
                 </div>
@@ -594,321 +458,201 @@ export function UploadView() {
             </CardContent>
           </Card>
 
-          {/* Course Settings */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Configuracoes do Curso
-              </CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-lg font-semibold"><Sparkles className="h-5 w-5 text-primary" />Configuracoes do Curso</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="course-name">Nome do Curso</Label>
-                <Input
-                  id="course-name"
-                  placeholder="Ex: Seguranca no Trabalho - Normas ISO 45001"
-                  value={courseName}
-                  onChange={(e) => setCourseName(e.target.value)}
-                  disabled={isGenerating}
-                />
+                <Input id="course-name" placeholder="Ex: Seguranca no Trabalho" value={courseName} onChange={(e) => setCourseName(e.target.value)} />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Profundidade</Label>
-                  <Select value={depth} onValueChange={(v) => setDepth(v as typeof depth)} disabled={isGenerating}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={depth} onValueChange={(v) => setDepth(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="flash">Flash (1-2h)</SelectItem>
-                      <SelectItem value="standard">Standard (3-4h)</SelectItem>
-                      <SelectItem value="deep">Deep Dive (8-10h)</SelectItem>
+                      <SelectItem value="Resumo Executivo">Resumo Executivo</SelectItem>
+                      <SelectItem value="Profissional">Profissional</SelectItem>
+                      <SelectItem value="Especialista Técnico">Especialista Técnico</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label>Dificuldade Quiz</Label>
-                  <Select value={difficulty} onValueChange={(v) => setDifficulty(v as typeof difficulty)} disabled={isGenerating}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">Facil</SelectItem>
-                      <SelectItem value="medium">Media</SelectItem>
-                      <SelectItem value="hard">Dificil</SelectItem>
-                    </SelectContent>
+                  <Label>Dificuldade</Label>
+                  <Select value={difficulty} onValueChange={(v) => setDifficulty(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="easy">Facil</SelectItem><SelectItem value="medium">Media</SelectItem><SelectItem value="hard">Dificil</SelectItem></SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="quiz-duration">Duracao do Quiz (min)</Label>
-                  <Input
-                    id="quiz-duration"
-                    type="number"
-                    min={5}
-                    max={120}
-                    value={quizDuration}
-                    onChange={(e) => setQuizDuration(Number(e.target.value))}
-                    disabled={isGenerating}
-                  />
+                  <Label>Questões</Label>
+                  <Input type="number" value={numberOfQuestions} onChange={(e) => setNumberOfQuestions(Number(e.target.value))} />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="num-questions">Numero de Questoes</Label>
-                  <Input
-                    id="num-questions"
-                    type="number"
-                    min={5}
-                    max={50}
-                    value={numberOfQuestions}
-                    onChange={(e) => setNumberOfQuestions(Number(e.target.value))}
-                    disabled={isGenerating}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Opcoes de Geracao</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {generationOptions.map((option) => {
-                    const Icon = option.icon
-                    const isSelected = selectedOptions.includes(option.id)
-                    const isDisabled = isGenerating || option.id === "videos" // Videos disabled for now
-                    return (
-                      <div
-                        key={option.id}
-                        onClick={() => !isDisabled && toggleOption(option.id)}
-                        className={cn(
-                          "flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors",
-                          isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
-                          isDisabled && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <Checkbox 
-                          checked={isSelected} 
-                          disabled={isDisabled}
-                          className="mt-0.5"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4 text-primary" />
-                            <span className="font-medium text-foreground">{option.label}</span>
-                            {option.id === "videos" && (
-                              <span className="text-xs bg-muted px-2 py-0.5 rounded">Em breve</span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">{option.description}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
+                  <Label>Duração (min)</Label>
+                  <Input type="number" value={quizDuration} onChange={(e) => setQuizDuration(Number(e.target.value))} />
                 </div>
               </div>
             </CardContent>
           </Card>
+          
+          <Button size="lg" className="w-full" onClick={handleGenerate} disabled={files.length === 0 || !courseName || isGenerating}>
+            {isGenerating ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
+            Gerar Curso com IA
+          </Button>
 
-          {/* Prompt Preview Accordion */}
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="prompt-preview" className="border rounded-lg px-4 bg-muted/20">
-              <AccordionTrigger className="hover:no-underline font-medium text-sm text-primary">
-                Ver Prompt Master (Dinâmico) que será enviado
-              </AccordionTrigger>
-              <AccordionContent className="pt-2">
-                <Textarea 
-                  value={dynamicPrompt || "A carregar prompt master..."} 
-                  readOnly 
-                  className="font-mono text-[10px] h-[200px] bg-white cursor-text" 
-                />
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  * Este prompt é sincronizado com as configurações de profundidade e dificuldade selecionadas acima.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-          {/* Generation Progress */}
+          {/* Status da Geração / Sucesso */}
           {(isGenerating || generationState.status === "error" || generationState.status === "complete") && (
             <Card className={cn(
-              generationState.status === "error" && "border-red-500",
-              generationState.status === "complete" && "border-green-500"
+              "mt-6 border-2",
+              generationState.status === "error" && "border-red-500 bg-red-50",
+              generationState.status === "complete" && "border-green-500 bg-green-50"
             )}>
               <CardContent className="p-6">
-                <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-4">
                   {isGenerating && <Loader2 className="h-6 w-6 text-primary animate-spin" />}
                   {generationState.status === "error" && <AlertCircle className="h-6 w-6 text-red-500" />}
                   {generationState.status === "complete" && <CheckCircle2 className="h-6 w-6 text-green-500" />}
-                  <div>
-                    <p className="font-medium text-foreground">{generationState.message}</p>
+                  <div className="flex-1">
+                    <p className="font-bold text-foreground text-lg">{generationState.message}</p>
+                    {generationState.status === "complete" && generatedCourse && (
+                      <div className="mt-3 text-sm space-y-2 bg-white/80 p-3 rounded-lg border shadow-sm">
+                        <p className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-primary/10 text-primary font-bold rounded text-xs uppercase">Nome no Moodle</span>
+                          <span className="font-semibold text-foreground">{courseName}</span>
+                        </p>
+                        <p className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-muted text-muted-foreground font-bold rounded text-xs uppercase">Sugestão da IA</span>
+                          <span className="text-muted-foreground italic">{generatedCourse.course_name}</span>
+                        </p>
+                      </div>
+                    )}
                     {generationState.error && (
-                      <p className="text-sm text-red-500 mt-1">{generationState.error}</p>
+                      <p className="text-sm text-red-600 mt-1 font-medium">{generationState.error}</p>
                     )}
                   </div>
                 </div>
                 {isGenerating && (
-                  <>
+                  <div className="mt-4 space-y-2">
                     <Progress value={generationState.progress} className="h-2" />
-                    <p className="text-sm text-muted-foreground mt-2 text-right">{generationState.progress}%</p>
-                  </>
+                    <p className="text-xs text-muted-foreground text-right font-mono">{generationState.progress}%</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
           )}
-
-          {/* Generate Buttons */}
-          <div className="flex justify-between gap-3">
-            
-            <div className="flex gap-3">
-              {generatedCourse && !isGenerating && (
-                <Button 
-                  variant="outline"
-                  size="lg" 
-                  onClick={() => setShowPreview(true)}
-                  className="gap-2"
-                >
-                  <Eye className="h-5 w-5" />
-                  Ver Preview
-                </Button>
-              )}
-              <Button 
-                size="lg" 
-                onClick={handleGenerate}
-                disabled={files.length === 0 || !courseName || isGenerating}
-                className="gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    A Gerar...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-5 w-5" />
-                    Gerar Curso com IA
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
         </TabsContent>
 
         <TabsContent value="json" className="mt-6 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Factory className="h-5 w-5 text-primary" />
-                Configurador de Prompt Master
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="font-bold">⏱️ Duração / Profundidade:</Label>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Factory className="h-5 w-5 text-primary" />Configurador de Prompt Master</CardTitle></CardHeader>
+            <CardContent className="space-y-8">
+              <div className="space-y-2">
+                <Label htmlFor="json-course-name">Nome do Curso</Label>
+                <Input id="json-course-name" placeholder="Ex: Seguranca no Trabalho" value={courseName} onChange={(e) => setCourseName(e.target.value)} />
+              </div>
+
+              {/* LAYOUT FIX: Mais espaço e grid melhorada para não sobrepor */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 py-4 border-y border-border">
+                <div className="space-y-3">
+                  <Label className="text-primary font-bold">Profundidade</Label>
                   <Select value={depth} onValueChange={(v) => setDepth(v as any)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="flash">Flash (1-2 horas) - Essencial e Direto</SelectItem>
-                      <SelectItem value="standard">Standard (3-4 horas) - Equilibrado</SelectItem>
-                      <SelectItem value="deep">Deep Dive (8-10 horas) - Exaustivo e Académico</SelectItem>
+                      <SelectItem value="Resumo Executivo">Resumo Executivo</SelectItem>
+                      <SelectItem value="Profissional">Profissional</SelectItem>
+                      <SelectItem value="Especialista Técnico">Especialista Técnico</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Dificuldade do Quiz:</Label>
+                <div className="space-y-3">
+                  <Label className="text-primary font-bold">Dificuldade</Label>
                   <Select value={difficulty} onValueChange={(v) => setDifficulty(v as any)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">Fácil - Verificação de conceitos básicos</SelectItem>
-                      <SelectItem value="medium">Média - Aplicação prática e análise</SelectItem>
-                      <SelectItem value="hard">Difícil - Casos complexos e pensamento crítico</SelectItem>
-                    </SelectContent>
+                    <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="easy">Facil</SelectItem><SelectItem value="medium">Media</SelectItem><SelectItem value="hard">Dificil</SelectItem></SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-primary font-bold">Questões</Label>
+                  <Input type="number" value={numberOfQuestions} onChange={(e) => setNumberOfQuestions(Number(e.target.value))} className="bg-white" />
+                </div>
+                <div className="space-y-3">
+                  <Label className="text-primary font-bold">Duração (min)</Label>
+                  <Input type="number" value={quizDuration} onChange={(e) => setQuizDuration(Number(e.target.value))} className="bg-white" />
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-border bg-muted/10 p-4 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-primary flex items-center gap-2">
-                    <ClipboardCopy className="h-4 w-4" />
-                    Passo 1: Copie o Prompt Master Integral
-                  </h4>
+              <div className="space-y-4 bg-muted/30 p-4 rounded-lg border">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="font-bold text-primary flex items-center gap-2"><ClipboardCopy className="h-4 w-4" />Passo 1: Copie o Prompt</h4>
                   <Button 
-                    variant="default" 
+                    variant={copiedPrompt ? "outline" : "default"} 
                     size="sm" 
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(dynamicPrompt)
-                      toast({
-                        title: "Prompt Copiado!",
-                        description: "O prompt master foi copiado para a área de transferência.",
-                      })
-                    }}
-                    className="gap-2 bg-primary hover:bg-primary/90"
+                    onClick={async () => { 
+                      await navigator.clipboard.writeText(dynamicPrompt); 
+                      setCopiedPrompt(true);
+                      toast({ title: "Copiado!", description: "Prompt na área de transferência." }); 
+                      setTimeout(() => setCopiedPrompt(false), 2000);
+                    }} 
+                    className={cn("gap-2 transition-all", copiedPrompt && "border-green-500 text-green-600")}
                   >
-                    <Copy className="h-4 w-4" />
-                    Copiar Prompt Completo
+                    {copiedPrompt ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copiedPrompt ? "Copiado!" : "Copiar Prompt"}
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Este prompt é carregado diretamente do ficheiro mestre e atualizado dinamicamente.
+                <Textarea value={dynamicPrompt} readOnly className="font-mono text-[10px] h-[250px] bg-white" />
+              </div>
+
+              <div className="space-y-4 bg-amber-50/50 p-4 rounded-lg border border-amber-200">
+                <h4 className="font-bold text-amber-700 flex items-center gap-2"><FileText className="h-4 w-4" />Passo 2: PDF para Imagens</h4>
+                <Input type="file" accept=".pdf" onChange={(e) => setFactoryPdfFile(e.target.files?.[0] || null)} className="bg-white" />
+              </div>
+
+              <div className="space-y-4 pt-6 border-t border-border bg-primary/5 p-4 rounded-lg border border-primary/20">
+                <h4 className="font-bold text-primary flex items-center gap-2"><Upload className="h-4 w-4" />Passo 3: Upload do JSON Gerado</h4>
+                <Input type="file" accept=".json" onChange={handleJsonUpload} className="bg-white mb-2" />
+                {jsonError && <p className="text-xs text-red-500 font-medium">{jsonError}</p>}
+                {generatedCourse && <p className="text-xs text-primary font-bold">✓ JSON Válido ({generatedCourse.activities.length} atividades)</p>}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Após usar o prompt acima na IA, carregue o ficheiro .json gerado para criar o curso no Moodle.
                 </p>
-                <Textarea 
-                  value={dynamicPrompt} 
-                  readOnly 
-                  className="font-mono text-[10px] h-[300px] bg-white border-muted cursor-text" 
-                />
               </div>
 
-              <div className="space-y-4 pt-6 border-t border-border bg-amber-50/30 p-4 rounded-lg">
-                <h4 className="font-medium text-amber-700 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Passo 2 (Opcional): PDF para Extração de Imagens
-                </h4>
-                <div className="grid w-full items-center gap-1.5">
-                  <Input
-                    id="factory-pdf-upload"
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => setFactoryPdfFile(e.target.files?.[0] || null)}
-                    className="cursor-pointer bg-white border-amber-200"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Se o curso tiver placeholders de imagem, carregue o PDF original aqui para o Moodle extrair as imagens.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4 pt-6 border-t border-border bg-blue-50/30 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-700 flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Passo 3: Upload do JSON Gerado
-                </h4>
-                <div className="grid w-full items-center gap-1.5">
-                  <Input
-                    id="factory-json-upload"
-                    type="file"
-                    accept=".json"
-                    onChange={handleJsonUpload}
-                    className="cursor-pointer bg-white border-blue-200"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Após usar o prompt acima na IA, descarregue o resultado em .json e carregue-o aqui para criar o curso.
-                  </p>
-                </div>
-              </div>
-              
               <Button 
-                className="w-full py-8 text-lg font-bold shadow-lg"
-                disabled={!generatedCourse}
+                size="lg" 
+                className={cn(
+                  "w-full py-10 text-xl font-black transition-all uppercase tracking-widest",
+                  (generatedCourse && courseName) ? "bg-primary text-primary-foreground hover:scale-[1.01] shadow-xl" : "bg-muted text-muted-foreground"
+                )} 
+                disabled={!generatedCourse || !courseName} 
                 onClick={() => setShowPreview(true)}
               >
-                Visualizar e Criar Curso no Moodle
+                {!courseName ? "Defina o Nome do Curso" : generatedCourse ? "🚀 Visualizar e Criar Curso" : "Aguardando JSON Válido..."}
               </Button>
+
+              {/* Status de Sucesso (após envio) na aba JSON */}
+              {generationState.status === "complete" && generatedCourse && (
+                <Card className="mt-6 border-2 border-green-500 bg-green-50">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <CheckCircle2 className="h-6 w-6 text-green-500" />
+                      <div className="flex-1">
+                        <p className="font-bold text-foreground text-lg">{generationState.message}</p>
+                        <div className="mt-3 text-sm space-y-2 bg-white/80 p-3 rounded-lg border shadow-sm">
+                          <p className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-primary/10 text-primary font-bold rounded text-xs uppercase">Nome no Moodle</span>
+                            <span className="font-semibold text-foreground">{courseName}</span>
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-muted text-muted-foreground font-bold rounded text-xs uppercase">Sugestão da IA</span>
+                            <span className="text-muted-foreground italic">{generatedCourse.course_name}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

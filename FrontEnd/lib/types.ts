@@ -54,7 +54,7 @@ export interface MoodleCourse {
 export interface GenerationConfig {
   courseName: string
   difficulty: "easy" | "medium" | "hard"
-  depth: "flash" | "standard" | "deep"
+  depth: "Resumo Executivo" | "Profissional" | "Especialista Técnico"
   quizDuration: number
   numberOfQuestions: number
   generateVideos: boolean

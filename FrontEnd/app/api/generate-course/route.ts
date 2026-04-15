@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generatePrompt } from "@/lib/prompt-template"
 import type { GenerationConfig, MoodleCourse } from "@/lib/types"
+import fs from "fs"
+import path from "path"
 
 export const runtime = "nodejs"
 export const maxDuration = 300 // 5 minutos
@@ -52,53 +54,30 @@ export async function POST(request: NextRequest) {
 
     const fileName = files[0]?.name || "documento.pdf";
     
-    // USAR PROMPT CUSTOMIZADO SE FORNECIDO (Sincronizado com a Fábrica de Cursos)
+    // CENTRALIZAÇÃO: Ler o Master Prompt diretamente do ficheiro no Root
+    const promptPath = path.join(process.cwd(), "..", "Prompts", "PROMPT_GERACAO_CURSO.md");
+    let basePrompt = "";
+    
+    try {
+      if (fs.existsSync(promptPath)) {
+        basePrompt = fs.readFileSync(promptPath, "utf-8");
+      } else {
+        console.warn("Master prompt not found at " + promptPath + ". Using fallback logic.");
+      }
+    } catch (fsError) {
+      console.error("Error reading master prompt file:", fsError);
+    }
+
+    // Gerar o prompt final usando o ficheiro mestre (ou o customPrompt se vier da Fábrica)
     const prompt = customPrompt 
       ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
-      : generatePrompt(config, combinedText, fileName)
+      : generatePrompt(basePrompt, config, combinedText, fileName)
     
     // Debug: Log text size
     console.log(`Extracted text size: ${combinedText.length} characters`);
     console.log(`Prompt size: ${prompt.length} characters`);
 
-    /* 
-    // --- LÓGICA GEMINI (COMENTADA PARA TESTES) ---
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 })
-    }
-
-    const model = "gemini-1.5-flash"
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
-
-    const safePrompt = prompt.length > 300000 ? prompt.substring(0, 300000) + "... [Truncated]" : prompt;
-
-    const response = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: safePrompt }] }],
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 16384,
-          responseMimeType: "application/json"
-        }
-      })
-    })
-
-    const responseData = await response.json()
-
-    if (!response.ok) {
-      console.error("--- GEMINI API ERROR (DIAGNOSTIC) ---");
-      console.error(JSON.stringify(responseData, null, 2));
-      return NextResponse.json({ error: `Gemini API error: ${response.status}`, message: responseData.error?.message }, { status: response.status })
-    }
-
-    const content = responseData.candidates?.[0]?.content?.parts?.[0]?.text
-    // --------------------------------------------
-    */
-
-    // --- LÓGICA OPENROUTER (TESTES) ---
+    // --- LÓGICA OPENROUTER (ESTÁVEL) ---
     const openRouterKey = process.env.OPENROUTER_API_KEY
     if (!openRouterKey) {
       return NextResponse.json({ error: "OPENROUTER_API_KEY not configured" }, { status: 500 })
@@ -107,13 +86,12 @@ export async function POST(request: NextRequest) {
     const model = "meta-llama/llama-3.1-8b-instruct:free"
     console.log(`Calling OpenRouter with model: ${model}`);
 
-
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openRouterKey}`,
-        "HTTP-Referer": "http://localhost:3000", // Opcional para OpenRouter
-        "X-Title": "LMS AI Integration", // Opcional para OpenRouter
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "LMS AI Integration",
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -133,14 +111,12 @@ export async function POST(request: NextRequest) {
     }
 
     const content = responseData.choices?.[0]?.message?.content
-    // ----------------------------------
-
+    
     if (!content) return NextResponse.json({ error: "No content received" }, { status: 500 })
 
     // Limpeza robusta do JSON
     let jsonStr = content.trim();
     if (jsonStr.includes("```")) {
-      // Tentar extrair o conteúdo entre blocos de código
       const matches = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (matches && matches[1]) {
         jsonStr = matches[1].trim();

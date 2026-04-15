@@ -6,7 +6,7 @@ export async function GET() {
   try {
     // Try to find the prompt file in the moodle-stable directory
     // Adjust path based on where the Next.js process is running relative to the project root
-    const promptPath = path.join(process.cwd(), "..", "moodle-stable", "moodle", "public", "local", "wsmanageactivities", "PROMPT_GERACAO_CURSO.md")
+    const promptPath = path.join(process.cwd(), "..", "Prompts", "PROMPT_GERACAO_CURSO.md")
     
     if (fs.existsSync(promptPath)) {
       const content = fs.readFileSync(promptPath, "utf-8")

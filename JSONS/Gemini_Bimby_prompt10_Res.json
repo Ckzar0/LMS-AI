@@ -1,0 +1,256 @@
+{
+  "course_name": "📌 Masterclass Técnica: Operação e Segurança Bimby® TM5",
+  "course_shortname": "BIMBY_TM5_EXEC",
+  "source_file": "manual-de-instrucoes-bimby-tm5-atualizado.pdf",
+  "course_summary": "Formação executiva focada na operação segura, manutenção técnica e exploração das funcionalidades avançadas do sistema Bimby® TM5, baseada estritamente no manual original da Vorwerk.",
+  "configuration": {
+    "duration": "Resumo Executivo",
+    "quiz_difficulty": "medium",
+    "quiz_questions_count": 10,
+    "bank_questions_count": 20
+  },
+  "question_banks": [
+    {
+      "name": "Banco AI - Bimby TM5 Global",
+      "questions": [
+        {
+          "name": "Q01 - Capacidade Máxima - Multichoice",
+          "questiontext": "De acordo com as especificações técnicas, qual é a capacidade máxima de enchimento do copo da Bimby® TM5?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "2,0 litros", "fraction": 0, "feedback": "❌ Incorreto. 2,0 litros é uma marca intermédia no copo."},
+            {"text": "2,2 litros", "fraction": 1, "feedback": "✅ Correto. A capacidade máxima nominal do copo é de 2,2 litros conforme as páginas 5 e 23."},
+            {"text": "2,5 litros", "fraction": 0, "feedback": "❌ Incorreto. Exceder 2,2 litros pode causar projeções de conteúdo quente."},
+            {"text": "3,0 litros", "fraction": 0, "feedback": "❌ Incorreto. 3,0 kg é o limite da balança por pesagem, não a capacidade do copo."}
+          ]
+        },
+        {
+          "name": "Q02 - Segurança Lâminas - True/False",
+          "questiontext": "É permitido desmontar o copo e retirar a lâmina enquanto estes ainda estiverem quentes após a cozedura.",
+          "qtype": "truefalse",
+          "correctanswer": false,
+          "feedback": "De acordo com as recomendações de segurança (pág. 7 e 21), nunca se deve desmontar o copo enquanto este estiver quente para evitar queimaduras."
+        },
+        {
+          "name": "Q03 - Borboleta Velocidade - Multichoice",
+          "questiontext": "Qual é a velocidade máxima permitida quando o acessório Borboleta (mistura) está instalado?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Velocidade 2", "fraction": 0, "feedback": "❌ Incorreto. Pode ir além da velocidade 2."},
+            {"text": "Velocidade 4", "fraction": 1, "feedback": "✅ Correto. Não se deve exceder a velocidade 4 com a borboleta para evitar que seja projetada ou danificada."},
+            {"text": "Velocidade 6", "fraction": 0, "feedback": "❌ Incorreto. A velocidade 6 é o limite para temperaturas elevadas, não para a borboleta."},
+            {"text": "Velocidade 10", "fraction": 0, "feedback": "❌ Incorreto. Esta velocidade destruiria o acessório."}
+          ]
+        },
+        {
+          "name": "Q04 - Temperaturas Internas - Matching",
+          "questiontext": "Associe o produto à sua temperatura interna mínima de segurança conforme os procedimentos alimentares:",
+          "qtype": "matching",
+          "subquestions": [
+            {"text": "Ovos", "answer": "72°C"},
+            {"text": "Carne de aves (peitos/asas)", "answer": "74°C"},
+            {"text": "Peixe e Marisco", "answer": "63°C"},
+            {"text": "Carne picada", "answer": "72°C"}
+          ]
+        },
+        {
+          "name": "Q05 - Função Espiga - Multichoice",
+          "questiontext": "A função Espiga (amassar) possui uma restrição térmica de ativação. Qual é?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Só funciona acima de 60°C", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Só funciona se o copo estiver abaixo de 60°C", "fraction": 1, "feedback": "✅ Correto. Por segurança, se a temperatura for superior a 60°C, a função não inicia."},
+            {"text": "Só funciona com o copo vazio", "fraction": 0, "feedback": "❌ Incorreto. É para massas."},
+            {"text": "Não tem restrição térmica", "fraction": 0, "feedback": "❌ Incorreto. O manual especifica o limite de 60°C na página 44."}
+          ]
+        },
+        {
+          "name": "Q06 - Erro C1 - True/False",
+          "questiontext": "O erro C1 indica que o motor sobreaqueceu e requer um tempo de arrefecimento de aproximadamente 5 minutos.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "Correto. O sistema de proteção eletrónica do motor atua em sobrecarga, exigindo arrefecimento (pág. 55)."
+        },
+        {
+          "name": "Q07 - Pesagem em Funcionamento - Multichoice",
+          "questiontext": "Até que velocidade é possível pesar ingredientes enquanto o motor está a funcionar?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Velocidade Colher", "fraction": 0, "feedback": "❌ Incorreto. Pode ser superior."},
+            {"text": "Velocidade 4", "fraction": 1, "feedback": "✅ Correto. A balança funciona até à velocidade 4, desde que não haja vibrações excessivas."},
+            {"text": "Velocidade 6", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "A balança nunca funciona com o motor ligado", "fraction": 0, "feedback": "❌ Incorreto. O manual prevê esta função até à v4."}
+          ]
+        },
+        {
+          "name": "Q08 - Limpeza Lâminas - Multichoice",
+          "questiontext": "Sobre a limpeza da lâmina, qual das seguintes práticas é desaconselhada pelo manual?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Lavar na máquina de lavar loiça", "fraction": 0, "feedback": "❌ Incorreto. É permitido."},
+            {"text": "Mergulhar em água por longos períodos", "fraction": 1, "feedback": "✅ Correto. Isso pode danificar o sistema de juntas do suporte (pág. 57)."},
+            {"text": "Usar uma escova sob água corrente", "fraction": 0, "feedback": "❌ Incorreto. É recomendado."},
+            {"text": "Secar os pinos de contacto", "fraction": 0, "feedback": "❌ Incorreto. Devem estar sempre secos."}
+          ]
+        },
+        {
+          "name": "Q09 - Modo Transporte - True/False",
+          "questiontext": "No modo de transporte, as barras de bloqueio fixam o copo para evitar danos durante a deslocação.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "Correto. O modo de transporte deve ser ativado no menu definições para bloquear o copo (pág. 49)."
+        },
+        {
+          "name": "Q10 - Acessório Espátula - Multichoice",
+          "questiontext": "Por que razão a espátula da Bimby® TM5 possui um disco de segurança?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Para evitar que a comida salte", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Para garantir que não toca nas lâminas quando inserida pela tampa", "fraction": 1, "feedback": "✅ Correto. O disco impede o contacto direto com a lâmina em movimento (pág. 27)."},
+            {"text": "Para pesar melhor os alimentos", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Para facilitar a limpeza do copo", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q11 - Varoma Vapor - True/False",
+          "questiontext": "Para 30 minutos de cozedura a vapor na Varoma, são necessários 0,5 litros (500g) de água no copo.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "Correto. O manual especifica 500g de água para 30min e 250g adicionais por cada 15min extra."
+        },
+        {
+          "name": "Q12 - Bloqueio Automático - Multichoice",
+          "questiontext": "O que acontece ao mecanismo de bloqueio se a Bimby® for desligada da corrente durante uma falha de energia?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "As barras abrem automaticamente", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "As barras permanecem fechadas e não é possível retirar o conteúdo", "fraction": 1, "feedback": "✅ Correto. É necessário aguardar pelo restabelecimento da energia (pág. 55)."},
+            {"text": "O copo explode por pressão", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "O PIN mestre é necessário para abrir", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q13 - Turbo e Temperatura - True/False",
+          "questiontext": "A função Turbo é automaticamente desativada quando a temperatura no copo ultrapassa os 60°C.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "Correto. Trata-se de uma medida de segurança para evitar projeções de líquidos a ferver (pág. 43)."
+        },
+        {
+          "name": "Q14 - Potência do Motor - Multichoice",
+          "questiontext": "Qual é a potência nominal do motor de relutância da Vorwerk na TM5?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "1000 W", "fraction": 0, "feedback": "❌ Incorreto. 1000 W é a potência do sistema de aquecimento."},
+            {"text": "500 W", "fraction": 1, "feedback": "✅ Correto. O motor tem uma potência nominal de 500 W."},
+            {"text": "1500 W", "fraction": 0, "feedback": "❌ Incorreto. 1500 W é o consumo total máximo."},
+            {"text": "240 W", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q15 - Manutenção Lâminas - True/False",
+          "questiontext": "O anel vedante da lâmina é removível para limpeza profunda.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "Correto. O anel vedante da lâmina pode e deve ser retirado para limpeza, ao contrário do anel da tampa (pág. 21)."
+        },
+        {
+          "name": "Q16 - Rotação Inversa - Multichoice",
+          "questiontext": "Qual é o principal objetivo da função de rotação inversa?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Triturar gelo mais rápido", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Mexer suavemente alimentos delicados sem os cortar", "fraction": 1, "feedback": "✅ Correto. Inverte o sentido para a parte não afiada da lâmina (pág. 43)."},
+            {"text": "Limpar o fundo do copo", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Ativar o modo Turbo", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q17 - Intervalos de Pesagem - Multichoice",
+          "questiontext": "Quais são os incrementos de pesagem da balança integrada?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "1 g", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "5 g", "fraction": 1, "feedback": "✅ Correto. A balança pesa em incrementos de 5g até um máximo de 6kg."},
+            {"text": "10 g", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "50 g", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q18 - Segurança Infantil - True/False",
+          "questiontext": "O manual permite a utilização da Bimby® TM5 por crianças, desde que sob supervisão rigorosa de um adulto.",
+          "qtype": "truefalse",
+          "correctanswer": false,
+          "feedback": "Falso. O manual afirma categoricamente que o aparelho não pode ser usado por crianças, nem mesmo com supervisão (pág. 4, 19)."
+        },
+        {
+          "name": "Q19 - Cabo de Alimentação - True/False",
+          "questiontext": "Deixar o aparelho assente sobre o cabo de alimentação pode afetar a precisão da balança.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "Correto. A estabilidade das bases (pés) é crucial para a calibração da balança (pág. 34)."
+        },
+        {
+          "name": "Q20 - Terminação de Cozedura - Multichoice",
+          "questiontext": "Na função de mistura a quente, o que acontece mal termina o tempo definido?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "O motor para instantaneamente", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "A lâmina continua a mexer suavemente por 8 segundos", "fraction": 1, "feedback": "✅ Correto. Isso evita que o conteúdo queime na base do copo (pág. 38)."},
+            {"text": "O copo abre-se automaticamente", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "A Bimby desliga-se de imediato", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "type": "page",
+      "name": "📘 Introdução e Segurança Crítica",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Fundamentos e Segurança Operacional</h2><p>A Bimby® TM5 representa a quinta geração de sistemas de cozinha inteligente da Vorwerk. Como autoridade técnica, é imperativo reforçar que este equipamento é de uso exclusivo para adultos e ambientes domésticos. O rigor no manuseamento é a única garantia de longevidade do hardware e integridade física do operador. Esta unidade resume os protocolos básicos de instalação e as advertências de perigo que sustentam toda a operação.</p><div class=\"ailms-info-box\"><h3>🔑 Níveis de Alerta</h3><ul><li><strong>PERIGO</strong>: Indica situações que resultarão em morte ou ferimentos graves se não evitadas.</li><li><strong>AVISO</strong>: Indica perigos potenciais que podem resultar em morte ou lesões graves.</li><li><strong>CUIDADO</strong>: Alerta para situações que podem causar ferimentos ligeiros ou moderados.</li></ul></div>[[IMG_P01_00_bimby_tm5_geral]]<div class=\"ailms-img-caption\">Figura: Sistema Bimby® TM5 Completo</div><div class=\"ailms-atencao\"><strong>⚠️ Ponto Crítico:</strong> O anel vedante da tampa do copo NÃO é removível. Qualquer tentativa de o remover danificará permanentemente a tampa, exigindo a sua substituição imediata.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "⚙️ Hardware: O Coração do Sistema",
+      "content": "<div class=\"ailms-page-container\"><h2>📊 Especificações e Montagem Técnica</h2><p>O sistema TM5 é movido por um motor Vorwerk de relutância de 500W, livre de manutenção, capaz de atingir 10.700 rpm. A precisão técnica estende-se ao sistema de aquecimento de 1000W, protegido eletronicamente contra sobreaquecimento. A correta montagem do conjunto Copo-Lâmina é o passo zero para qualquer operação segura.</p><div class=\"ailms-info-box\"><h3>🔑 Conjunto Lâmina e Copo</h3><ul><li><strong>Lâmina</strong>: Fabricada em aço inoxidável, deve ser sempre manuseada pela parte superior.</li><li><strong>Base do Copo</strong>: Atua como mecanismo de bloqueio da lâmina. Deve ser rodada 30 graus para travar ou destravar.</li><li><strong>Pinos de Contacto</strong>: Localizados na base inferior, devem estar absolutamente secos para evitar corrosão e falhas elétricas.</li></ul></div><table class=\"ailms-table\"><thead><tr><th>Parâmetro</th><th>Especificação</th></tr></thead><tbody><tr><td>Potência Motor</td><td>500 W</td></tr><tr><td>Rotações</td><td>100 a 10.700 rpm</td></tr><tr><td>Capacidade Copo</td><td>2,2 Litros</td></tr><tr><td>Precisão Balança</td><td>5 g a 6,0 kg</td></tr></tbody></table>[[IMG_P21_00_retirar_lamina]]<div class=\"ailms-img-caption\">Figura: Procedimento de extração segura da lâmina</div><div class=\"ailms-dica\"><strong>💡 Dica Prática:</strong> Ao montar, certifique-se de que a pega do copo aponta para a frente. O sistema só bloqueia a tampa se o copo estiver perfeitamente encaixado.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "📱 Interface e Operação Home",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Navegação e Seletores Digitais</h2><p>A interação com a Bimby® TM5 processa-se através de um ecrã tátil e de um botão de programação rotativo. O ecrã Home centraliza as três variáveis fundamentais de qualquer receita: Tempo, Temperatura e Velocidade. A compreensão da lógica de funcionamento destes seletores é vital para a transição do modo manual para o modo de receitas guiadas.</p><div class=\"ailms-info-box\"><h3>🔑 Dinâmica dos Seletores</h3><ul><li><strong>Tempo</strong>: Configurável até 99 minutos, com incrementos que variam de 1 segundo a 1 minuto conforme a duração.</li><li><strong>Temperatura</strong>: Amplitude de 37°C a 120°C (ou Varoma). O aquecimento só ativa se houver tempo definido.</li><li><strong>Velocidade</strong>: Controla as rotações e ativa o mecanismo de bloqueio automático da tampa.</li></ul></div>[[IMG_P34_00_ecra_home]]<div class=\"ailms-img-caption\">Figura: Layout do Ecrã Home e Ícones de Função</div><div class=\"ailms-atencao\"><strong>⚠️ Proteção de Dados:</strong> A Chave de Receitas contém ímanes que podem afetar pacemakers. Mantenha distância de segurança e avise terceiros com dispositivos médicos internos.</div><div class=\"ailms-quick-check\"><strong>🤔 Verificação Rápida:</strong> O que acontece se definir uma temperatura mas esquecer de definir o tempo? (Resposta: O sistema de aquecimento permanecerá inativo).</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "🌪️ Modos Avançados e Especializados",
+      "content": "<div class=\"ailms-page-container\"><h2>🚀 Turbo, Inversa e Função Espiga</h2><p>Para além da mistura padrão, a TM5 oferece algoritmos de rotação especializados para processamento de texturas complexas. O Modo Turbo permite picos de 10.700 rpm para trituração instantânea, enquanto a Função Espiga mimetiza o processo de amassamento profissional através de movimentos alternados.</p><div class=\"ailms-info-box\"><h3>🔑 Funções de Processamento</h3><ul><li><strong>Função Inversa</strong>: A lâmina roda no sentido contrário (parte não afiada), ideal para estufados.</li><li><strong>Modo Turbo</strong>: Atua em intervalos de 0.5s, 1s ou 2s. Bloqueado acima de 60°C por segurança.</li><li><strong>Modo Espiga</strong>: Operação intermitente para massas lêvedas. Bloqueado se a temperatura do copo for >60°C.</li></ul></div>[[IMG_P43_00_funcao_turbo]]<div class=\"ailms-img-caption\">Figura: Ativação dos Modos Especiais no Menu de Funções</div><div class=\"ailms-atencao\"><strong>⚠️ Estabilidade:</strong> Durante a Função Espiga ou trituração pesada, a máquina pode mover-se na bancada devido a vibrações. Nunca a deixe sem supervisão nestes modos.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "♨️ Ecossistema Varoma e Vapor",
+      "content": "<div class=\"ailms-page-container\"><h2>📊 Cozedura Multinível e Termodinâmica</h2><p>A Varoma é um acessório de três componentes (Recipiente, Tabuleiro e Tampa) desenhado para cozinhar a vapor. O vapor é gerado no copo (mínimo 500g de água) e sobe através da tampa, permitindo uma cozedura delicada que preserva nutrientes e texturas.</p><div class=\"ailms-info-box\"><h3>🔑 Regras do Vapor</h3><ul><li><strong>Nível de Água</strong>: 500g para 30min; 250g extra para cada 15min adicionais.</li><li><strong>Desobstrução</strong>: Algumas ranhuras devem ficar sempre livres para circulação de vapor.</li><li><strong>Segurança</strong>: Ao abrir, incline a tampa para o lado oposto ao rosto para evitar queimaduras por vapor.</li></ul></div>[[IMG_P31_00_abrir_varoma]]<div class=\"ailms-img-caption\">Figura: Técnica correta de abertura da Varoma para escape de vapor</div><div class=\"ailms-dica\"><strong>💡 Dica Prática:</strong> Utilize a tampa da Varoma ao contrário como coletor de pingos para o recipiente quando o retirar da máquina.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "🧼 Manutenção e Resolução de Erros",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Higiene Técnica e Diagnóstico</h2><p>A manutenção preventiva da Bimby® TM5 prolonga a vida útil do motor e sensores. Todas as peças (exceto o corpo da máquina) são laváveis na máquina de lavar loiça, desde que respeitadas as posições de empilhamento para evitar deformações térmicas nos plásticos.</p><div class=\"ailms-info-box\"><h3>🔑 Protocolo de Limpeza</h3><ul><li><strong>Lâminas</strong>: Lavar sob água corrente; evitar imersão prolongada para proteger as juntas.</li><li><strong>Pinos do Copo</strong>: Devem ser limpos com detergente neutro e secos meticulosamente.</li><li><strong>Corpo da Máquina</strong>: Limpar apenas com pano húmido; nunca mergulhar em água.</li></ul></div><div class=\"ailms-atencao\"><strong>⚠️ Erro C1 (Sobreaquecimento):</strong> Se o motor parar e exibir C1, reduza a carga no copo, verifique as entradas de ar e aguarde 5 minutos.</div>[[IMG_P55_00_erro_c1]]<div class=\"ailms-img-caption\">Figura: Interface de erro de sobreaquecimento do motor</div></div>"
+    },
+    {
+      "type": "quiz",
+      "name": "🎯 Avaliação Final de Competências",
+      "intro": "Este exame valida o seu conhecimento sobre a operação segura, especificações técnicas e manutenção da Bimby® TM5 baseando-se estritamente no manual de instruções.",
+      "timelimit": 1800,
+      "attempts": 3,
+      "gradepass": 15.0,
+      "questions_from_bank": {
+        "bank_name": "Banco AI - Bimby TM5 Global",
+        "count": 10
+      }
+    },
+    {
+      "type": "page",
+      "name": "✅ Conclusão do Curso",
+      "content": "<div class=\"ailms-page-container\"><h2>🎉 Parabéns!</h2><p>Concluiu com sucesso a formação técnica sobre a Bimby® TM5. Agora possui o conhecimento necessário para operar o sistema com máxima segurança, respeitando as normas da Vorwerk e garantindo a manutenção ideal do seu equipamento.</p><div class=\"ailms-dica\"><strong>💡 Lembrete Final:</strong> Em caso de dúvida, consulte sempre o manual físico ou contacte o serviço de apoio ao cliente (800 500 202).</div></div>"
+    }
+  ]
+}

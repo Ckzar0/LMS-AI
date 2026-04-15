@@ -150,7 +150,11 @@ if (!$courseid) {
             // Preview
             echo '<td style="width:320px; padding:15px; border-right:1px solid #eee; vertical-align:middle; background:#fafafa; text-align:center;">';
             if (stripos($block_html, 'ailms-error-block') !== false) {
-                echo '<div style="color:#d32f2f; font-weight:bold; background:#ffebee; padding:20px; border-radius:8px; border:1px dashed #f44336;">⚠️ IMAGEM EM FALTA<br><small style="opacity:0.7;">'.$placeholder.'</small></div>';
+                if (stripos($placeholder, 'TABLE') !== false) {
+                    echo '<div style="color:#0369a1; font-weight:bold; background:#e0f2fe; padding:20px; border-radius:8px; border:1px dashed #0ea5e9;">📊 TABELA EM FALTA<br><small style="opacity:0.7;">'.$placeholder.'</small></div>';
+                } else {
+                    echo '<div style="color:#d32f2f; font-weight:bold; background:#ffebee; padding:20px; border-radius:8px; border:1px dashed #f44336;">🖼️ IMAGEM EM FALTA<br><small style="opacity:0.7;">'.$placeholder.'</small></div>';
+                }
             } else {
                 if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $block_html, $im)) {
                     echo '<img src="'.$im[1].'" style="max-width:100%; max-height:250px; height:auto; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">';
