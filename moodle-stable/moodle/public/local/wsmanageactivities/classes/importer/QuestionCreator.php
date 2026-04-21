@@ -109,7 +109,7 @@ class QuestionCreator {
                 return $question->id;
             }
         } catch (\Throwable $e) {
-            echo "      ❌ Erro fatal na questão: " . $e->getMessage() . "\n";
+            // echo "      ❌ Erro fatal na questão: " . $e->getMessage() . "\n";
         }
         
         return null;
