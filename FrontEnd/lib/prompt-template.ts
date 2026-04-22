@@ -32,13 +32,6 @@ export function generatePrompt(
     .replace(/\${config.numberOfQuestions}/g, config.numberOfQuestions.toString())
     .replace(/\${config.quizDuration \* 60}/g, (config.quizDuration * 60).toString());
 
-  // Injeção de restrições negativas baseadas nas opções do utilizador
-  let finalInstructions = "";
-  
-  if (!config.generateQuizzes || config.numberOfQuestions === 0) {
-    finalInstructions += "\n- 🚫 **SEM QUIZ:** Estás PROIBIDO de gerar qualquer banco de questões (`question_banks`) ou atividade do tipo `quiz`. O curso deve ser apenas informativo.";
-  }
-
   // Adicionar o conteúdo do PDF no final, seguindo o padrão esperado pela API
-  return `${prompt}${finalInstructions}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${pdfContent}\n\nResponde APENAS com o JSON integral.`;
+  return `${prompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${pdfContent}\n\nResponde APENAS com o JSON integral.`;
 }

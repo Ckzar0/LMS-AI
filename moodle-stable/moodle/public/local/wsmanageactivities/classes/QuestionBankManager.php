@@ -46,9 +46,9 @@ class QuestionBankManager {
             $category->sortorder = 999;
             $category->stamp = md5(uniqid(rand(), true));
             $category->id = $DB->insert_record('question_categories', $category);
-            // echo "      📁 Criada nova categoria: $bank_name (ID: {$category->id}) no Contexto: {$course_context->id}\n";
+            echo "      📁 Criada nova categoria: $bank_name (ID: {$category->id}) no Contexto: {$course_context->id}\n";
         } else {
-            // echo "      📁 Usando categoria existente: $bank_name (ID: {$category->id})\n";
+            echo "      📁 Usando categoria existente: $bank_name (ID: {$category->id})\n";
         }
 
         if (!empty($bank_data['questions'])) {
@@ -57,7 +57,7 @@ class QuestionBankManager {
                 $qid = \local_wsmanageactivities\importer\QuestionCreator::create_question($category->id, $course_context->id, $q_data);
                 if ($qid) $q_count++;
             }
-            // echo "      ✅ Criadas $q_count questões na categoria ID: {$category->id}\n";
+            echo "      ✅ Criadas $q_count questões na categoria ID: {$category->id}\n";
         }
 
         // Limpar caches de contexto novamente após a criação
