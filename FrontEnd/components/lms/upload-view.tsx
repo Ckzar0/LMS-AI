@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Upload, FileText, X, CheckCircle2, Loader2, Video, FileQuestion, Award, BookOpen, AlertCircle, Eye, Copy, ClipboardCopy, Factory, Sparkles} from "lucide-react"
+import { Upload, FileText, X, CheckCircle2, Loader2, Video, FileQuestion, Award, BookOpen, AlertCircle, Eye, Copy, ClipboardCopy, Factory, Sparkles, ExternalLink} from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -36,7 +37,6 @@ const generationOptions = [
   { id: "videos", label: "Gerar Vídeos Explicativos", icon: Video, description: "Cria vídeos com narração AI a partir do conteúdo" },
   { id: "quizzes", label: "Gerar Exames e Quizzes", icon: FileQuestion, description: "Cria perguntas de avaliação automáticas" },
   { id: "certificate", label: "Certificação Automática", icon: Award, description: "Emite certificado ao completar o curso" },
-  { id: "modules", label: "Dividir em Módulos", icon: BookOpen, description: "Organiza o conteúdo em módulos lógicos" },
 ]
 
 export function UploadView() {
@@ -47,7 +47,7 @@ export function UploadView() {
   const [depth, setDepth] = useState<"Resumo Executivo" | "Profissional" | "Especialista Técnico">("Profissional")
   const [quizDuration, setQuizDuration] = useState(30)
   const [numberOfQuestions, setNumberOfQuestions] = useState(20)
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(["quizzes", "certificate", "modules"])
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(["quizzes", "certificate"])
   const [isDragOver, setIsDragOver] = useState(false)
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
@@ -62,6 +62,7 @@ export function UploadView() {
     progress: 0,
     message: ""
   })
+  const [createdCourseId, setCreatedCourseId] = useState<number | null>(null)
   const [generatedCourse, setGeneratedCourse] = useState<MoodleCourse | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [moodleStatus, setMoodleStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking")
@@ -115,8 +116,14 @@ export function UploadView() {
       .replace(/{{QUIZ_DURATION}}/g, quizDuration.toString())
       .replace(/{{QUIZ_DURATION_SECONDS}}/g, (quizDuration * 60).toString());
 
-    setDynamicPrompt(finalPrompt)
-  }, [depth, difficulty, numberOfQuestions, masterPrompt])
+    // Injeção de restrições negativas baseadas nas opções selecionadas
+    let finalInstructions = "";
+    if (!selectedOptions.includes("quizzes") || numberOfQuestions === 0) {
+      finalInstructions += "\n- 🚫 **SEM QUIZ:** Estás PROIBIDO de gerar qualquer banco de questões (`question_banks`) ou atividade do tipo `quiz`. O curso deve ser apenas informativo.";
+    }
+
+    setDynamicPrompt(finalPrompt + finalInstructions)
+  }, [depth, difficulty, numberOfQuestions, quizDuration, selectedOptions, masterPrompt])
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
     return new Promise((resolve) => {
@@ -370,8 +377,14 @@ export function UploadView() {
       })
 
       const data = await response.json()
+      console.log("Moodle response data:", data);
+      
       if (!response.ok) throw new Error(data.error || "Failed to send to Moodle")
 
+      if (data.courseId) {
+        console.log("Setting createdCourseId to:", data.courseId);
+        setCreatedCourseId(data.courseId)
+      }
       setGenerationState({ 
         status: "complete", 
         progress: 100, 
@@ -383,9 +396,7 @@ export function UploadView() {
         title: "Curso Criado!",
         description: `Nome Final: ${courseWithFinalName.course_name}\n(Baseado em: ${generatedCourse.course_name})`,
       });
-      setTimeout(() => {
-        setFiles([]); setCourseName(""); setGeneratedCourse(null); setShowPreview(false); setGenerationState({ status: "idle", progress: 0, message: "" })
-      }, 3000)
+      // Removido o reset automático para permitir clicar no link do curso criado
     } catch (error) {
       setGenerationState({ status: "error", progress: 0, message: "Erro ao enviar", error: error instanceof Error ? error.message : "Unknown error" })
     }
@@ -405,7 +416,19 @@ export function UploadView() {
   }
 
   if (showPreview && generatedCourse) {
-    return <CoursePreview course={generatedCourse} onBack={() => setShowPreview(false)} onSendToMoodle={handleSendToMoodle} isSending={generationState.status === "sending"} moodleConnected={moodleStatus === "connected"} />
+    return (
+      <CoursePreview 
+        course={generatedCourse} 
+        onBack={() => {
+          setShowPreview(false);
+          setCreatedCourseId(null); // Resetar ao voltar
+        }} 
+        onSendToMoodle={handleSendToMoodle} 
+        isSending={generationState.status === "sending"} 
+        moodleConnected={moodleStatus === "connected"}
+        createdCourseId={createdCourseId}
+      />
+    )
   }
 
   return (
@@ -493,13 +516,74 @@ export function UploadView() {
                   <Input type="number" value={quizDuration} onChange={(e) => setQuizDuration(Number(e.target.value))} />
                 </div>
               </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Recursos Adicionais</Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {generationOptions.map((option) => {
+                    const Icon = option.icon
+                    const isSelected = selectedOptions.includes(option.id)
+                    const isComingSoon = option.id === "videos" || option.id === "certificate"
+                    
+                    return (
+                      <Card 
+                        key={option.id}
+                        className={cn(
+                          "transition-all",
+                          isComingSoon 
+                            ? "border-muted bg-muted/5 cursor-not-allowed opacity-60" 
+                            : "cursor-pointer hover:border-primary/50",
+                          !isComingSoon && isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-muted"
+                        )}
+                        onClick={() => !isComingSoon && toggleOption(option.id)}
+                      >
+                        <CardContent className="p-4 flex items-start gap-4">
+                          <div className={cn(
+                            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                            !isComingSoon && isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-semibold text-sm text-foreground">{option.label}</p>
+                              {isComingSoon && <Badge variant="outline" className="text-[8px] h-4">Brevemente</Badge>}
+                              {!isComingSoon && isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{option.description}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </div>
             </CardContent>
           </Card>
           
-          <Button size="lg" className="w-full" onClick={handleGenerate} disabled={files.length === 0 || !courseName || isGenerating}>
-            {isGenerating ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
-            Gerar Curso com IA
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="flex-1 gap-2"
+              onClick={handleCopyPrompt}
+              disabled={files.length === 0 || !courseName || isCopyingPrompt}
+            >
+              {isCopyingPrompt ? <Loader2 className="h-5 w-5 animate-spin" /> : <ClipboardCopy className="h-5 w-5" />}
+              Copiar Prompt
+            </Button>
+            <Button 
+              size="lg" 
+              className="flex-[2] gap-2" 
+              onClick={handleGenerate} 
+              disabled={files.length === 0 || !courseName || isGenerating}
+            >
+              {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+              Gerar Curso com IA
+            </Button>
+          </div>
 
           {/* Status da Geração / Sucesso */}
           {(isGenerating || generationState.status === "error" || generationState.status === "complete") && (
@@ -525,6 +609,36 @@ export function UploadView() {
                           <span className="px-2 py-0.5 bg-muted text-muted-foreground font-bold rounded text-xs uppercase">Sugestão da IA</span>
                           <span className="text-muted-foreground italic">{generatedCourse.course_name}</span>
                         </p>
+                        
+                        {createdCourseId && (
+                          <div className="pt-2 border-t mt-2 space-y-2">
+                            <Button 
+                              asChild 
+                              className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+                              size="sm"
+                            >
+                              <a 
+                                href={`http://localhost:8080/course/view.php?id=${createdCourseId}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Aceder ao Curso no Moodle
+                              </a>
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full text-xs text-muted-foreground hover:text-primary"
+                              onClick={() => {
+                                setFiles([]); setCourseName(""); setGeneratedCourse(null); 
+                                setCreatedCourseId(null); setGenerationState({ status: "idle", progress: 0, message: "" })
+                              }}
+                            >
+                              Criar Novo Curso
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                     {generationState.error && (
@@ -579,6 +693,51 @@ export function UploadView() {
                 <div className="space-y-3">
                   <Label className="text-primary font-bold">Duração (min)</Label>
                   <Input type="number" value={quizDuration} onChange={(e) => setQuizDuration(Number(e.target.value))} className="bg-white" />
+                </div>
+              </div>
+
+              {/* RECURSOS ADICIONAIS - SINCRONIZADOS */}
+              <div className="space-y-4 py-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Recursos Adicionais</Label>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {generationOptions.map((option) => {
+                    const Icon = option.icon
+                    const isSelected = selectedOptions.includes(option.id)
+                    const isComingSoon = option.id === "videos" || option.id === "certificate"
+                    
+                    return (
+                      <Card 
+                        key={option.id}
+                        className={cn(
+                          "transition-all",
+                          isComingSoon 
+                            ? "border-muted bg-muted/5 cursor-not-allowed opacity-60" 
+                            : "cursor-pointer hover:border-primary/50",
+                          !isComingSoon && isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-muted"
+                        )}
+                        onClick={() => !isComingSoon && toggleOption(option.id)}
+                      >
+                        <CardContent className="p-4 flex items-start gap-4">
+                          <div className={cn(
+                            "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                            !isComingSoon && isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-semibold text-sm text-foreground">{option.label}</p>
+                              {isComingSoon && <Badge variant="outline" className="text-[8px] h-4">Brevemente</Badge>}
+                              {!isComingSoon && isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{option.description}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -647,6 +806,36 @@ export function UploadView() {
                             <span className="px-2 py-0.5 bg-muted text-muted-foreground font-bold rounded text-xs uppercase">Sugestão da IA</span>
                             <span className="text-muted-foreground italic">{generatedCourse.course_name}</span>
                           </p>
+
+                          {createdCourseId && (
+                            <div className="pt-2 border-t mt-2 space-y-2">
+                              <Button 
+                                asChild 
+                                className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+                                size="sm"
+                              >
+                                <a 
+                                  href={`http://localhost:8080/course/view.php?id=${createdCourseId}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  Aceder ao Curso no Moodle
+                                </a>
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="w-full text-xs text-muted-foreground hover:text-primary"
+                                onClick={() => {
+                                  setFiles([]); setCourseName(""); setGeneratedCourse(null); 
+                                  setCreatedCourseId(null); setGenerationState({ status: "idle", progress: 0, message: "" })
+                                }}
+                              >
+                                Criar Novo Curso
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
