@@ -77,103 +77,42 @@ export async function POST(request: NextRequest) {
     console.log(`Extracted text size: ${combinedText.length} characters`);
     console.log(`Prompt size: ${prompt.length} characters`);
 
-    // --- ESCOLHA DO MODELO BASEADA NA PROFUNDIDADE ---
-    const envModelPro = process.env.PORTKEY_MODEL_PRO;
-    const envModelFlash = process.env.PORTKEY_MODEL_FLASH;
-    const envMaxTokens = process.env.PORTKEY_MAX_TOKENS;
-
-    const modelPro = envModelPro || "gemini-1.5-pro";
-    const modelFlash = envModelFlash || "gemini-1.5-flash";
-    const selectedModel = config.depth === "Especialista Técnico" ? modelPro : modelFlash;
-    const maxTokensLimit = parseInt(envMaxTokens || "32768");
-
-    // Log de Diagnóstico de Configuração
-    if (!envModelPro || !envModelFlash || !envMaxTokens) {
-      console.warn("⚠️ [CONFIG] Algumas variáveis de modelo não foram encontradas no .env.local. Usando fallbacks de segurança.");
-    }
-    console.log(`[LLM] Selecionado: ${selectedModel} (Fonte: ${config.depth === "Especialista Técnico" ? (envModelPro ? ".env" : "Fallback") : (envModelFlash ? ".env" : "Fallback")})`);
-    console.log(`[LLM] Max Tokens: ${maxTokensLimit} (Fonte: ${envMaxTokens ? ".env" : "Fallback"})`);
-
-    /* 
-    // =========================================================================
-    // OPÇÃO A: PORTKEY GATEWAY (COMENTADO - USAR PARA LOGS/MODELOS ESPECIAIS)
-    // =========================================================================
-    const portkeyKey = process.env.PORTKEY_API_KEY
-    const virtualKey = process.env.PORTKEY_VIRTUAL_KEY
-    
-    if (!portkeyKey) {
-      return NextResponse.json({ error: "PORTKEY_API_KEY not configured" }, { status: 500 })
+    // --- LÓGICA OPENROUTER (ESTÁVEL) ---
+    const openRouterKey = process.env.OPENROUTER_API_KEY
+    if (!openRouterKey) {
+      return NextResponse.json({ error: "OPENROUTER_API_KEY not configured" }, { status: 500 })
     }
 
-    const { default: Portkey } = await import("portkey-ai");
-    const portkeyConfig: any = { apiKey: portkeyKey };
-    let finalModel = selectedModel;
+    const model = "meta-llama/llama-3.1-8b-instruct:free"
+    console.log(`Calling OpenRouter with model: ${model}`);
 
-    if (selectedModel.startsWith("@")) {
-      const parts = selectedModel.split("/");
-      portkeyConfig.virtualKey = parts[0].substring(1);
-      finalModel = parts.slice(1).join("/");
-    } else if (virtualKey) {
-      portkeyConfig.virtualKey = virtualKey;
-    } else {
-      portkeyConfig.provider = "google";
-    }
-
-    const portkey = new Portkey(portkeyConfig);
-    const chatCompletion = await portkey.chat.completions.create({
-      model: finalModel,
-      messages: [
-        { role: "system", content: "És um Especialista em Desenho de Cursos Moodle." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: maxTokensLimit,
-    });
-    const content = chatCompletion.choices?.[0]?.message?.content;
-    */
-
-    // =========================================================================
-    // OPÇÃO B: GOOGLE GEMINI DIRETO (ATIVO - SEM CUSTOS PORTKEY / PRIVACIDADE)
-    // =========================================================================
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (!geminiKey) {
-      return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
-    }
-
-    // Limpar o nome do modelo (remover @slug se existir)
-    const cleanModel = selectedModel.startsWith("@") 
-      ? selectedModel.split("/").slice(1).join("/") 
-      : selectedModel;
-
-    console.log(`Calling Google Gemini Direct - Model: ${cleanModel}`);
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${geminiKey}`, {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${openRouterKey}`,
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "LMS AI Integration",
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: maxTokensLimit,
-          responseMimeType: "application/json"
-        }
+        model: model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 16384
       })
-    });
+    })
 
-    const responseData = await response.json();
+    const responseData = await response.json()
 
     if (!response.ok) {
-      console.error("--- GEMINI API ERROR ---", JSON.stringify(responseData, null, 2));
-      return NextResponse.json({ error: `Gemini API error: ${response.status}`, details: responseData }, { status: response.status });
+      console.error("--- OPENROUTER API ERROR ---");
+      console.error(JSON.stringify(responseData, null, 2));
+      return NextResponse.json({ error: `OpenRouter API error: ${response.status}`, details: responseData }, { status: response.status })
     }
 
-    // A estrutura do Gemini é candidates[0].content.parts[0].text
-    const content = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+    const content = responseData.choices?.[0]?.message?.content
     
-    if (!content) {
-      console.error("--- NO CONTENT FROM GEMINI ---", JSON.stringify(responseData, null, 2));
-      return NextResponse.json({ error: "No content received from Gemini" }, { status: 500 });
-    }
+    if (!content) return NextResponse.json({ error: "No content received" }, { status: 500 })
 
     // Limpeza robusta do JSON
     let jsonStr = content.trim();
