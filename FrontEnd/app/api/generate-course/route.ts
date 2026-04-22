@@ -73,10 +73,6 @@ export async function POST(request: NextRequest) {
       ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
       : generatePrompt(basePrompt, config, combinedText, fileName)
     
-    // Debug: Log text size
-    console.log(`Extracted text size: ${combinedText.length} characters`);
-    console.log(`Prompt size: ${prompt.length} characters`);
-
     // --- ESCOLHA DO MODELO BASEADA NA PROFUNDIDADE ---
     const envModelPro = process.env.PORTKEY_MODEL_PRO;
     const envModelFlash = process.env.PORTKEY_MODEL_FLASH;
@@ -91,8 +87,6 @@ export async function POST(request: NextRequest) {
     if (!envModelPro || !envModelFlash || !envMaxTokens) {
       console.warn("⚠️ [CONFIG] Algumas variáveis de modelo não foram encontradas no .env.local. Usando fallbacks de segurança.");
     }
-    console.log(`[LLM] Selecionado: ${selectedModel} (Fonte: ${config.depth === "Especialista Técnico" ? (envModelPro ? ".env" : "Fallback") : (envModelFlash ? ".env" : "Fallback")})`);
-    console.log(`[LLM] Max Tokens: ${maxTokensLimit} (Fonte: ${envMaxTokens ? ".env" : "Fallback"})`);
 
     /* 
     // =========================================================================
@@ -144,8 +138,6 @@ export async function POST(request: NextRequest) {
     const cleanModel = selectedModel.startsWith("@") 
       ? selectedModel.split("/").slice(1).join("/") 
       : selectedModel;
-
-    console.log(`Calling Google Gemini Direct - Model: ${cleanModel}`);
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${geminiKey}`, {
       method: "POST",

@@ -377,12 +377,10 @@ export function UploadView() {
       })
 
       const data = await response.json()
-      console.log("Moodle response data:", data);
       
       if (!response.ok) throw new Error(data.error || "Failed to send to Moodle")
 
       if (data.courseId) {
-        console.log("Setting createdCourseId to:", data.courseId);
         setCreatedCourseId(data.courseId)
       }
       setGenerationState({ 
@@ -417,18 +415,18 @@ export function UploadView() {
 
   if (showPreview && generatedCourse) {
     return (
-      <CoursePreview 
-        course={generatedCourse} 
+      <CoursePreview
+        course={generatedCourse}
         onBack={() => {
           setShowPreview(false);
           setCreatedCourseId(null); // Resetar ao voltar
-        }} 
-        onSendToMoodle={handleSendToMoodle} 
-        isSending={generationState.status === "sending"} 
+        }}
+        onSendToMoodle={handleSendToMoodle}
+        isSending={generationState.status === "sending"}
         moodleConnected={moodleStatus === "connected"}
         createdCourseId={createdCourseId}
-      />
-    )
+        error={generationState.status === "error" ? generationState.error || generationState.message : null}
+      />    )
   }
 
   return (
@@ -618,7 +616,7 @@ export function UploadView() {
                               size="sm"
                             >
                               <a 
-                                href={`http://localhost:8080/course/view.php?id=${createdCourseId}`} 
+                                href={`${process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080"}/course/view.php?id=${createdCourseId}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                               >

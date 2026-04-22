@@ -132,6 +132,16 @@ $functions = [
         'capabilities' => 'moodle/course:create',
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
+
+    'local_wsmanageactivities_process_pdf' => [
+        'classname'   => 'local_wsmanageactivities\\external\\process_pdf',
+        'methodname'  => 'execute',
+        'description' => 'Extract images from PDF and store them for course integration',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'moodle/files:uploadfiles',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
     
     // ==========================================
     // FUNÇÕES v22.0 - BANCO DE QUESTÕES

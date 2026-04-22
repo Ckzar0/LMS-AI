@@ -39,7 +39,7 @@ class ActivityCreator {
         $moduleinfo->name = self::force_string($activity['name'] ?? 'Página AI');
         $moduleinfo->intro = self::force_string($activity['intro'] ?? '');
         $moduleinfo->content = self::force_string($activity['content'] ?? '');
-        $moduleinfo->contentformat = 1; $moduleinfo->display = 5; $moduleinfo->visible = 1; $moduleinfo->completion = 1; $moduleinfo->completionview = 1; $moduleinfo->cmidnumber = '';
+        $moduleinfo->contentformat = 1; $moduleinfo->display = 5; $moduleinfo->visible = 1; $moduleinfo->completion = 2; $moduleinfo->completionview = 1; $moduleinfo->cmidnumber = '';
         $moduleinfo->printintro = 1; $moduleinfo->printlastmodified = 1;
         
         $info = \add_moduleinfo($moduleinfo, $course);
@@ -97,9 +97,9 @@ class ActivityCreator {
         $moduleinfo->attempts = (int)($activity['max_attempts'] ?? 0); 
         $moduleinfo->grademethod = 1; $moduleinfo->decimalpoints = 2;
         $moduleinfo->grade = (float)($activity['grade'] ?? 20.0);
-        $moduleinfo->reviewattempt = 69904; $moduleinfo->reviewcorrectness = 69904; $moduleinfo->reviewmarks = 69904;
-        $moduleinfo->reviewspecificfeedback = 69904; $moduleinfo->reviewgeneralfeedback = 69904; $moduleinfo->reviewrightanswer = 69904; $moduleinfo->reviewoverallfeedback = 69904;
-        $moduleinfo->visible = 1; $moduleinfo->completion = 1; $moduleinfo->completionusegrade = 0; $moduleinfo->completionpass = 0;
+        $moduleinfo->reviewattempt = 4368; $moduleinfo->reviewcorrectness = 4368; $moduleinfo->reviewmarks = 4368;
+        $moduleinfo->reviewspecificfeedback = 4368; $moduleinfo->reviewgeneralfeedback = 4368; $moduleinfo->reviewrightanswer = 4368; $moduleinfo->reviewoverallfeedback = 4368;
+        $moduleinfo->visible = 1; $moduleinfo->completion = 2; $moduleinfo->completionusegrade = 1; $moduleinfo->completionpass = 1;
         $moduleinfo->gradepass = (float)($activity['passing_score'] ?? 15.0);
         $moduleinfo->cmidnumber = ''; $moduleinfo->timeopen = 0; $moduleinfo->timeclose = 0; 
         $moduleinfo->timelimit = (int)($activity['timelimit'] ?? 0);
@@ -110,7 +110,7 @@ class ActivityCreator {
         $moduleinfo->quizpassword = ''; $moduleinfo->subnet = ''; $moduleinfo->delay1 = 0; $moduleinfo->delay2 = 0;
         $moduleinfo->showuserpicture = 0; $moduleinfo->showblocks = 0; $moduleinfo->completionminattempts = 0;
         $moduleinfo->allowofflineattempts = 0;
-        $moduleinfo->reviewmaxmarks = 69904;
+        $moduleinfo->reviewmaxmarks = 4368;
         $moduleinfo->timemodified = time();
         $moduleinfo->timecreated = time();
 
@@ -125,7 +125,17 @@ class ActivityCreator {
 
         $quiz = $DB->get_record('quiz', ['id' => $info->instance], '*', MUST_EXIST);
 
-        // 1. OBTER CATEGORIA PADRÃO DO QUIZ (No contexto do Módulo)
+        // FORÇAR REVISÃO E CONCLUSÃO (Moodle às vezes ignora no add_moduleinfo)
+        $DB->set_field('quiz', 'reviewattempt', 4368, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewcorrectness', 4368, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewmarks', 4368, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewspecificfeedback', 0, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewgeneralfeedback', 4368, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewrightanswer', 0, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewoverallfeedback', 0, ['id' => $quiz->id]);
+        $DB->set_field('quiz', 'reviewmaxmarks', 4368, ['id' => $quiz->id]);
+
+        // 1. OBTER CATEGORIA PADRÃO DO QUIZ
         $default_category = \question_get_default_category($quiz_context->id);
         // echo "      📂 Banco de Questões do Quiz: {$default_category->name} (ID: {$default_category->id})\n";
 

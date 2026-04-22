@@ -1,0 +1,274 @@
+{
+  "course_name": "Bitcoin: Fundamentos Técnicos do Dinheiro Eletrónico Peer-to-Peer",
+  "course_shortname": "BTC-TECH-01",
+  "source_file": "bitcoin.pdf",
+  "course_summary": "Este curso oferece uma análise técnica exaustiva do protocolo Bitcoin, conforme proposto por Satoshi Nakamoto. Abrange desde a criptografia de transações até os mecanismos de consenso por Prova de Trabalho e a segurança estatística da rede contra ataques.",
+  "configuration": {
+    "duration": "Profissional",
+    "quiz_difficulty": "medium",
+    "quiz_questions_count": 10,
+    "bank_questions_count": 20
+  },
+  "question_banks": [
+    {
+      "name": "Banco AI - Bitcoin Whitepaper",
+      "questions": [
+        {
+          "name": "Q01 - Gasto Duplo - Multichoice",
+          "questiontext": "Qual é a principal limitação das assinaturas digitais na criação de um sistema de dinheiro eletrónico sem intermediários, segundo o documento?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "As assinaturas não conseguem provar a propriedade da moeda.", "fraction": 0, "feedback": "❌ Incorreto. As assinaturas digitais provam a propriedade, mas não impedem o gasto duplo."},
+            {"text": "Os benefícios perdem-se se ainda for necessária uma terceira parte confiável para evitar o gasto duplo.", "fraction": 1, "feedback": "✅ Correto. O documento afirma que o problema principal é a necessidade de um terceiro para validar que a moeda não foi gasta duas vezes."},
+            {"text": "A computação necessária para gerar assinaturas é demasiado elevada.", "fraction": 0, "feedback": "❌ Incorreto. O custo computacional não é citado como o problema das assinaturas."},
+            {"text": "As assinaturas digitais são facilmente reversíveis por instituições financeiras.", "fraction": 0, "feedback": "❌ Incorreto. O documento refere que transações bancárias são reversíveis, não as assinaturas em si."}
+          ]
+        },
+        {
+          "name": "Q02 - Definição de Moeda - True/False",
+          "questiontext": "No sistema Bitcoin, uma moeda eletrónica é definida como uma cadeia de assinaturas digitais.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "✅ Correto. O documento define explicitamente a moeda como uma cadeia de assinaturas digitais transferidas entre proprietários."
+        },
+        {
+          "name": "Q03 - Prova de Trabalho - Multichoice",
+          "questiontext": "Como o sistema de Prova de Trabalho (Proof-of-Work) resolve o problema da representação na tomada de decisões por maioria?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Implementando o sistema de um endereço IP, um voto.", "fraction": 0, "feedback": "❌ Incorreto. O autor rejeita este modelo por ser vulnerável a quem controla muitos IPs."},
+            {"text": "Utilizando um sistema de votação baseado em prova de participação (stake).", "fraction": 0, "feedback": "❌ Incorreto. O documento descreve Prova de Trabalho (CPU), não participação."},
+            {"text": "Através do princípio 'uma CPU, um voto', onde a maioria é representada pela cadeia mais longa.", "fraction": 1, "feedback": "✅ Correto. A Prova de Trabalho garante que a maior força de CPU decide a história da rede."},
+            {"text": "Delegando a decisão a nós validadores escolhidos aleatoriamente.", "fraction": 0, "feedback": "❌ Incorreto. O sistema é totalmente descentralizado e baseado em esforço computacional."}
+          ]
+        },
+        {
+          "name": "Q04 - Timestamp - True/False",
+          "questiontext": "O servidor de timestamp funciona criando um hash de um bloco de itens e publicando esse hash amplamente.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "✅ Correto. O timestamp prova que os dados existiam no momento para entrarem no hash."
+        },
+        {
+          "name": "Q05 - Incentivos - Multichoice",
+          "questiontext": "Além da criação de novas moedas, qual é a outra forma de incentivo para os nós da rede mencionada no documento?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Subsídios governamentais para energia.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Taxas de transação (Transaction fees).", "fraction": 1, "feedback": "✅ Correto. O incentivo pode ser financiado por taxas se o valor de saída for menor que o de entrada."},
+            {"text": "Aluguer de espaço em disco para armazenamento.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Acesso prioritário a novos blocos.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q06 - Merkle Trees - Matching",
+          "questiontext": "Associe os conceitos relacionados com a gestão de espaço em disco:",
+          "qtype": "matching",
+          "subquestions": [
+            {"text": "Merkle Tree", "answer": "Estrutura que permite descartar transações antigas sem quebrar o hash do bloco."},
+            {"text": "Pruning (Poda)", "answer": "Processo de compactar a árvore de hashes removendo ramos de transações gastas."},
+            {"text": "Block Header", "answer": "Parte do bloco (aprox. 80 bytes) que contém o Root Hash e o Nonce."}
+          ]
+        },
+        {
+          "name": "Q07 - Segurança - Multichoice",
+          "questiontext": "O que acontece se um atacante conseguir reunir mais poder de CPU do que todos os nós honestos combinados?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Ele pode criar moedas do nada e roubar dinheiro de outros utilizadores.", "fraction": 0, "feedback": "❌ Incorreto. O documento afirma que ele não pode criar valor do nada nem aceitar transações inválidas."},
+            {"text": "Ele pode tentar alterar as suas próprias transações recentes para recuperar dinheiro já gasto.", "fraction": 1, "feedback": "✅ Correto. Um atacante está limitado a tentar reverter os seus próprios pagamentos recentes."},
+            {"text": "A rede é automaticamente desligada por segurança.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "As chaves privadas de todos os utilizadores tornam-se visíveis.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q08 - Rede - True/False",
+          "questiontext": "As mensagens de novas transações precisam obrigatoriamente de chegar a todos os nós da rede para serem válidas.",
+          "qtype": "truefalse",
+          "correctanswer": false,
+          "feedback": "✅ Correto. O documento diz que as mensagens são difundidas em 'best effort basis' e basta chegarem a muitos nós."
+        },
+        {
+          "name": "Q09 - SPV - Multichoice",
+          "questiontext": "O que é necessário para um utilizador realizar a Verificação de Pagamento Simplificada (SPV) sem correr um nó completo?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Uma cópia de todas as transações já realizadas na rede.", "fraction": 0, "feedback": "❌ Incorreto. Isso seria um nó completo."},
+            {"text": "Apenas os cabeçalhos (headers) dos blocos da cadeia mais longa e o ramo de Merkle relevante.", "fraction": 1, "feedback": "✅ Correto. O utilizador liga a transação ao bloco e verifica os blocos subsequentes."},
+            {"text": "Uma ligação direta e constante ao nó central da Bitcoin.", "fraction": 0, "feedback": "❌ Incorreto. Não existe nó central."},
+            {"text": "A permissão de um minerador para validar a transação.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q10 - Privacidade - True/False",
+          "questiontext": "O novo modelo de privacidade do Bitcoin baseia-se em manter as chaves públicas anónimas.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "✅ Correto. O público pode ver as transações, mas não sabe a quem pertencem as chaves."
+        },
+        {
+          "name": "Q11 - Probabilidades - Multichoice",
+          "questiontext": "Como varia a probabilidade de um atacante alcançar a cadeia honesta à medida que o número de blocos (z) aumenta?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Aumenta linearmente.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Mantém-se constante se o atacante tiver 40% do poder da rede.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Cai exponencialmente.", "fraction": 1, "feedback": "✅ Correto. O documento demonstra que o sucesso do atacante torna-se vanishingly small conforme z aumenta."},
+            {"text": "Diminui apenas se o atacante parar de minerar.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q12 - Transações - Matching",
+          "questiontext": "Relacione os componentes de uma transação Bitcoin:",
+          "qtype": "matching",
+          "subquestions": [
+            {"text": "Input único", "answer": "Provém de uma transação anterior maior."},
+            {"text": "Múltiplos inputs", "answer": "Combinação de quantias menores."},
+            {"text": "Máximo de dois outputs", "answer": "Um para o pagamento e outro para o troco (change)."}
+          ]
+        },
+        {
+          "name": "Q13 - Concessus - True/False",
+          "questiontext": "Os nós expressam a sua aceitação de um bloco ao trabalharem na criação do próximo bloco da cadeia.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "✅ Correto. O uso do hash do bloco anterior como 'prev hash' é o sinal de aceitação."
+        },
+        {
+          "name": "Q14 - Atacante - Multichoice",
+          "questiontext": "Segundo Nakamoto, por que razão um atacante com grande poder de CPU preferiria jogar pelas regras?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Porque o sistema deteta e bane o seu endereço IP.", "fraction": 0, "feedback": "❌ Incorreto. Não existe banimento por IP."},
+            {"text": "Porque é mais lucrativo gerar novas moedas do que minar a validade da sua própria riqueza.", "fraction": 1, "feedback": "✅ Correto. Seguir as regras favorece-o com mais moedas do que todos os outros combinados."},
+            {"text": "Devido ao medo de represálias legais das instituições financeiras.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Porque as transações de ataque exigem chaves privadas de terceiros.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q15 - SHA-256 - Multichoice",
+          "questiontext": "Na Prova de Trabalho descrita, o que define a dificuldade do processo de mineração?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "O tamanho total do bloco em bytes.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "O número de bits zero exigidos no início do hash resultante.", "fraction": 1, "feedback": "✅ Correto. O trabalho cresce exponencialmente com o número de bits zero."},
+            {"text": "A quantidade de transações pendentes na rede.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "O valor total de Bitcoin sendo transferido.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q16 - Moore's Law - True/False",
+          "questiontext": "O documento sugere que o armazenamento de cabeçalhos de blocos não será um problema devido ao crescimento da RAM previsto pela Lei de Moore.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "✅ Correto. O autor calculou 4.2MB por ano para headers, o que é insignificante para a tecnologia de 2008 em diante."
+        },
+        {
+          "name": "Q17 - Escrow - Multichoice",
+          "questiontext": "Como o sistema Bitcoin pode proteger compradores em transações rotineiras, apesar de ser focado em vendedores?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Através de seguros bancários integrados.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Implementando mecanismos de custódia (escrow) facilmente.", "fraction": 1, "feedback": "✅ Correto. O documento menciona que o sistema permite transações computacionalmente irreversíveis, mas suporta escrow."},
+            {"text": "Permitindo o cancelamento de transações em 24 horas.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Através da identificação obrigatória das partes.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q18 - Hashcash - True/False",
+          "questiontext": "O sistema de Prova de Trabalho do Bitcoin é semelhante ao Hashcash de Adam Back.",
+          "qtype": "truefalse",
+          "correctanswer": true,
+          "feedback": "✅ Correto. O autor cita Adam Back explicitamente como referência para o PoW."
+        },
+        {
+          "name": "Q19 - Reversibilidade - Multichoice",
+          "questiontext": "Qual é a consequência direta da possibilidade de reversão de pagamentos no modelo bancário tradicional?",
+          "qtype": "multichoice",
+          "answers": [
+            {"text": "Redução total da fraude.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "A necessidade de confiança espalha-se, obrigando comerciantes a pedir mais dados aos clientes.", "fraction": 1, "feedback": "✅ Correto. A incerteza aumenta os custos e a necessidade de intrusão na privacidade."},
+            {"text": "Aumento da velocidade das transações.", "fraction": 0, "feedback": "❌ Incorreto."},
+            {"text": "Eliminação de custos de mediação.", "fraction": 0, "feedback": "❌ Incorreto."}
+          ]
+        },
+        {
+          "name": "Q20 - Conclusão - True/False",
+          "questiontext": "A robustez da rede Bitcoin advém da sua estrutura complexa e altamente coordenada entre os nós.",
+          "qtype": "truefalse",
+          "correctanswer": false,
+          "feedback": "✅ Correto. A rede é robusta devido à sua 'unstructured simplicity' (simplicidade não estruturada)."
+        }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "type": "page",
+      "name": "📘 Introdução e o Problema da Confiança",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 O Paradigma do Dinheiro Eletrónico</h2><p>O comércio na Internet depende quase exclusivamente de instituições financeiras que atuam como terceiros confiáveis. Embora este modelo funcione para a maioria das transações, ele herda fraquezas críticas do modelo baseado na confiança, como a impossibilidade de pagamentos verdadeiramente não-reversíveis e os elevados custos de mediação que impedem pequenas transações casuais.</p><div class=\"ailms-info-box\"><h3>🔑 Conceitos-Chave</h3><ul><li><strong>Gasto Duplo (Double-spending)</strong>: O desafio técnico de garantir que uma moeda digital não seja usada mais do que uma vez sem uma autoridade central.</li><li><strong>Prova Criptográfica</strong>: A substituição da confiança institucional por verificações matemáticas diretas entre as partes.</li></ul></div><h3>📊 A Solução Peer-to-Peer</h3><p>Propõe-se um sistema de pagamento eletrónico que permite transações diretas entre duas partes sem intermediários. A segurança do sistema baseia-se no controlo coletivo de CPU por nós honestos, tornando computacionalmente impraticável para um atacante reverter transações se a maioria da rede for honesta.</p><div class=\"ailms-atencao\"><strong>⚠️ Ponto Crítico:</strong> A necessidade de confiança espalha-se quando transações são reversíveis, obrigando comerciantes a serem cautelosos e a solicitarem informações excessivas aos clientes.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "📌 Transações e a Cadeia de Propriedade",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Anatomia de uma Moeda Digital</h2><p>No protocolo Bitcoin, uma moeda eletrónica é definida como uma sucessão cronológica de assinaturas digitais. Cada proprietário transfere a moeda para o próximo ao assinar digitalmente um hash da transação anterior e a chave pública do beneficiário seguinte.</p><div class=\"ailms-img-container\">[[IMG_P02_00_transaction_chain]]<div class=\"ailms-img-caption\">Figura: Diagrama de transações demonstrando a cadeia de assinaturas e chaves públicas</div></div><div class=\"ailms-info-box\"><h3>🔑 O Mecanismo de Verificação</h3><ul><li><strong>Assinatura Digital</strong>: Prova de propriedade que acompanha cada transferência.</li><li><strong>Chave Pública</strong>: Identificador do próximo proprietário na cadeia.</li><li><strong>O Problema do Beneficiário</strong>: Sem um sistema central, o beneficiário não consegue verificar se um dos proprietários anteriores não gastou a moeda anteriormente.</li></ul></div><div class=\"ailms-dica\"><strong>💡 Dica Prática:</strong> Para o beneficiário, a transação que conta é a primeira a ser recebida; tentativas posteriores de gasto duplo são ignoradas pela rede através do consenso.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "🔐 Servidor de Timestamp e Prova de Trabalho",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 A Ordem Cronológica das Transações</h2><p>Para resolver o gasto duplo sem uma autoridade central, as transações devem ser anunciadas publicamente e os participantes devem concordar com uma única história da ordem em que foram recebidas. Isto é alcançado através de um servidor de timestamp distribuído.</p><h3>📊 Proof-of-Work (PoW)</h3><p>O sistema utiliza Prova de Trabalho para implementar o timestamping. Este processo envolve a procura de um valor (nonce) que, quando transformado em hash (SHA-256), resulta num número de bits zero específicos no início.</p><div class=\"ailms-info-box\"><h3>🔑 Engenharia do Consenso</h3><ul><li><strong>Nonce</strong>: Um valor incrementado no bloco até satisfazer a dificuldade da rede.</li><li><strong>Imutabilidade</strong>: Uma vez despendido o esforço de CPU para satisfazer o PoW, o bloco não pode ser alterado sem refazer todo o trabalho dos blocos subsequentes.</li><li><strong>Ajuste de Dificuldade</strong>: A dificuldade é ajustada por uma média móvel para garantir a geração constante de blocos, independentemente do aumento da velocidade do hardware.</li></ul></div><div class=\"ailms-quick-check\"><strong>🤔 Verificação Rápida:</strong> Por que razão o sistema 'um endereço IP, um voto' seria falível comparado com 'uma CPU, um voto'?</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "🌐 O Protocolo da Rede e Operação",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Funcionamento Técnico dos Nós</h2><p>A operação da rede Bitcoin segue seis passos rigorosos que garantem a sincronização e segurança do livro-razão distribuído. Cada nó trabalha de forma independente, mas converge para a cadeia mais longa.</p><table class=\"ailms-table\"><thead><tr><th>Passo</th><th>Ação do Nó</th></tr></thead><tbody><tr><td>1</td><td>Novas transações são difundidas para todos os nós.</td></tr><tr><td>2</td><td>Cada nó recolhe as transações num bloco.</td></tr><tr><td>3</td><td>Cada nó trabalha na procura do PoW para o seu bloco.</td></tr><tr><td>4</td><td>Ao encontrar o PoW, o nó difunde o bloco para a rede.</td></tr><tr><td>5</td><td>Nós aceitam o bloco apenas se as transações forem válidas.</td></tr><tr><td>6</td><td>Nós trabalham no próximo bloco usando o hash do aceito.</td></tr></tbody></table><div class=\"ailms-info-box\"><h3>🔑 Resiliência da Rede</h3><p>A rede é tolerante a falhas de comunicação. Se um nó não recebe um bloco, ele solicita-o ao receber o bloco seguinte e notar a lacuna na cadeia. A regra de ouro é: os nós consideram sempre a cadeia mais longa como a correta.</p></div><div class=\"ailms-atencao\"><strong>⚠️ Ponto Crítico:</strong> Se dois nós difundirem versões diferentes do bloco simultaneamente, a rede trabalha na primeira que recebeu, mas guarda a outra ramificação até que uma se torne mais longa, quebrando o empate.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "💰 Estrutura de Incentivos e Economia",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Motivação dos Nós e Emissão de Moeda</h2><p>Para sustentar a rede e distribuir moedas sem uma autoridade central, introduz-se um sistema de incentivos. A primeira transação de cada bloco é especial (coinbase), criando uma nova moeda para o criador do bloco.</p><div class=\"ailms-info-box\"><h3>🔑 Tipos de Incentivo</h3><ul><li><strong>Novas Moedas</strong>: Análogo a mineiros de ouro que despendem recursos para adicionar ouro à circulação. No Bitcoin, despende-se CPU e eletricidade.</li><li><strong>Taxas de Transação</strong>: Quando a oferta de novas moedas termina, o sistema torna-se livre de inflação, sustentado apenas por taxas pagas pelos utilizadores.</li></ul></div><h3>📊 Honestidade Competitiva</h3><p>O incentivo encoraja os nós a permanecerem honestos. Um atacante com poder superior teria de escolher entre defraudar pagamentos ou gerar novas moedas. É tecnicamente mais lucrativo seguir as regras que o favorecem com mais moedas do que minar a confiança no sistema que suporta a sua própria riqueza.</p></div>"
+    },
+    {
+      "type": "page",
+      "name": "🌳 Otimização: Árvores de Merkle e Espaço",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Gestão de Armazenamento e Pruning</h2><p>À medida que a cadeia cresce, torna-se necessário gerir o espaço em disco. Uma vez que a transação mais recente está enterrada sob blocos suficientes, as transações gastas anteriores podem ser descartadas.</p><div class=\"ailms-img-container\">[[IMG_P04_00_merkle_tree]]<div class=\"ailms-img-caption\">Figura: Transações organizadas em Árvore de Merkle para compactação de blocos</div></div><div class=\"ailms-info-box\"><h3>🔑 Árvore de Merkle</h3><ul><li><strong>Root Hash</strong>: Apenas a raiz da árvore é incluída no hash do bloco.</li><li><strong>Stubbing</strong>: Ramos internos da árvore podem ser removidos (podados) sem invalidar o hash do cabeçalho do bloco.</li><li><strong>Eficiência</strong>: Um cabeçalho de bloco sem transações tem apenas 80 bytes. Mesmo com Moore's Law, o armazenamento de headers em memória é garantido a longo prazo.</li></ul></div><div class=\"ailms-dica\"><strong>💡 Dica Prática:</strong> A estrutura de Merkle permite que a rede cresça indefinidamente sem exigir que todos os nós guardem todo o histórico de transações irrelevantes.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "⚡ Verificação de Pagamento Simplificada (SPV)",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Verificação sem Nós Completos</h2><p>É possível verificar pagamentos sem executar um nó de rede completo. Um utilizador só precisa de manter uma cópia dos cabeçalhos dos blocos da cadeia mais longa.</p><div class=\"ailms-img-container\">[[IMG_P05_00_spv_verification]]<div class=\"ailms-img-caption\">Figura: Processo de verificação de transação via Merkle Branch em SPV</div></div><div class=\"ailms-info-box\"><h3>🔑 Funcionamento do SPV</h3><ul><li><strong>Merkle Branch</strong>: O utilizador obtém o ramo que liga a sua transação ao bloco timestamped.</li><li><strong>Segurança Coletiva</strong>: O utilizador não verifica a transação diretamente, mas vê que um nó a aceitou e que blocos subsequentes confirmam essa aceitação.</li></ul></div><div class=\"ailms-atencao\"><strong>⚠️ Ponto Crítico:</strong> O SPV é vulnerável se um atacante dominar a rede. Empresas com pagamentos frequentes devem correr os seus próprios nós para segurança independente e verificação rápida.</div></div>"
+    },
+    {
+      "type": "page",
+      "name": "🛡️ Modelo de Privacidade e Transações",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Anonimato no Livro-Razão Público</h2><p>Ao contrário do modelo bancário que limita o acesso à informação, o Bitcoin exige que todas as transações sejam públicas. A privacidade é mantida quebrando o fluxo de informação noutro ponto: as chaves públicas.</p><div class=\"ailms-img-container\">[[IMG_P06_00_privacy_model]]<div class=\"ailms-img-caption\">Figura: Comparação entre o modelo de privacidade tradicional e o novo modelo descentralizado</div></div><div class=\"ailms-info-box\"><h3>🔑 Pilares da Privacidade</h3><ul><li><strong>Identidades Anónimas</strong>: O público vê que 'alguém' enviou um valor a 'alguém', mas não há ligação nominal às chaves.</li><li><strong>Novos Pares de Chaves</strong>: Recomenda-se o uso de um novo par de chaves para cada transação para evitar que estas sejam ligadas a um único dono.</li><li><strong>Limitações</strong>: Transações com múltiplos inputs revelam inevitavelmente que estes pertencem ao mesmo proprietário.</li></ul></div></div>"
+    },
+    {
+      "type": "page",
+      "name": "🧮 Análise Matemática de Segurança",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 A Probabilidade de Ataque</h2><p>A segurança do Bitcoin contra um atacante que tenta gerar uma cadeia alternativa é modelada como um Passeio Aleatório Binomial (Binomial Random Walk).</p><div class=\"ailms-info-box\"><h3>🔑 O Problema da Ruína do Jogador</h3><ul><li><strong>Sucesso</strong>: Nó honesto encontra o próximo bloco (lead +1).</li><li><strong>Falha</strong>: Atacante encontra o bloco (gap -1).</li><li><strong>Conclusão Matemática</strong>: A probabilidade de um atacante recuperar de um défice cai exponencialmente à medida que o número de blocos de vantagem da rede honesta aumenta.</li></ul></div><h3>📊 Distribuição de Poisson</h3><p>O destinatário aguarda <em>z</em> blocos serem confirmados. O progresso potencial de um atacante segue uma distribuição de Poisson. O documento apresenta cálculos rigorosos (convertidos em código C) que mostram que, com 10% do poder da rede, a probabilidade de um atacante reverter uma transação após 6 blocos (z=6) é de apenas 0.0002428.</p><table class=\"ailms-table\"><thead><tr><th>z (blocos)</th><th>Probabilidade (q=0.1)</th></tr></thead><tbody><tr><td>0</td><td>1.0000000</td></tr><tr><td>1</td><td>0.2045873</td></tr><tr><td>5</td><td>0.0009137</td></tr><tr><td>10</td><td>0.0000012</td></tr></tbody></table></div>"
+    },
+    {
+      "type": "page",
+      "name": "✅ Conclusão do Sistema",
+      "content": "<div class=\"ailms-page-container\"><h2>📌 Síntese do Protocolo Bitcoin</h2><p>O Bitcoin resolve o problema do gasto duplo através de uma rede peer-to-Peer que utiliza Prova de Trabalho para registar um histórico público de transações. Este histórico torna-se computacionalmente impossível de alterar se os nós honestos controlarem a maioria do poder de CPU.</p><div class=\"ailms-info-box\"><h3>🔑 Pontos Finais</h3><ul><li><strong>Robustez</strong>: A rede não requer estrutura complexa; nós podem entrar e sair à vontade.</li><li><strong>Votação por CPU</strong>: Os nós votam com o seu poder de processamento, aceitando blocos válidos e rejeitando inválidos.</li><li><strong>Consenso Dinâmico</strong>: Qualquer regra ou incentivo necessário pode ser aplicado através deste mecanismo de consenso distribuído.</li></ul></div><div class=\"ailms-dica\"><strong>💡 Nota de Encerramento:</strong> O Bitcoin provou que é possível criar um sistema de valor global sem depender de instituições, utilizando apenas matemática e incentivos económicos.</div></div>"
+    },
+    {
+      "type": "quiz",
+      "name": "🎯 Avaliação Final de Especialista",
+      "intro": "Este quiz final avalia a sua compreensão técnica sobre o Bitcoin Whitepaper. São 10 questões sorteadas de um banco de 20. Requer-se 75% de pontuação para aprovação.",
+      "timelimit": 1800,
+      "attempts": 3,
+      "gradepass": 15.0,
+      "questions_from_bank": {
+        "bank_name": "Banco AI - Bitcoin Whitepaper",
+        "count": 10
+      }
+    },
+    {
+      "type": "page",
+      "name": "✅ Conclusão e Certificação",
+      "content": "<div class=\"ailms-page-container\"><h2>🎉 Parabéns!</h2><p>Concluiu com sucesso o estudo técnico do Whitepaper original do Bitcoin. Agora possui uma base sólida sobre como a prova de trabalho, as árvores de Merkle e o consenso distribuído funcionam para manter uma rede financeira global segura e descentralizada.</p></div>"
+    }
+  ]
+}
