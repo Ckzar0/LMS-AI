@@ -25,9 +25,11 @@ class ActivityCreator {
             $event = \core\event\questions_imported::create(['context' => $ctx, 'other' => ['categoryid' => 0]]);
             $event->trigger();
         } catch (\Throwable $e) {}
+
+        return (int)$info->coursemodule;
     }
     
-    public static function create_page($course_id, $activity, $section = 1) {
+    public static function create_page($course_id, $activity, $section = 1, $prerequisite_ids = []) {
         global $DB, $CFG;
         require_once($CFG->dirroot . '/course/modlib.php');
         self::clear_pending_transactions();
@@ -42,7 +44,24 @@ class ActivityCreator {
         $moduleinfo->contentformat = 1; $moduleinfo->display = 5; $moduleinfo->visible = 1; $moduleinfo->completion = 2; $moduleinfo->completionview = 1; $moduleinfo->cmidnumber = '';
         $moduleinfo->printintro = 1; $moduleinfo->printlastmodified = 1;
         
+        // ADICIONAR RESTRIÇÕES DE ACESSO
+        if (!empty($prerequisite_ids)) {
+            $conditions = [];
+            $showc = [];
+            foreach ($prerequisite_ids as $cmid) {
+                $conditions[] = (object)[
+                    'type' => 'completion',
+                    'cm' => (int)$cmid,
+                    'e' => 1 // State: Complete
+                ];
+                $showc[] = true;
+            }
+            $availability = (object)['op' => '&', 'c' => $conditions, 'showc' => $showc];
+            $moduleinfo->availability = json_encode($availability);
+        }
+
         $info = \add_moduleinfo($moduleinfo, $course);
+        rebuild_course_cache($course->id);
         
         // Processar imagens do PDF
         try {
@@ -68,13 +87,13 @@ class ActivityCreator {
                 $DB->set_field('page', 'content', $new_content, ['id' => $page_id]);
             }
         } catch (\Throwable $e) {
-            // echo "      ⚠️ Aviso: Falha ao processar imagens da página: " . $e->getMessage() . "\n";
+            // Log silencioso do erro de imagens
         }
 
-        return $info->coursemodule;
+        return (int)$info->coursemodule;
     }
     
-    public static function create_quiz($course_id, $activity, $json_data = null, $section = 1) {
+    public static function create_quiz($course_id, $activity, $json_data = null, $section = 1, $prerequisite_ids = []) {
         global $DB, $CFG, $USER;
         require_once(__DIR__ . '/QuestionCreator.php');
         require_once($CFG->dirroot . '/course/modlib.php');
@@ -114,8 +133,30 @@ class ActivityCreator {
         $moduleinfo->timemodified = time();
         $moduleinfo->timecreated = time();
 
+        // ADICIONAR RESTRIÇÕES DE ACESSO (O Quiz só aparece se as páginas anteriores estiverem completas)
+        if (!empty($prerequisite_ids)) {
+            $conditions = [];
+            $showc = [];
+            foreach ($prerequisite_ids as $cmid) {
+                $conditions[] = (object)[
+                    'type' => 'completion',
+                    'cm' => (int)$cmid,
+                    'e' => 1 // State: Complete (visto verde)
+                ];
+                $showc[] = true; // Mostrar a restrição ao aluno
+            }
+            
+            $availability = (object)[
+                'op' => '&', // ALL conditions must be met
+                'c' => $conditions,
+                'showc' => $showc
+            ];
+            $moduleinfo->availability = json_encode($availability);
+        }
+
         try {
             $info = \add_moduleinfo($moduleinfo, $course);
+            rebuild_course_cache($course->id);
             \context_helper::reset_caches();
             $quiz_context = \context_module::instance($info->coursemodule);
         } catch (\Throwable $e) {
