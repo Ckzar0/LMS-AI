@@ -11,6 +11,7 @@ DURAÇÃO/PROFUNDIDADE: {{DURATION}} [Resumo Executivo | Profissional | Especial
 DIFICULDADE DO QUIZ: {{DIFFICULTY}} [easy | medium | hard]
 QUESTÕES NO QUIZ: {{NUM_QUESTIONS}}
 QUESTÕES NO BANCO: {{BANK_SIZE}} (Sempre {{NUM_QUESTIONS}} + 10)
+TEMPO DO QUIZ: {{QUIZ_DURATION}} minutos
 ```
 
 ---
@@ -306,7 +307,7 @@ Ignora elementos de UI, logótipos repetitivos ou ícones de navegação.
       "type": "quiz",
       "name": "🎯 Avaliação Final",
       "intro": "Descrição do quiz...",
-      "timelimit": 1800,
+      "timelimit": {{QUIZ_DURATION_SECONDS}},
       "attempts": 3,
       "gradepass": 15.0,
       "questions_from_bank": {

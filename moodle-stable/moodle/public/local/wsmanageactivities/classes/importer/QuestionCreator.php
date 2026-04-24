@@ -37,14 +37,17 @@ class QuestionCreator {
         $qtext = $data['questiontext'] ?? $data['text'] ?? '';
         $qdata->questiontext = ['text' => self::force_string($qtext), 'format' => 1];
         
+        // Centralizar feedback da IA no General Feedback (Bloco único abaixo da questão)
         $qdata->generalfeedback = ['text' => self::force_string($data['generalfeedback'] ?? $data['feedback'] ?? ''), 'format' => 1];
+        
         $qdata->defaultmark = (float)($data['mark'] ?? 1.0);
         $qdata->penalty = 0.3333333;
         $qdata->status = 'ready'; 
         
-        $qdata->correctfeedback = ['text' => 'Correto.', 'format' => 1];
-        $qdata->partiallycorrectfeedback = ['text' => 'Parcialmente.', 'format' => 1];
-        $qdata->incorrectfeedback = ['text' => 'Incorreto.', 'format' => 1];
+        // Limpar feedbacks combinados (deixar para o Moodle gerir os ícones/labels nativos)
+        $qdata->correctfeedback = ['text' => '', 'format' => 1];
+        $qdata->partiallycorrectfeedback = ['text' => '', 'format' => 1];
+        $qdata->incorrectfeedback = ['text' => '', 'format' => 1];
         $qdata->shownumcorrect = 1;
 
         $config = $data['config'] ?? $data;
@@ -55,7 +58,8 @@ class QuestionCreator {
                 foreach ($config['answers'] as $ans) {
                     $qdata->fraction[] = (float)($ans['fraction'] ?? ($ans['correct'] ? 1.0 : 0.0));
                     $qdata->answer[] = ['text' => self::force_string($ans['text'] ?? ''), 'format' => 1];
-                    $qdata->feedback[] = ['text' => self::force_string($ans['feedback'] ?? ''), 'format' => 1];
+                    // REMOVIDO: feedback por resposta para evitar duplicação de ícones
+                    $qdata->feedback[] = ['text' => '', 'format' => 1];
                 }
             }
         } elseif ($qtype === 'truefalse') {
@@ -64,16 +68,12 @@ class QuestionCreator {
             if (is_string($correct)) { $correct = (strtolower($correct) === 'true' || $correct === '1'); }
             $qdata->correctanswer = $correct ? 1 : 0;
             
-            $fb = self::force_string($config['feedback'] ?? '');
-            $qdata->feedbacktrue = ['text' => ($correct ? $fb : 'Correto.'), 'format' => 1];
-            $qdata->feedbackfalse = ['text' => (!$correct ? $fb : 'Incorreto.'), 'format' => 1];
+            // REMOVIDO: feedback por resposta para evitar duplicação
+            $qdata->feedbacktrue = ['text' => '', 'format' => 1];
+            $qdata->feedbackfalse = ['text' => '', 'format' => 1];
         } elseif ($qtype === 'match') {
             $qdata->qtype = 'match';
             $qdata->shuffleanswers = 1;
-            $qdata->correctfeedback = ['text' => 'Correto.', 'format' => 1];
-            $qdata->partiallycorrectfeedback = ['text' => 'Parcialmente.', 'format' => 1];
-            $qdata->incorrectfeedback = ['text' => 'Incorreto.', 'format' => 1];
-            $qdata->shownumcorrect = 1;
             
             if (!empty($config['subquestions'])) {
                 foreach ($config['subquestions'] as $sub) {
@@ -86,22 +86,10 @@ class QuestionCreator {
         try {
             $qtypeobj = \question_bank::get_qtype($qtype);
             
-            // Preparar o objeto qdata para a API oficial do Moodle
+            // Garantir que todos os campos estão prontos para o save_question
             $qdata->category = $category_id;
             $qdata->contextid = $context_id;
-            $qdata->name = (string)($data['name'] ?? 'Questão AI ' . time());
-            $qdata->questiontext = ['text' => self::force_string($data['questiontext'] ?? $data['text'] ?? ''), 'format' => 1];
-            $qdata->generalfeedback = ['text' => self::force_string($data['generalfeedback'] ?? $data['feedback'] ?? ''), 'format' => 1];
-            $qdata->defaultmark = (float)($data['mark'] ?? 1.0);
-            $qdata->penalty = 0.3333333;
-            $qdata->qtype = $qtype;
-            $qdata->status = 'ready';
             
-            $qdata->correctfeedback = ['text' => 'Correto.', 'format' => 1];
-            $qdata->partiallycorrectfeedback = ['text' => 'Parcialmente.', 'format' => 1];
-            $qdata->incorrectfeedback = ['text' => 'Incorreto.', 'format' => 1];
-            $qdata->shownumcorrect = 1;
-
             // Chamar o método oficial de salvamento
             $question = $qtypeobj->save_question($qdata, $qdata);
 
@@ -109,7 +97,7 @@ class QuestionCreator {
                 return $question->id;
             }
         } catch (\Throwable $e) {
-            // echo "      ❌ Erro fatal na questão: " . $e->getMessage() . "\n";
+            // Log silencioso do erro para evitar quebra de fluxo
         }
         
         return null;
