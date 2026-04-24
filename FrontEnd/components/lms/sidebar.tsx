@@ -14,7 +14,7 @@ import { UmainLogo } from "@/components/umain-logo"
 import { cn } from "@/lib/utils"
 import type { ViewType } from "@/app/page"
 
-const MOODLE_URL = "http://localhost:8080";
+const MOODLE_URL = process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080";
 
 interface SidebarProps {
   currentView: ViewType

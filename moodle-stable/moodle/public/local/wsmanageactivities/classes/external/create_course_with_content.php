@@ -50,6 +50,7 @@ class create_course_with_content extends external_api {
         $course_data->summary = $data['course_summary'];
         $course_data->format = 'topics';
         $course_data->numsections = 1;
+        $course_data->enablecompletion = 1; // ATIVAR VISTOS VERDES NO CURSO
         
         $course = create_course($course_data);
         $courseid = $course->id;
@@ -77,6 +78,10 @@ class create_course_with_content extends external_api {
         // 3. Process Activities
         $importer = new ActivityCreator($courseid);
         $global_folder = $data['image_folder'] ?? $data['source_file'] ?? '';
+        
+        $current_prerequisites = []; // IDs das páginas antes do quiz
+        $after_quiz_prerequisites = []; // IDs para atividades depois do quiz (apenas o quiz cmid)
+        $has_passed_quiz = false;
 
         foreach ($data['activities'] as $index => $activity) {
             // Injetar pasta global se a atividade não tiver uma local
@@ -85,9 +90,20 @@ class create_course_with_content extends external_api {
             }
 
             if ($activity['type'] === 'page') {
-                $importer->create_page($courseid, $activity, 1);
+                // Se já passámos pelo quiz, as próximas páginas dependem do quiz
+                $prereqs = $has_passed_quiz ? $after_quiz_prerequisites : [];
+                $cmid = $importer->create_page($courseid, $activity, 1, $prereqs);
+                
+                if (!$has_passed_quiz) {
+                    $current_prerequisites[] = $cmid;
+                }
             } else if ($activity['type'] === 'quiz') {
-                $importer->create_quiz($courseid, $activity, $data, 1);
+                // O Quiz depende de todas as páginas criadas até agora
+                $quiz_cmid = $importer->create_quiz($courseid, $activity, $data, 1, $current_prerequisites);
+                
+                // Atividades depois do quiz agora dependem do quiz cmid
+                $after_quiz_prerequisites = [$quiz_cmid];
+                $has_passed_quiz = true;
             }
         }
 

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowLeft, Send, BookOpen, FileQuestion, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import type { MoodleCourse, Question, Activity } from "@/lib/types"
 
@@ -15,7 +16,8 @@ interface CoursePreviewProps {
   onSendToMoodle: () => void
   isSending: boolean
   moodleConnected: boolean
-  createdCourseId?: number | null
+  createdCourseId?: number | string | null
+  error?: string | null
 }
 
 function SafeRender({ value }: { value: any }) {
@@ -185,13 +187,31 @@ function ActivityPreview({ activity, index }: { activity: Activity; index: numbe
   )
 }
 
-export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodleConnected, createdCourseId }: CoursePreviewProps) {
+export function CoursePreview({ 
+  course, 
+  onBack, 
+  onSendToMoodle, 
+  isSending, 
+  moodleConnected, 
+  createdCourseId,
+  error 
+}: CoursePreviewProps) {
+  const [success, setSuccess] = useState(false)
+  const [courseId, setCourseId] = useState<string | number | null>(null)
+
+  useEffect(() => {
+    if (createdCourseId) {
+      setSuccess(true)
+      setCourseId(createdCourseId)
+    }
+  }, [createdCourseId])
+
   const totalQuestions = course.question_banks.reduce(
     (acc, bank) => acc + bank.questions.length, 
     0
   )
 
-  const isSuccess = createdCourseId && Number(createdCourseId) > 0;
+  const isSuccess = success || (createdCourseId && !!createdCourseId);
 
   return (
     <div className="space-y-6 pb-20">
@@ -206,62 +226,15 @@ export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodl
             <p className="text-muted-foreground">Revise o conteudo antes de enviar para o Moodle</p>
           </div>
         </div>
-        
-        {!isSuccess && (
-          <Button 
-            size="lg" 
-            onClick={onSendToMoodle}
-            disabled={isSending || !moodleConnected}
-            className="gap-2"
-          >
-            {isSending ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                A Enviar...
-              </>
-            ) : (
-              <>
-                <Send className="h-5 w-5" />
-                Enviar para Moodle
-              </>
-            )}
-          </Button>
-        )}
       </div>
 
-      {/* Success Message */}
-      {isSuccess && (
-        <Card className="border-green-500 bg-green-50 shadow-md">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                <CheckCircle2 className="h-8 w-8" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-green-800">Sucesso! Curso Criado no Moodle.</h3>
-                <p className="text-green-700 text-sm">
-                  O curso foi importado corretamente com {course.activities.length} atividades e {totalQuestions} questões. 
-                  <span className="font-bold ml-1">(ID Gerado: {createdCourseId})</span>
-                </p>
-                <div className="mt-4 flex gap-3">
-                  <Button asChild className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-sm">
-                    <a 
-                      href={`http://localhost:8080/course/view.php?id=${createdCourseId}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Abrir Curso Agora
-                    </a>
-                  </Button>
-                  <Button variant="outline" onClick={onBack} className="bg-white">
-                    Voltar para o Início
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Error Message */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro ao enviar para o Moodle</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Connection Warning */}
@@ -279,43 +252,11 @@ export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodl
         </Card>
       )}
 
-      {/* Course Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Informacoes do Curso</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Nome do Curso</p>
-              <p className="font-medium text-foreground">{course.course_name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Sigla</p>
-              <p className="font-medium text-foreground">{course.course_shortname}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Ficheiro Fonte</p>
-              <p className="font-medium text-foreground">{course.source_file}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total de Questoes</p>
-              <p className="font-medium text-foreground">{totalQuestions}</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Resumo</p>
-            <p className="text-foreground">{course.course_summary}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tabs for Activities and Questions */}
       <Tabs defaultValue="activities" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="activities" className="gap-2">
             <BookOpen className="h-4 w-4" />
-            Atividades ({course.activities.length})
+            Estrutura de Paginas ({course.activities.length})
           </TabsTrigger>
           <TabsTrigger value="questions" className="gap-2">
             <FileQuestion className="h-4 w-4" />
@@ -345,30 +286,66 @@ export function CoursePreview({ course, onBack, onSendToMoodle, isSending, moodl
         </TabsContent>
       </Tabs>
 
-      {/* Bottom Actions */}
-      <div className="flex justify-between pt-4 border-t border-border">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar e Editar
-        </Button>
-        <Button 
-          size="lg" 
-          onClick={onSendToMoodle}
-          disabled={isSending || !moodleConnected}
-          className="gap-2"
-        >
-          {isSending ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              A Enviar...
-            </>
-          ) : (
-            <>
-              <Send className="h-5 w-5" />
-              Enviar para Moodle
-            </>
-          )}
-        </Button>
+      {/* Bottom Actions and Success Message */}
+      <div className="pt-6 border-t border-border space-y-4">
+        {isSuccess && (
+          <Card className="border-green-500 bg-green-50 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-green-800">Curso Criado com Sucesso!</h3>
+                  <p className="text-green-700 text-xs">
+                    Importado com {course.activities.length} atividades e {totalQuestions} questões. 
+                    <span className="font-bold ml-1">(ID: {courseId || createdCourseId})</span>
+                  </p>
+                </div>
+                <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-2">
+                  <a 
+                    href={`${process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080"}/course/view.php?id=${courseId || createdCourseId}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Abrir no Moodle
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex justify-between items-center">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar e Editar
+          </Button>
+          <Button 
+            size="lg" 
+            onClick={onSendToMoodle}
+            disabled={isSending || !moodleConnected}
+            className={cn("gap-2", isSuccess && "bg-green-600 hover:bg-green-700")}
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                A Enviar...
+              </>
+            ) : isSuccess ? (
+              <>
+                <Send className="h-5 w-5" />
+                Re-enviar para Moodle
+              </>
+            ) : (
+              <>
+                <Send className="h-5 w-5" />
+                Enviar para Moodle
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   )

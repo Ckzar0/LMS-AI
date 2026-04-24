@@ -1,38 +1,14 @@
-import { NextRequest, NextResponse } from "next/server"
-import type { MoodleCourse } from "@/lib/types"
+import { NextResponse } from "next/server"
 
-export const maxDuration = 300 // 5 minutos
-
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { course, pdfFile } = await request.json() as { 
-      course: MoodleCourse, 
-      pdfFile?: { name: string, content: string } 
-    }
-    
-    if (!course) {
-      return NextResponse.json(
-        { error: "Missing course data" },
-        { status: 400 }
-      )
-    }
-
-    const moodleUrl = process.env.MOODLE_URL
-    const moodleToken = process.env.MOODLE_TOKEN
-
-    if (!moodleUrl || !moodleToken) {
-      return NextResponse.json(
-        { error: "Moodle URL or Token not configured" },
-        { status: 500 }
-      )
-    }
-
+    const { course, pdfFile } = await req.json()
+    const moodleUrl = process.env.MOODLE_URL || "http://localhost:8080"
+    const moodleToken = process.env.MOODLE_TOKEN || "14c68ff68a1a57cdc4cf4d72f443b87d"
     const wsUrl = `${moodleUrl}/webservice/rest/server.php`
 
     // 1. If PDF is provided, send it first to extract images
     if (pdfFile && pdfFile.content) {
-      console.log(`Processing PDF for image extraction: ${pdfFile.name}`);
-      
       const pdfFormData = new FormData();
       pdfFormData.append("wstoken", moodleToken);
       pdfFormData.append("wsfunction", "local_wsmanageactivities_process_pdf");
@@ -48,7 +24,6 @@ export async function POST(request: NextRequest) {
         const pdfData = await pdfResponse.json();
         
         if (pdfData.status === 'success') {
-          console.log(`Images extracted successfully into folder: ${pdfData.image_folder} (${pdfData.count} images)`);
           // Inject the image folder into the course data so ActivityCreator knows where to look
           course.image_folder = pdfData.image_folder;
         } else {
@@ -59,82 +34,62 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2. Create the course
-    const wsFunction = "local_wsmanageactivities_create_course_with_content";
-    const courseFormData = new FormData();
-    courseFormData.append("wstoken", moodleToken);
-    courseFormData.append("wsfunction", wsFunction);
-    courseFormData.append("moodlewsrestformat", "json");
-    courseFormData.append("coursedata", JSON.stringify(course));
+    // 2. Create the course structure in Moodle
+    const formData = new FormData()
+    formData.append("wstoken", moodleToken)
+    formData.append("wsfunction", "local_wsmanageactivities_create_course_with_content")
+    formData.append("moodlewsrestformat", "json")
+    formData.append("coursedata", JSON.stringify(course))
 
     const response = await fetch(wsUrl, {
       method: "POST",
-      body: courseFormData
-    });
+      body: formData
+    })
 
     const data = await response.json()
 
-    // Check for Moodle errors
-    if (data.exception || data.errorcode) {
-      console.error("Moodle API error:", data)
-      return NextResponse.json(
-        { 
-          error: data.message || data.exception || "Moodle API error",
-          details: data
-        },
-        { status: 500 }
-      )
+    if (data.exception) {
+      return NextResponse.json({ error: data.message }, { status: 400 })
     }
+
+    // Se o Moodle devolveu um ID, garantir que ele vai para o FrontEnd como courseId
+    // O Moodle WebService devolve 'courseid' segundo execute_returns()
+    const finalCourseId = data.courseid || data.course_id || data.id || (typeof data === 'number' ? data : null);
 
     return NextResponse.json({ 
       success: true, 
-      courseId: data.courseid,
-      message: "Course created successfully in Moodle"
+      courseId: finalCourseId,
+      course_shortname: course.course_shortname 
     })
   } catch (error) {
-    console.error("Error sending to Moodle:", error)
+    console.error("Error in send-to-moodle:", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to send to Moodle" },
+      { error: error instanceof Error ? error.message : "Failed to connect to Moodle" },
       { status: 500 }
     )
   }
 }
 
-// Test connection to Moodle
 export async function GET() {
   try {
-    const moodleUrl = process.env.MOODLE_URL
-    const moodleToken = process.env.MOODLE_TOKEN
-
-    if (!moodleUrl || !moodleToken) {
-      return NextResponse.json(
-        { connected: false, error: "Moodle URL or Token not configured" },
-        { status: 500 }
-      )
-    }
-
-    // Test with a simple function
+    const moodleUrl = process.env.MOODLE_URL || "http://localhost:8080"
+    const moodleToken = process.env.MOODLE_TOKEN || "14c68ff68a1a57cdc4cf4d72f443b87d"
     const wsUrl = `${moodleUrl}/webservice/rest/server.php`
-    const formData = new URLSearchParams()
+
+    const formData = new FormData()
     formData.append("wstoken", moodleToken)
     formData.append("wsfunction", "core_webservice_get_site_info")
     formData.append("moodlewsrestformat", "json")
 
     const response = await fetch(wsUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: formData.toString()
+      body: formData
     })
 
     const data = await response.json()
-
-    if (data.exception || data.errorcode) {
-      return NextResponse.json(
-        { connected: false, error: data.message || data.exception },
-        { status: 500 }
-      )
+    
+    if (data.exception) {
+      throw new Error(data.message)
     }
 
     return NextResponse.json({ 
