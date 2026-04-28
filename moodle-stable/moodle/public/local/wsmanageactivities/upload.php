@@ -72,11 +72,9 @@ if ($action === 'upload' && confirm_sesskey()) {
                     mkdir($target_dir, 0777, true);
                 }
 
-                // Extração estável: força JPEG (-j) para evitar conversões falhadas
-                for ($p = 1; $p <= 150; $p++) {
-                    $p_pad = str_pad($p, 3, '0', STR_PAD_LEFT);
-                    exec("pdfimages -f $p -l $p -j \"$pdf_path_docker\" \"$target_dir/img-$p_pad\" 2>&1");
-                }
+                // Extração Ultra-Rápida e Inteligente
+                echo "⏳ A extrair imagens... (Aguarde)\n";
+                exec("pdfimages -p -j \"$pdf_path_docker\" \"$target_dir/img\" 2>&1", $exec_out);
 
                 // --- CHAMAR OTIMIZADOR PYTHON ---
                 $py_script = __DIR__ . "/optimize_images.py";

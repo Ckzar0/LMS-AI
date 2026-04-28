@@ -1,22 +1,5 @@
 /* Design Global para Cursos Gerados por IA */
 
-/* Reset do contador na raiz e no container do curso */
-body, .ailms-page-container, #fix-images-container {
-    counter-reset: ailms-figure-counter 0 !important;
-}
-
-.ailms-figure {
-    counter-increment: ailms-figure-counter !important;
-    display: block;
-}
-
-/* Forçar a exibição do prefixo "Figura X - " */
-.ailms-img-caption::before {
-    content: "Figura " counter(ailms-figure-counter) " - " !important;
-    font-weight: bold !important;
-    color: #111 !important;
-}
-
 .ailms-img-caption {
     font-size: 0.95em !important;
     color: #222 !important;
@@ -29,7 +12,6 @@ body, .ailms-page-container, #fix-images-container {
     display: none !important;
 }
 
-/* Resto dos estilos existentes */
 .ailms-page-container {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.7;

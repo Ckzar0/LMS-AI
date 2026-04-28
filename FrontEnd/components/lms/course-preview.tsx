@@ -206,8 +206,8 @@ export function CoursePreview({
     }
   }, [createdCourseId])
 
-  const totalQuestions = course.question_banks.reduce(
-    (acc, bank) => acc + bank.questions.length, 
+  const totalQuestions = (course.question_banks || []).reduce(
+    (acc, bank) => acc + (bank.questions || []).length, 
     0
   )
 
@@ -256,7 +256,7 @@ export function CoursePreview({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="activities" className="gap-2">
             <BookOpen className="h-4 w-4" />
-            Estrutura de Paginas ({course.activities.length})
+            Estrutura de Paginas ({(course.activities || []).length})
           </TabsTrigger>
           <TabsTrigger value="questions" className="gap-2">
             <FileQuestion className="h-4 w-4" />
@@ -265,24 +265,30 @@ export function CoursePreview({
         </TabsList>
         
         <TabsContent value="activities" className="space-y-4 mt-4">
-          {course.activities.map((activity, index) => (
+          {(course.activities || []).map((activity, index) => (
             <ActivityPreview key={index} activity={activity} index={index} />
           ))}
+          {(course.activities || []).length === 0 && (
+            <div className="text-center py-10 text-muted-foreground italic">Nenhuma atividade gerada.</div>
+          )}
         </TabsContent>
         
         <TabsContent value="questions" className="space-y-4 mt-4">
-          {course.question_banks.map((bank) => (
+          {(course.question_banks || []).map((bank) => (
             <Card key={bank.name}>
               <CardHeader>
                 <CardTitle className="text-lg">{bank.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {bank.questions.map((question, index) => (
+                {(bank.questions || []).map((question, index) => (
                   <QuestionPreview key={index} question={question} index={index} />
                 ))}
               </CardContent>
             </Card>
           ))}
+          {(course.question_banks || []).length === 0 && (
+            <div className="text-center py-10 text-muted-foreground italic">Nenhum banco de questões gerado.</div>
+          )}
         </TabsContent>
       </Tabs>
 

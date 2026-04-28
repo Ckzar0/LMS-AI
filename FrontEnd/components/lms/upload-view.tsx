@@ -125,16 +125,6 @@ export function UploadView() {
     setDynamicPrompt(finalPrompt + finalInstructions)
   }, [depth, difficulty, numberOfQuestions, quizDuration, selectedOptions, masterPrompt])
 
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = async (e) => {
-        resolve(`[Conteudo do ficheiro: ${file.name}]\n\nPor favor, analise o manual anexado e crie um curso completo.`)
-      }
-      reader.readAsText(file)
-    })
-  }
-
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
@@ -149,15 +139,11 @@ export function UploadView() {
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
         file: file,
-        status: "processing",
-        progress: 50
+        status: "ready", // Já marcamos como ready pois o processamento será feito no servidor
+        progress: 100
       }
       
       setFiles(prev => [...prev, newFile])
-      const content = await extractTextFromPDF(file)
-      setFiles(prev => prev.map(f => 
-        f.id === newFile.id ? { ...f, status: "ready" as const, progress: 100, content } : f
-      ))
     }
   }, [])
 
@@ -173,15 +159,11 @@ export function UploadView() {
           name: file.name,
           size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
           file: file,
-          status: "processing",
-          progress: 50
+          status: "ready",
+          progress: 100
         }
         
         setFiles(prev => [...prev, newFile])
-        const content = await extractTextFromPDF(file)
-        setFiles(prev => prev.map(f => 
-          f.id === newFile.id ? { ...f, status: "ready" as const, progress: 100, content } : f
-        ))
       }
     }
   }
@@ -321,9 +303,33 @@ export function UploadView() {
       divideInModules: selectedOptions.includes("modules")
     }
 
-    setGenerationState({ status: "extracting", progress: 10, message: "A extrair conteudo do PDF..." })
+    setGenerationState({ status: "extracting", progress: 5, message: "A extrair imagens e texto do PDF..." })
 
     try {
+      // 1. Extrair Imagens no Moodle primeiro para garantir que o Preview as mostra
+      let imageFolder = "";
+      try {
+        const file = files[0].file;
+        const base64Content = await fileToBase64(file);
+        
+        const imgResponse = await fetch("/api/send-to-moodle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            course: { course_name: courseName, course_shortname: "TEMP_EXTRACT" }, 
+            pdfFile: { name: file.name, content: base64Content },
+            onlyExtract: true // Nova flag para indicar que só queremos a extração
+          })
+        });
+        const imgData = await imgResponse.json();
+        imageFolder = imgData.image_folder;
+      } catch (imgErr) {
+        console.warn("Falha na extração de imagens prévia:", imgErr);
+      }
+
+      // 2. Gerar o curso com a IA
+      setGenerationState({ status: "generating", progress: 30, message: "A IA está a desenhar o curso..." })
+      
       const formData = new FormData()
       files.forEach(f => formData.append("files", f.file))
       formData.append("config", JSON.stringify(config))
@@ -342,6 +348,12 @@ export function UploadView() {
       }
 
       const data = await response.json()
+      
+      // Injetar a pasta de imagens no curso gerado para que o Preview as encontre
+      if (imageFolder && data.course) {
+        data.course.image_folder = imageFolder;
+      }
+
       setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: data.course })
       setGeneratedCourse(data.course)
       setShowPreview(true)
@@ -769,7 +781,11 @@ export function UploadView() {
                 <h4 className="font-bold text-primary flex items-center gap-2"><Upload className="h-4 w-4" />Passo 3: Upload do JSON Gerado</h4>
                 <Input type="file" accept=".json" onChange={handleJsonUpload} className="bg-white mb-2" />
                 {jsonError && <p className="text-xs text-red-500 font-medium">{jsonError}</p>}
-                {generatedCourse && <p className="text-xs text-primary font-bold">✓ JSON Válido ({generatedCourse.activities.length} atividades)</p>}
+                {generatedCourse && (
+                  <p className="text-xs text-primary font-bold">
+                    ✓ JSON Válido ({(generatedCourse.activities || []).length} atividades)
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-2">
                   Após usar o prompt acima na IA, carregue o ficheiro .json gerado para criar o curso no Moodle.
                 </p>

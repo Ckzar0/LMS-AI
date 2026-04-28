@@ -2,10 +2,12 @@ import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
   try {
-    const { course, pdfFile } = await req.json()
+    const { course, pdfFile, onlyExtract } = await req.json()
     const moodleUrl = process.env.MOODLE_URL || "http://localhost:8080"
     const moodleToken = process.env.MOODLE_TOKEN || "14c68ff68a1a57cdc4cf4d72f443b87d"
     const wsUrl = `${moodleUrl}/webservice/rest/server.php`
+
+    let extractedFolder = "";
 
     // 1. If PDF is provided, send it first to extract images
     if (pdfFile && pdfFile.content) {
@@ -24,14 +26,24 @@ export async function POST(req: Request) {
         const pdfData = await pdfResponse.json();
         
         if (pdfData.status === 'success') {
+          extractedFolder = pdfData.image_folder;
           // Inject the image folder into the course data so ActivityCreator knows where to look
-          course.image_folder = pdfData.image_folder;
+          course.image_folder = extractedFolder;
         } else {
           console.warn("PDF extraction warning:", pdfData.message);
         }
       } catch (pdfErr) {
         console.error("Failed to process PDF images:", pdfErr);
       }
+    }
+
+    // Se o pedido for apenas para extrair imagens, paramos aqui
+    if (onlyExtract) {
+      return NextResponse.json({ 
+        success: true, 
+        image_folder: extractedFolder,
+        message: "Imagens extraídas com sucesso" 
+      })
     }
 
     // 2. Create the course structure in Moodle
@@ -59,7 +71,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       success: true, 
       courseId: finalCourseId,
-      course_shortname: course.course_shortname 
+      course_shortname: course.course_shortname,
+      activities: data.activities || []
     })
   } catch (error) {
     console.error("Error in send-to-moodle:", error)
