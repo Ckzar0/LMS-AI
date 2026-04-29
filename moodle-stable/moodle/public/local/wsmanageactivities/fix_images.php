@@ -16,7 +16,7 @@ $placeholder_id = optional_param('placeholder_id', '', PARAM_RAW);
 $newimg = optional_param('newimg', '', PARAM_RAW);
 $deleteimg = optional_param('deleteimg', 0, PARAM_INT);
 
-$PAGE->set_url(new moodle_url('/local/wsmanageactivities/fix_images.php'), ['courseid' => $courseid]);
+$PAGE->set_url(new moodle_url('/local/wsmanageactivities/fix_images.php', ['courseid' => $courseid]));
 $PAGE->set_context($context);
 $PAGE->set_title("Gerir Imagens e Tabelas");
 $PAGE->set_heading("🖼️ Ajustar Conteúdo Visual");

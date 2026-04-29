@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
 
+// Aumentar o limite para suportar PDFs grandes
+export const maxDuration = 300; // 5 minutos
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     const { course, pdfFile, onlyExtract } = await req.json()
