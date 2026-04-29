@@ -257,7 +257,9 @@ export function UploadView() {
         source_file: json.source_file || json.filename || "manual.pdf",
         course_summary: json.course_summary || json.summary || json.description || "",
         question_banks: json.question_banks || (json.course && json.course.question_banks) || [],
-        activities: json.activities || (json.course && json.course.activities) || []
+        activities: json.activities || (json.course && json.course.activities) || [],
+        // Injetar a pasta de imagens se houver um PDF na aba Fábrica
+        image_folder: factoryPdfFile ? factoryPdfFile.name.split('.').slice(0, -1).join('.') : (json.image_folder || "")
       };
 
       if (normalizedCourse.activities!.length === 0) {
@@ -366,26 +368,48 @@ export function UploadView() {
     if (!generatedCourse || !courseName) return
     setGenerationState({ status: "sending", progress: 80, message: "A enviar para o Moodle..." })
     try {
-      // OVERRIDE: Garantir que o nome definido no FrontEnd é o que vai para o Moodle
+      let finalImageFolder = generatedCourse.image_folder || "";
+
+      // 1. Se estivermos na aba JSON e tivermos um PDF, extraímos primeiro as imagens
+      if (factoryPdfFile) {
+        setGenerationState({ status: "extracting", progress: 82, message: "A extrair imagens do PDF para o Moodle..." });
+        try {
+          const base64Content = await fileToBase64(factoryPdfFile);
+          const imgRes = await fetch("/api/send-to-moodle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              course: { course_name: courseName, course_shortname: "TEMP_JSON" }, 
+              pdfFile: { name: factoryPdfFile.name, content: base64Content },
+              onlyExtract: true
+            })
+          });
+          const imgData = await imgRes.json();
+          if (imgData.success) {
+            finalImageFolder = imgData.image_folder;
+          }
+        } catch (imgErr) {
+          console.warn("Extração falhou no fluxo JSON:", imgErr);
+        }
+      }
+
+      // 2. Criar o curso final
+      setGenerationState({ status: "sending", progress: 90, message: "A criar estrutura do curso..." });
+      
       const courseWithFinalName = {
         ...generatedCourse,
-        course_name: courseName
+        course_name: courseName,
+        image_folder: finalImageFolder // Injetar a pasta correta
       };
-
-      let pdfFileData = null;
-      if (files.length > 0) {
-        const file = files[0].file;
-        const base64Content = await fileToBase64(file);
-        pdfFileData = { name: file.name, content: base64Content };
-      } else if (factoryPdfFile) {
-        const base64Content = await fileToBase64(factoryPdfFile);
-        pdfFileData = { name: factoryPdfFile.name, content: base64Content };
-      }
 
       const response = await fetch("/api/send-to-moodle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ course: courseWithFinalName, pdfFile: pdfFileData })
+        body: JSON.stringify({ 
+          course: courseWithFinalName, 
+          pdfFile: null, // Já extraímos acima
+          onlyExtract: false 
+        })
       })
 
       const data = await response.json()
