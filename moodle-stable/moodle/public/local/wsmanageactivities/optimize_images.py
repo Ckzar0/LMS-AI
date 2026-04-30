@@ -20,25 +20,32 @@ def optimize_and_deduplicate(folder_path):
     hashes = {} 
     mapping = {} 
     
-    files = sorted([f for f in os.listdir(folder_path) if f.startswith('img-') or f.startswith('page-')])
+    # Procurar todos os ficheiros na pasta
+    all_files = sorted(os.listdir(folder_path))
     
-    for filename in files:
+    for filename in all_files:
         filepath = os.path.join(folder_path, filename)
         
-        # 1. Converter PPM/PBM para JPG se necessário
-        if filename.endswith('.ppm') or filename.endswith('.pbm'):
+        # Ignorar mapping.json
+        if filename == 'mapping.json': continue
+        
+        # 1. Converter formatos não suportados pelo browser (PPM, PBM, etc.)
+        if filename.lower().endswith(('.ppm', '.pbm', '.pnm', '.png')): # PNM e PNG também incluídos para normalizar
             try:
                 img = Image.open(filepath)
-                new_filename = filename.replace('.ppm', '.jpg').replace('.pbm', '.jpg')
-                new_filepath = os.path.join(folder_path, new_filename)
-                img.save(new_filepath, 'JPEG', quality=85)
-                os.remove(filepath)
-                filename = new_filename
-                filepath = new_filepath
+                # Converter para JPG se não for PNG (ou se quisermos tudo em JPG)
+                if not filename.lower().endswith('.png'):
+                    new_filename = os.path.splitext(filename)[0] + '.jpg'
+                    new_filepath = os.path.join(folder_path, new_filename)
+                    img.convert('RGB').save(new_filepath, 'JPEG', quality=85)
+                    os.remove(filepath)
+                    filename = new_filename
+                    filepath = new_filepath
             except Exception as e:
+                print(f"   ⚠️ Erro ao converter {filename}: {e}")
                 continue
 
-        # 2. Deduplicação (apenas para ficheiros img-, não para page-)
+        # 2. Deduplicação (apenas para ficheiros img-)
         if filename.startswith('img-'):
             file_hash = get_hash(filepath)
             if file_hash in hashes:

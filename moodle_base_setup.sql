@@ -3777,7 +3777,7 @@ CREATE TABLE `m_cache_flags` (
 LOCK TABLES `m_cache_flags` WRITE;
 /*!40000 ALTER TABLE `m_cache_flags` DISABLE KEYS */;
 INSERT INTO `m_cache_flags` VALUES
-(1,'userpreferenceschanged','2',1773827112,'1',1773855912),
+(1,'userpreferenceschanged','2',1777363251,'1',1777392051),
 (2,'accesslib/dirtycontexts','/1/3/120',1773144836,'1',1773173636),
 (3,'accesslib/dirtycontexts','/1/3/110',1773144838,'1',1773173638),
 (4,'accesslib/dirtycontexts','/1/3/100',1773144839,'1',1773173639),
@@ -3894,7 +3894,7 @@ CREATE TABLE `m_capabilities` (
   `riskbitmask` bigint(10) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_capa_nam_uix` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=761 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='this defines all capabilities';
+) ENGINE=InnoDB AUTO_INCREMENT=776 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='this defines all capabilities';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4663,7 +4663,22 @@ INSERT INTO `m_capabilities` VALUES
 (757,'tiny/recordrtc:recordvideo','write',70,'tiny_recordrtc',0),
 (758,'tiny/recordrtc:recordscreen','write',70,'tiny_recordrtc',0),
 (759,'tiny/recordrtc:use','read',70,'tiny_recordrtc',0),
-(760,'factor/capability:cannotpassfactor','read',10,'factor_capability',0);
+(760,'factor/capability:cannotpassfactor','read',10,'factor_capability',0),
+(761,'mod/customcert:addinstance','write',50,'mod_customcert',4),
+(762,'mod/customcert:view','read',70,'mod_customcert',0),
+(763,'mod/customcert:manage','write',70,'mod_customcert',0),
+(764,'mod/customcert:receiveissue','read',70,'mod_customcert',0),
+(765,'mod/customcert:viewreport','read',70,'mod_customcert',0),
+(766,'mod/customcert:viewallcertificates','read',10,'mod_customcert',0),
+(767,'mod/customcert:verifycertificate','read',70,'mod_customcert',0),
+(768,'mod/customcert:verifyallcertificates','read',10,'mod_customcert',0),
+(769,'mod/customcert:manageemailstudents','write',50,'mod_customcert',0),
+(770,'mod/customcert:manageemailteachers','write',50,'mod_customcert',0),
+(771,'mod/customcert:manageemailothers','write',50,'mod_customcert',0),
+(772,'mod/customcert:manageverifyany','write',50,'mod_customcert',0),
+(773,'mod/customcert:managerequiredtime','write',50,'mod_customcert',0),
+(774,'mod/customcert:manageprotection','write',50,'mod_customcert',0),
+(775,'mod/customcert:managelanguages','write',50,'mod_customcert',0);
 /*!40000 ALTER TABLE `m_capabilities` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -5524,7 +5539,7 @@ CREATE TABLE `m_config` (
   `value` longtext NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_conf_nam_uix` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=584 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Moodle configuration variables';
+) ENGINE=InnoDB AUTO_INCREMENT=585 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Moodle configuration variables';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5557,9 +5572,9 @@ INSERT INTO `m_config` VALUES
 (22,'mnet_all_hosts_id','2'),
 (23,'siteguest','1'),
 (24,'siteadmins','2'),
-(25,'themerev','1773833902'),
-(26,'jsrev','1773833902'),
-(27,'templaterev','1773833902'),
+(25,'themerev','1777291907'),
+(26,'jsrev','1777291907'),
+(27,'templaterev','1777291907'),
 (28,'gdversion','2'),
 (29,'licenses','unknown,allrightsreserved,public,cc-4.0,cc-nc-4.0,cc-nd-4.0,cc-nc-nd-4.0,cc-nc-sa-4.0,cc-sa-4.0'),
 (30,'sitedefaultlicense','unknown'),
@@ -5572,7 +5587,7 @@ INSERT INTO `m_config` VALUES
 (37,'usetags','1'),
 (38,'enablenotes','1'),
 (39,'enableportfolios','0'),
-(40,'enablewebservices','0'),
+(40,'enablewebservices','1'),
 (41,'enablestats','0'),
 (42,'enablerssfeeds','0'),
 (43,'enableblogs','1'),
@@ -5699,7 +5714,7 @@ INSERT INTO `m_config` VALUES
 (164,'autolangusercreation','1'),
 (165,'langmenu','1'),
 (166,'langlist',''),
-(167,'langrev','1773833902'),
+(167,'langrev','1777291907'),
 (168,'langcache','1'),
 (169,'langstringcache','1'),
 (170,'locale',''),
@@ -5986,11 +6001,11 @@ INSERT INTO `m_config` VALUES
 (451,'profilingimportprefix','(I)'),
 (452,'release','5.1.3+ (Build: 20260227)'),
 (453,'branch','501'),
-(454,'localcachedirpurged','1773833902'),
-(455,'scheduledtaskreset','1773833902'),
+(454,'localcachedirpurged','1777291907'),
+(455,'scheduledtaskreset','1777291907'),
 (456,'paygw_plugins_sortorder','paypal'),
-(457,'allversionshash','708de865e4aa2a41ef5966022571d199db16f0a3'),
-(458,'allcomponenthash','43ea14e745edf20a6adaf04b4e4510c580cd3ea9'),
+(457,'allversionshash','a94588d3ee00837defaade07601ef2dfc3954626'),
+(458,'allcomponenthash','186f18f9c4475b2780b5a615cbafc059dd0dac4f'),
 (459,'registrationpending','1'),
 (460,'supportemail','admin@example.com'),
 (461,'enableaccessibilitytools','1'),
@@ -6137,7 +6152,7 @@ CREATE TABLE `m_config_log` (
   PRIMARY KEY (`id`),
   KEY `m_conflog_tim_ix` (`timemodified`),
   KEY `m_conflog_use_ix` (`userid`)
-) ENGINE=InnoDB AUTO_INCREMENT=1838 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Changes done in server configuration through admin UI';
+) ENGINE=InnoDB AUTO_INCREMENT=1851 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Changes done in server configuration through admin UI';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -7983,7 +7998,20 @@ INSERT INTO `m_config_log` VALUES
 (1834,2,1773047452,'tool_moodlenet','defaultmoodlenet','https://moodle.net',NULL),
 (1835,2,1773137063,NULL,'custommenuitems','Fábrica de Cursos|http://localhost:8080/local/wsmanageactivities/courses.php\r\nCriar Novo Curso|http://localhost:8080/local/wsmanageactivities/upload.php','Fábrica de Cursos|http://localhost:8080/local/wsmanageactivities/courses.php'),
 (1836,2,1773137063,NULL,'customusermenuitems','profile,moodle|/user/profile.php\r\ngrades,grades|/grade/report/mygrades.php\r\ncalendar,core_calendar|/calendar/view.php?view=month\r\nprivatefiles,moodle|/user/files.php\r\nreports,core_reportbuilder|/reportbuilder/index.php','profile,moodle|/user/profile.php\ngrades,grades|/grade/report/mygrades.php\ncalendar,core_calendar|/calendar/view.php?view=month\nprivatefiles,moodle|/user/files.php\nreports,core_reportbuilder|/reportbuilder/index.php'),
-(1837,2,1773835610,'core','webserviceprotocols','rest','');
+(1837,2,1773835610,'core','webserviceprotocols','rest',''),
+(1838,2,1777291911,'customcert','verifyallcertificates','0',NULL),
+(1839,2,1777291911,'customcert','showposxy','0',NULL),
+(1840,2,1777291911,'customcert','verifycertificate','',NULL),
+(1841,2,1777291911,'customcert','managetemplates','',NULL),
+(1842,2,1777291911,'customcert','uploadimage','',NULL),
+(1843,2,1777291911,'customcert','emailstudents','0',NULL),
+(1844,2,1777291911,'customcert','emailteachers','0',NULL),
+(1845,2,1777291911,'customcert','emailothers','',NULL),
+(1846,2,1777291911,'customcert','verifyany','0',NULL),
+(1847,2,1777291911,'customcert','requiredtime','0',NULL),
+(1848,2,1777291911,'customcert','protection_print','0',NULL),
+(1849,2,1777291911,'customcert','protection_modify','0',NULL),
+(1850,2,1777291911,'customcert','protection_copy','0',NULL);
 /*!40000 ALTER TABLE `m_config_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -8001,7 +8029,7 @@ CREATE TABLE `m_config_plugins` (
   `value` longtext NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_confplug_plunam_uix` (`plugin`,`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=2093 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Moodle modules and plugins configuration variables';
+) ENGINE=InnoDB AUTO_INCREMENT=2125 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Moodle modules and plugins configuration variables';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -8868,7 +8896,7 @@ INSERT INTO `m_config_plugins` VALUES
 (923,'contenttype_h5p','version','2025100600'),
 (924,'theme_boost','version','2025100600'),
 (925,'theme_classic','version','2025100600'),
-(926,'local_wsmanageactivities','version','2026030400'),
+(926,'local_wsmanageactivities','version','2026042202'),
 (928,'h5plib_v127','version','2025100600'),
 (929,'paygw_paypal','version','2025100600'),
 (931,'smsgateway_aws','version','2025100600'),
@@ -10004,7 +10032,7 @@ INSERT INTO `m_config_plugins` VALUES
 (2077,'tool_mobile','customlangstrings',''),
 (2078,'tool_moodlenet','defaultmoodlenetname','Central do MoodleNet'),
 (2079,'tool_moodlenet','defaultmoodlenet','https://moodle.net'),
-(2080,'theme_boost','themerev','1773047461'),
+(2080,'theme_boost','themerev','1777291915'),
 (2081,'tool_task','lastcronstart','1773057510'),
 (2082,'theme_classic','themerev','1773047467'),
 (2083,'tool_task','lastcroninterval','586'),
@@ -10016,7 +10044,39 @@ INSERT INTO `m_config_plugins` VALUES
 (2089,'tool_brickfield','bfsummarytime','1773055866'),
 (2090,'tool_brickfield','key',''),
 (2091,'tool_brickfield','hash',''),
-(2092,'tool_brickfield','id','0');
+(2092,'tool_brickfield','id','0'),
+(2093,'mod_customcert','version','2022041910'),
+(2094,'customcertelement_bgimage','version','2022041900'),
+(2095,'customcertelement_border','version','2022041900'),
+(2096,'customcertelement_categoryname','version','2022041900'),
+(2097,'customcertelement_code','version','2022041900'),
+(2098,'customcertelement_coursefield','version','2022041900'),
+(2099,'customcertelement_coursename','version','2022041900'),
+(2100,'customcertelement_date','version','2022041900'),
+(2101,'customcertelement_daterange','version','2022041900'),
+(2102,'customcertelement_digitalsignature','version','2022041900'),
+(2103,'customcertelement_grade','version','2022041900'),
+(2104,'customcertelement_gradeitemname','version','2022041900'),
+(2105,'customcertelement_image','version','2022041900'),
+(2106,'customcertelement_qrcode','version','2022041900'),
+(2107,'customcertelement_studentname','version','2022041900'),
+(2108,'customcertelement_teachername','version','2022041900'),
+(2109,'customcertelement_text','version','2022041900'),
+(2110,'customcertelement_userfield','version','2022041900'),
+(2111,'customcertelement_userpicture','version','2022041900'),
+(2112,'customcert','verifyallcertificates','0'),
+(2113,'customcert','showposxy','0'),
+(2114,'customcert','verifycertificate',''),
+(2115,'customcert','managetemplates',''),
+(2116,'customcert','uploadimage',''),
+(2117,'customcert','emailstudents','0'),
+(2118,'customcert','emailteachers','0'),
+(2119,'customcert','emailothers',''),
+(2120,'customcert','verifyany','0'),
+(2121,'customcert','requiredtime','0'),
+(2122,'customcert','protection_print','0'),
+(2123,'customcert','protection_modify','0'),
+(2124,'customcert','protection_copy','0');
 /*!40000 ALTER TABLE `m_config_plugins` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -10075,7 +10135,7 @@ CREATE TABLE `m_context` (
   UNIQUE KEY `m_cont_conins_uix` (`contextlevel`,`instanceid`),
   KEY `m_cont_ins_ix` (`instanceid`),
   KEY `m_cont_pat_ix` (`path`)
-) ENGINE=InnoDB AUTO_INCREMENT=1379 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='one of these must be set';
+) ENGINE=InnoDB AUTO_INCREMENT=1380 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='one of these must be set';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -10216,7 +10276,8 @@ INSERT INTO `m_context` VALUES
 (1375,70,1263,'/1/3/1351/1375',4,0),
 (1376,70,1264,'/1/3/1351/1376',4,0),
 (1377,70,1265,'/1/3/1351/1377',4,0),
-(1378,70,1239,'/1/3/1351/1378',4,0);
+(1378,70,1239,'/1/3/1351/1378',4,0),
+(1379,70,597,'/1/3/671/1379',4,0);
 /*!40000 ALTER TABLE `m_context` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -10307,13 +10368,13 @@ CREATE TABLE `m_course` (
 LOCK TABLES `m_course` WRITE;
 /*!40000 ALTER TABLE `m_course` DISABLE KEYS */;
 INSERT INTO `m_course` VALUES
-(1,0,1,'AI LMS Stable Clean','AILMS_STABLE','','',0,'site',1,3,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773047408,1773047446,0,0,0,1773833902,NULL,1,NULL,NULL,NULL),
-(55,1,10006,'Manual de Aleitamento Materno','ALEITAMENTO_MATERNO','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773656934,1773656934,0,1,0,1773833902,NULL,1,1,NULL,NULL),
-(65,1,10005,'Manual de Aleitamento Materno v2','ALEITAMENTO_MATERNO_1','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773660278,1773660278,0,1,0,1773833902,NULL,1,1,NULL,NULL),
-(94,1,10004,'Planeamento e Projeto de Redes Informáticas','REDES3_CAP08','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773750808,1773750808,0,1,0,1773833902,NULL,1,1,NULL,NULL),
-(100,1,10003,'Manual de Instruções Bimby TM5 (Atualizado)','BIMBY_TM5_1','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773827119,1773827119,0,1,0,1773833902,NULL,1,1,NULL,NULL),
-(103,1,10002,'Manual de Instruções Bimby TM5 (Atualizado)','BIMBY_TM5','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773832368,1773832368,0,1,0,1773833902,NULL,1,1,NULL,NULL),
-(104,1,10001,'Manual de Instruções Bimby TM5 (Atualizado)','BIMBY_TM5_2','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773833901,1773833901,0,1,0,1773834008,NULL,1,1,NULL,NULL);
+(1,0,1,'AI LMS Stable Clean','AILMS_STABLE','','',0,'site',1,3,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773047408,1773047446,0,0,0,1777291907,NULL,1,NULL,NULL,NULL),
+(55,1,10006,'Manual de Aleitamento Materno','ALEITAMENTO_MATERNO','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773656934,1773656934,0,1,0,1777291907,NULL,1,1,NULL,NULL),
+(65,1,10005,'Manual de Aleitamento Materno v2','ALEITAMENTO_MATERNO_1','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773660278,1773660278,0,1,0,1777291907,NULL,1,1,NULL,NULL),
+(94,1,10004,'Planeamento e Projeto de Redes Informáticas','REDES3_CAP08','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773750808,1773750808,0,1,0,1777291907,NULL,1,1,NULL,NULL),
+(100,1,10003,'Manual de Instruções Bimby TM5 (Atualizado)','BIMBY_TM5_1','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773827119,1773827119,0,1,0,1777291907,NULL,1,1,NULL,NULL),
+(103,1,10002,'Manual de Instruções Bimby TM5 (Atualizado)','BIMBY_TM5','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773832368,1773832368,0,1,0,1777291907,NULL,1,1,NULL,NULL),
+(104,1,10001,'Manual de Instruções Bimby TM5 (Atualizado)','BIMBY_TM5_2','','',0,'topics',1,5,0,0,0,0,0,0,0,1,1,NULL,0,0,0,'','','',1773833901,1773833901,0,1,0,1777291907,NULL,1,1,NULL,NULL);
 /*!40000 ALTER TABLE `m_course` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -10922,6 +10983,170 @@ INSERT INTO `m_course_sections` VALUES
 (204,104,0,NULL,'',1,'1239',1,NULL,NULL,NULL,1773833901),
 (205,104,1,NULL,'',1,'1240,1241,1242,1243,1244,1245,1246,1247,1248,1249,1250,1251,1252,1253,1254,1255,1256,1257,1258,1259,1260,1261,1262,1263,1264,1265',1,NULL,NULL,NULL,1773833901);
 /*!40000 ALTER TABLE `m_course_sections` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `m_customcert`
+--
+
+DROP TABLE IF EXISTS `m_customcert`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `m_customcert` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
+  `course` bigint(10) NOT NULL DEFAULT 0,
+  `templateid` bigint(10) NOT NULL DEFAULT 0,
+  `name` varchar(255) NOT NULL DEFAULT '',
+  `intro` longtext DEFAULT NULL,
+  `introformat` smallint(4) NOT NULL DEFAULT 0,
+  `requiredtime` bigint(10) NOT NULL DEFAULT 0,
+  `verifyany` tinyint(1) NOT NULL DEFAULT 0,
+  `deliveryoption` varchar(255) DEFAULT NULL,
+  `emailstudents` tinyint(1) NOT NULL DEFAULT 0,
+  `emailteachers` tinyint(1) NOT NULL DEFAULT 0,
+  `emailothers` longtext DEFAULT NULL,
+  `protection` varchar(255) NOT NULL DEFAULT '',
+  `language` varchar(20) DEFAULT NULL,
+  `timecreated` bigint(10) NOT NULL DEFAULT 0,
+  `timemodified` bigint(10) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `m_cust_tem_ix` (`templateid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Defines customcerts';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `m_customcert`
+--
+
+LOCK TABLES `m_customcert` WRITE;
+/*!40000 ALTER TABLE `m_customcert` DISABLE KEYS */;
+/*!40000 ALTER TABLE `m_customcert` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `m_customcert_elements`
+--
+
+DROP TABLE IF EXISTS `m_customcert_elements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `m_customcert_elements` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
+  `pageid` bigint(10) NOT NULL DEFAULT 0,
+  `name` varchar(255) NOT NULL DEFAULT '',
+  `element` varchar(255) NOT NULL DEFAULT '',
+  `data` longtext DEFAULT NULL,
+  `font` varchar(255) DEFAULT NULL,
+  `fontsize` bigint(10) DEFAULT NULL,
+  `colour` varchar(50) DEFAULT NULL,
+  `posx` bigint(10) DEFAULT NULL,
+  `posy` bigint(10) DEFAULT NULL,
+  `width` bigint(10) DEFAULT NULL,
+  `refpoint` smallint(4) DEFAULT NULL,
+  `alignment` varchar(1) NOT NULL DEFAULT 'L',
+  `sequence` bigint(10) DEFAULT NULL,
+  `timecreated` bigint(10) NOT NULL DEFAULT 0,
+  `timemodified` bigint(10) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `m_custelem_pag_ix` (`pageid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Stores the elements for a given page';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `m_customcert_elements`
+--
+
+LOCK TABLES `m_customcert_elements` WRITE;
+/*!40000 ALTER TABLE `m_customcert_elements` DISABLE KEYS */;
+/*!40000 ALTER TABLE `m_customcert_elements` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `m_customcert_issues`
+--
+
+DROP TABLE IF EXISTS `m_customcert_issues`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `m_customcert_issues` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
+  `userid` bigint(10) NOT NULL DEFAULT 0,
+  `customcertid` bigint(10) NOT NULL DEFAULT 0,
+  `code` varchar(40) DEFAULT NULL,
+  `emailed` tinyint(1) NOT NULL DEFAULT 0,
+  `timecreated` bigint(10) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `m_custissu_usecus_ix` (`userid`,`customcertid`),
+  KEY `m_custissu_use_ix` (`userid`),
+  KEY `m_custissu_cus_ix` (`customcertid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Stores each issue of a customcert';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `m_customcert_issues`
+--
+
+LOCK TABLES `m_customcert_issues` WRITE;
+/*!40000 ALTER TABLE `m_customcert_issues` DISABLE KEYS */;
+/*!40000 ALTER TABLE `m_customcert_issues` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `m_customcert_pages`
+--
+
+DROP TABLE IF EXISTS `m_customcert_pages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `m_customcert_pages` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
+  `templateid` bigint(10) NOT NULL DEFAULT 0,
+  `width` bigint(10) NOT NULL DEFAULT 0,
+  `height` bigint(10) NOT NULL DEFAULT 0,
+  `leftmargin` bigint(10) NOT NULL DEFAULT 0,
+  `rightmargin` bigint(10) NOT NULL DEFAULT 0,
+  `sequence` bigint(10) DEFAULT NULL,
+  `timecreated` bigint(10) NOT NULL DEFAULT 0,
+  `timemodified` bigint(10) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `m_custpage_tem_ix` (`templateid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Stores each page of a custom cert';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `m_customcert_pages`
+--
+
+LOCK TABLES `m_customcert_pages` WRITE;
+/*!40000 ALTER TABLE `m_customcert_pages` DISABLE KEYS */;
+/*!40000 ALTER TABLE `m_customcert_pages` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `m_customcert_templates`
+--
+
+DROP TABLE IF EXISTS `m_customcert_templates`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `m_customcert_templates` (
+  `id` bigint(10) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  `contextid` bigint(10) NOT NULL,
+  `timecreated` bigint(10) NOT NULL DEFAULT 0,
+  `timemodified` bigint(10) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `m_custtemp_con_ix` (`contextid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Stores each customcert template';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `m_customcert_templates`
+--
+
+LOCK TABLES `m_customcert_templates` WRITE;
+/*!40000 ALTER TABLE `m_customcert_templates` DISABLE KEYS */;
+/*!40000 ALTER TABLE `m_customcert_templates` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -12063,7 +12288,7 @@ CREATE TABLE `m_external_functions` (
   `services` varchar(1333) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_extefunc_nam_uix` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=776 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='list of all external functions';
+) ENGINE=InnoDB AUTO_INCREMENT=782 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='list of all external functions';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -12847,7 +13072,13 @@ INSERT INTO `m_external_functions` VALUES
 (772,'tiny_autosave_update_session','tiny_autosave\\external\\update_autosave_session_content','execute',NULL,'tiny_autosave','',NULL),
 (773,'tiny_equation_filter','tiny_equation\\external\\filter','execute',NULL,'tiny_equation','',NULL),
 (774,'tiny_media_preview','tiny_media\\external\\preview','execute',NULL,'tiny_media','',NULL),
-(775,'tiny_premium_get_api_key','tiny_premium\\external\\get_api_key','execute',NULL,'tiny_premium','','moodle_mobile_app');
+(775,'tiny_premium_get_api_key','tiny_premium\\external\\get_api_key','execute',NULL,'tiny_premium','','moodle_mobile_app'),
+(776,'mod_customcert_delete_issue','mod_customcert\\external','delete_issue',NULL,'mod_customcert','','moodle_mobile_app'),
+(777,'mod_customcert_save_element','mod_customcert\\external','save_element',NULL,'mod_customcert','',NULL),
+(778,'mod_customcert_get_element_html','mod_customcert\\external','get_element_html',NULL,'mod_customcert','',NULL),
+(779,'local_wsmanageactivities_create_course_with_content','local_wsmanageactivities\\external\\create_course_with_content','execute',NULL,'local_wsmanageactivities','moodle/course:create','moodle_mobile_app'),
+(780,'local_wsmanageactivities_process_pdf','local_wsmanageactivities\\external\\process_pdf','execute',NULL,'local_wsmanageactivities','moodle/files:uploadfiles','moodle_mobile_app'),
+(781,'local_wsmanageactivities_mark_activity_viewed','local_wsmanageactivities\\external\\mark_activity_viewed','execute',NULL,'local_wsmanageactivities','moodle/course:view','moodle_mobile_app');
 /*!40000 ALTER TABLE `m_external_functions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -12901,7 +13132,7 @@ CREATE TABLE `m_external_services_functions` (
   `functionname` varchar(200) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `m_exteservfunc_ext_ix` (`externalserviceid`)
-) ENGINE=InnoDB AUTO_INCREMENT=478 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='lists functions available in each service group';
+) ENGINE=InnoDB AUTO_INCREMENT=489 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='lists functions available in each service group';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -13387,7 +13618,18 @@ INSERT INTO `m_external_services_functions` VALUES
 (474,3,'local_wsmanageactivities_get_question_categories'),
 (475,3,'local_wsmanageactivities_update_course_section'),
 (476,3,'local_wsmanageactivities_update_navigation'),
-(477,3,'local_wsmanageactivities_upload_and_attach_files');
+(477,3,'local_wsmanageactivities_upload_and_attach_files'),
+(478,2,'local_wsmanageactivities_create_course_with_content'),
+(479,1,'mod_customcert_delete_issue'),
+(480,1,'local_wsmanageactivities_create_course_with_content'),
+(481,1,'local_wsmanageactivities_process_pdf'),
+(482,1,'local_wsmanageactivities_mark_activity_viewed'),
+(483,3,'local_wsmanageactivities_create_course_with_content'),
+(484,3,'core_webservice_get_site_info'),
+(485,3,'core_course_get_courses'),
+(486,3,'core_course_get_contents'),
+(487,3,'core_user_get_users'),
+(488,3,'local_wsmanageactivities_process_pdf');
 /*!40000 ALTER TABLE `m_external_services_functions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -13459,7 +13701,7 @@ CREATE TABLE `m_external_tokens` (
 LOCK TABLES `m_external_tokens` WRITE;
 /*!40000 ALTER TABLE `m_external_tokens` DISABLE KEYS */;
 INSERT INTO `m_external_tokens` VALUES
-(1,'14c68ff68a1a57cdc4cf4d72f443b87d','ZnR9NJjBTXNG8wbh10HkmmluTw2wYH9aR7ncrp95Uzwl2UUSH4iGcR9HsgFt61XY',0,2,3,NULL,1,2,NULL,1789599600,1773835814,NULL,'Admin User');
+(1,'14c68ff68a1a57cdc4cf4d72f443b87d','ZnR9NJjBTXNG8wbh10HkmmluTw2wYH9aR7ncrp95Uzwl2UUSH4iGcR9HsgFt61XY',0,2,3,NULL,1,2,NULL,1789599600,1773835814,1777363378,'Admin User');
 /*!40000 ALTER TABLE `m_external_tokens` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -17496,7 +17738,7 @@ CREATE TABLE `m_log_display` (
   `component` varchar(100) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_logdisp_modact_uix` (`module`,`action`)
-) ENGINE=InnoDB AUTO_INCREMENT=184 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='For a particular module/action, specifies a moodle table/fie';
+) ENGINE=InnoDB AUTO_INCREMENT=188 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='For a particular module/action, specifies a moodle table/fie';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -17688,7 +17930,11 @@ INSERT INTO `m_log_display` VALUES
 (180,'workshop','update clear assessments','workshop','name','mod_workshop'),
 (181,'book','exportimscp','book','name','booktool_exportimscp'),
 (182,'book','print','book','name','booktool_print'),
-(183,'book','print chapter','book_chapters','title','booktool_print');
+(183,'book','print chapter','book_chapters','title','booktool_print'),
+(184,'customcert','view','customcert','name','mod_customcert'),
+(185,'customcert','add','customcert','name','mod_customcert'),
+(186,'customcert','update','customcert','name','mod_customcert'),
+(187,'customcert','received','customcert','name','mod_customcert');
 /*!40000 ALTER TABLE `m_log_display` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -17760,7 +18006,7 @@ CREATE TABLE `m_logstore_standard_log` (
   KEY `m_logsstanlog_cou_ix` (`courseid`),
   KEY `m_logsstanlog_rea_ix` (`realuserid`),
   KEY `m_logsstanlog_rel_ix` (`relateduserid`)
-) ENGINE=InnoDB AUTO_INCREMENT=6144 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Standard log table';
+) ENGINE=InnoDB AUTO_INCREMENT=6198 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Standard log table';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -23855,7 +24101,61 @@ INSERT INTO `m_logstore_standard_log` VALUES
 (6140,'\\mod_page\\event\\course_module_viewed','mod_page','viewed','course_module','page',996,'r',2,1354,70,1242,2,104,NULL,0,'null',1773843985,'web','172.20.0.1',NULL),
 (6141,'\\mod_page\\event\\course_module_viewed','mod_page','viewed','course_module','page',995,'r',2,1353,70,1241,2,104,NULL,0,'null',1773843987,'web','172.20.0.1',NULL),
 (6142,'\\mod_page\\event\\course_module_viewed','mod_page','viewed','course_module','page',994,'r',2,1352,70,1240,2,104,NULL,0,'null',1773843988,'web','172.20.0.1',NULL),
-(6143,'\\core\\event\\dashboard_viewed','core','viewed','dashboard',NULL,NULL,'r',0,5,30,2,2,0,2,0,'null',1773844872,'web','172.20.0.1',NULL);
+(6143,'\\core\\event\\dashboard_viewed','core','viewed','dashboard',NULL,NULL,'r',0,5,30,2,2,0,2,0,'null',1773844872,'web','172.20.0.1',NULL),
+(6144,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:addinstance\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6145,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:addinstance\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6146,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',5,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:view\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6147,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',4,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:view\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6148,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:view\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6149,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:view\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6150,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manage\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6151,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manage\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6152,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',5,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:receiveissue\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6153,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',4,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:viewreport\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6154,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:viewreport\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6155,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:viewreport\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6156,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:viewallcertificates\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6157,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',4,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:verifycertificate\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6158,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:verifycertificate\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6159,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:verifycertificate\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6160,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:verifyallcertificates\",\"oldpermission\":0,\"permission\":1}',1777291906,'cli',NULL,NULL),
+(6161,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageemailstudents\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6162,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageemailstudents\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6163,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageemailteachers\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6164,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageemailteachers\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6165,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageemailothers\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6166,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageemailothers\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6167,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageverifyany\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6168,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageverifyany\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6169,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:managerequiredtime\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6170,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:managerequiredtime\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6171,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageprotection\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6172,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:manageprotection\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6173,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',3,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:managelanguages\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6174,'\\core\\event\\capability_assigned','core','assigned','capability','role_capabilities',1,'u',0,1,10,0,0,0,NULL,0,'{\"capability\":\"mod\\/customcert:managelanguages\",\"oldpermission\":0,\"permission\":\"1\"}',1777291906,'cli',NULL,NULL),
+(6175,'\\core\\event\\config_log_created','core','created','config_log','config_log',1838,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"verifyallcertificates\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6176,'\\core\\event\\config_log_created','core','created','config_log','config_log',1839,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"showposxy\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6177,'\\core\\event\\config_log_created','core','created','config_log','config_log',1840,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"verifycertificate\",\"oldvalue\":null,\"value\":\"\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6178,'\\core\\event\\config_log_created','core','created','config_log','config_log',1841,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"managetemplates\",\"oldvalue\":null,\"value\":\"\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6179,'\\core\\event\\config_log_created','core','created','config_log','config_log',1842,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"uploadimage\",\"oldvalue\":null,\"value\":\"\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6180,'\\core\\event\\config_log_created','core','created','config_log','config_log',1843,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"emailstudents\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6181,'\\core\\event\\config_log_created','core','created','config_log','config_log',1844,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"emailteachers\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6182,'\\core\\event\\config_log_created','core','created','config_log','config_log',1845,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"emailothers\",\"oldvalue\":null,\"value\":\"\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6183,'\\core\\event\\config_log_created','core','created','config_log','config_log',1846,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"verifyany\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6184,'\\core\\event\\config_log_created','core','created','config_log','config_log',1847,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"requiredtime\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6185,'\\core\\event\\config_log_created','core','created','config_log','config_log',1848,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"protection_print\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6186,'\\core\\event\\config_log_created','core','created','config_log','config_log',1849,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"protection_modify\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6187,'\\core\\event\\config_log_created','core','created','config_log','config_log',1850,'c',0,1,10,0,2,0,NULL,0,'{\"name\":\"protection_copy\",\"oldvalue\":null,\"value\":\"0\",\"plugin\":\"customcert\"}',1777291911,'cli',NULL,NULL),
+(6188,'\\core\\event\\course_viewed','core','viewed','course',NULL,NULL,'r',2,2,50,1,0,1,NULL,0,'null',1777291996,'web','172.19.0.1',NULL),
+(6189,'\\core\\event\\user_loggedin','core','loggedin','user','user',2,'r',0,1,10,0,2,0,NULL,0,'{\"username\":\"admin\",\"extrauserinfo\":[]}',1777292001,'web','172.19.0.1',NULL),
+(6190,'\\core\\event\\dashboard_viewed','core','viewed','dashboard',NULL,NULL,'r',0,5,30,2,2,0,2,0,'null',1777292001,'web','172.19.0.1',NULL),
+(6191,'\\core\\event\\webservice_function_called','core','called','webservice_function',NULL,NULL,'r',0,1,10,0,2,0,NULL,0,'{\"function\":\"core_course_get_courses\"}',1777292006,'ws','172.19.0.1',NULL),
+(6192,'\\core\\event\\webservice_function_called','core','called','webservice_function',NULL,NULL,'r',0,1,10,0,2,0,NULL,0,'{\"function\":\"core_user_get_users\"}',1777292006,'ws','172.19.0.1',NULL),
+(6193,'\\core\\event\\webservice_function_called','core','called','webservice_function',NULL,NULL,'r',0,1,10,0,2,0,NULL,0,'{\"function\":\"core_webservice_get_site_info\"}',1777292008,'ws','172.19.0.1',NULL),
+(6194,'\\core\\event\\webservice_function_called','core','called','webservice_function',NULL,NULL,'r',0,1,10,0,2,0,NULL,0,'{\"function\":\"core_webservice_get_site_info\"}',1777292008,'ws','172.19.0.1',NULL),
+(6195,'\\core\\event\\user_loggedin','core','loggedin','user','user',2,'r',0,1,10,0,2,0,NULL,0,'{\"username\":\"admin\",\"extrauserinfo\":[]}',1777363103,'web','172.19.0.1',NULL),
+(6196,'\\core\\event\\webservice_function_called','core','called','webservice_function',NULL,NULL,'r',0,1,10,0,2,0,NULL,0,'{\"function\":\"local_wsmanageactivities_process_pdf\"}',1777363287,'ws','172.19.0.1',NULL),
+(6197,'\\core\\event\\webservice_function_called','core','called','webservice_function',NULL,NULL,'r',0,1,10,0,2,0,NULL,0,'{\"function\":\"local_wsmanageactivities_process_pdf\"}',1777363378,'ws','172.19.0.1',NULL);
 /*!40000 ALTER TABLE `m_logstore_standard_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -25181,7 +25481,7 @@ CREATE TABLE `m_modules` (
   `visible` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `m_modu_nam_ix` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='modules available in the site';
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='modules available in the site';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -25213,7 +25513,8 @@ INSERT INTO `m_modules` VALUES
 (20,'subsection',0,0,'',1),
 (21,'url',0,0,'',1),
 (22,'wiki',0,0,'',1),
-(23,'workshop',0,0,'',1);
+(23,'workshop',0,0,'',1),
+(24,'customcert',0,0,'',1);
 /*!40000 ALTER TABLE `m_modules` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -40241,7 +40542,7 @@ CREATE TABLE `m_role_capabilities` (
   KEY `m_rolecapa_con_ix` (`contextid`),
   KEY `m_rolecapa_mod_ix` (`modifierid`),
   KEY `m_rolecapa_cap_ix` (`capability`)
-) ENGINE=InnoDB AUTO_INCREMENT=1538 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='permission has to be signed, overriding a capability for a p';
+) ENGINE=InnoDB AUTO_INCREMENT=1569 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='permission has to be signed, overriding a capability for a p';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41787,7 +42088,38 @@ INSERT INTO `m_role_capabilities` VALUES
 (1534,1,7,'tiny/recordrtc:recordaudio',1,1773047437,0),
 (1535,1,7,'tiny/recordrtc:recordvideo',1,1773047437,0),
 (1536,1,7,'tiny/recordrtc:recordscreen',1,1773047437,0),
-(1537,1,7,'tiny/recordrtc:use',1,1773047437,0);
+(1537,1,7,'tiny/recordrtc:use',1,1773047437,0),
+(1538,1,3,'mod/customcert:addinstance',1,1777291906,0),
+(1539,1,1,'mod/customcert:addinstance',1,1777291906,0),
+(1540,1,5,'mod/customcert:view',1,1777291906,0),
+(1541,1,4,'mod/customcert:view',1,1777291906,0),
+(1542,1,3,'mod/customcert:view',1,1777291906,0),
+(1543,1,1,'mod/customcert:view',1,1777291906,0),
+(1544,1,3,'mod/customcert:manage',1,1777291906,0),
+(1545,1,1,'mod/customcert:manage',1,1777291906,0),
+(1546,1,5,'mod/customcert:receiveissue',1,1777291906,0),
+(1547,1,4,'mod/customcert:viewreport',1,1777291906,0),
+(1548,1,3,'mod/customcert:viewreport',1,1777291906,0),
+(1549,1,1,'mod/customcert:viewreport',1,1777291906,0),
+(1550,1,1,'mod/customcert:viewallcertificates',1,1777291906,0),
+(1551,1,4,'mod/customcert:verifycertificate',1,1777291906,0),
+(1552,1,3,'mod/customcert:verifycertificate',1,1777291906,0),
+(1553,1,1,'mod/customcert:verifycertificate',1,1777291906,0),
+(1554,1,1,'mod/customcert:verifyallcertificates',1,1777291906,0),
+(1555,1,3,'mod/customcert:manageemailstudents',1,1777291906,0),
+(1556,1,1,'mod/customcert:manageemailstudents',1,1777291906,0),
+(1557,1,3,'mod/customcert:manageemailteachers',1,1777291906,0),
+(1558,1,1,'mod/customcert:manageemailteachers',1,1777291906,0),
+(1559,1,3,'mod/customcert:manageemailothers',1,1777291906,0),
+(1560,1,1,'mod/customcert:manageemailothers',1,1777291906,0),
+(1561,1,3,'mod/customcert:manageverifyany',1,1777291906,0),
+(1562,1,1,'mod/customcert:manageverifyany',1,1777291906,0),
+(1563,1,3,'mod/customcert:managerequiredtime',1,1777291906,0),
+(1564,1,1,'mod/customcert:managerequiredtime',1,1777291906,0),
+(1565,1,3,'mod/customcert:manageprotection',1,1777291906,0),
+(1566,1,1,'mod/customcert:manageprotection',1,1777291906,0),
+(1567,1,3,'mod/customcert:managelanguages',1,1777291906,0),
+(1568,1,1,'mod/customcert:managelanguages',1,1777291906,0);
 /*!40000 ALTER TABLE `m_role_capabilities` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -42439,7 +42771,7 @@ CREATE TABLE `m_sessions` (
   KEY `m_sess_tim_ix` (`timecreated`),
   KEY `m_sess_tim2_ix` (`timemodified`),
   KEY `m_sess_use_ix` (`userid`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Database based session storage - now recommended';
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Database based session storage - now recommended';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -42455,7 +42787,8 @@ INSERT INTO `m_sessions` VALUES
 (16,0,'945436bb2d855bb41126928eef109b72',2,NULL,1773436057,1773438273,'172.20.0.1','172.20.0.1'),
 (22,0,'d5ef6a3de46bc281db6bc716cbb4b341',2,NULL,1773827112,1773844872,'172.20.0.1','172.20.0.1'),
 (23,0,'ea2263e7f89ed25e2a37ee32583c2cb9',0,NULL,1773832390,1773832390,'172.20.0.1','172.20.0.1'),
-(24,0,'c687c7bdfab5cffdf37bea9054f75700',0,NULL,1773832390,1773832390,'172.20.0.1','172.20.0.1');
+(24,0,'c687c7bdfab5cffdf37bea9054f75700',0,NULL,1773832390,1773832390,'172.20.0.1','172.20.0.1'),
+(28,0,'07086046390a3a914a7e23dd13a9b610',2,NULL,1777363103,1777363103,'172.19.0.1','172.19.0.1');
 /*!40000 ALTER TABLE `m_sessions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -42991,7 +43324,7 @@ CREATE TABLE `m_task_adhoc` (
   KEY `m_taskadho_tim_ix` (`timestarted`),
   KEY `m_taskadho_nexcla_ix` (`nextruntime`,`classname`),
   KEY `m_taskadho_use_ix` (`userid`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='List of adhoc tasks waiting to run.';
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='List of adhoc tasks waiting to run.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -43002,7 +43335,8 @@ LOCK TABLES `m_task_adhoc` WRITE;
 /*!40000 ALTER TABLE `m_task_adhoc` DISABLE KEYS */;
 INSERT INTO `m_task_adhoc` VALUES
 (4,'quiz_statistics','\\quiz_statistics\\task\\recalculate',1773763388,0,'{\"quizid\":82}',NULL,1773759788,NULL,NULL,NULL,12,NULL),
-(5,'quiz_statistics','\\quiz_statistics\\task\\recalculate',1773771117,0,'{\"quizid\":84}',NULL,1773767517,NULL,NULL,NULL,12,NULL);
+(5,'quiz_statistics','\\quiz_statistics\\task\\recalculate',1773771117,0,'{\"quizid\":84}',NULL,1773767517,NULL,NULL,NULL,12,NULL),
+(6,'','\\core\\task\\build_installed_themes_task',1777291916,0,'',NULL,1777291917,NULL,NULL,NULL,12,NULL);
 /*!40000 ALTER TABLE `m_task_adhoc` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -43670,7 +44004,7 @@ CREATE TABLE `m_task_scheduled` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_tasksche_cla_uix` (`classname`),
   KEY `m_tasksche_lasnex_ix` (`lastruntime`,`nextruntime`)
-) ENGINE=InnoDB AUTO_INCREMENT=117 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='List of scheduled tasks to be run by cron.';
+) ENGINE=InnoDB AUTO_INCREMENT=118 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='List of scheduled tasks to be run by cron.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -43795,7 +44129,8 @@ INSERT INTO `m_task_scheduled` VALUES
 (113,'workshopallocation_scheduled','\\workshopallocation_scheduled\\task\\cron_task',1773057661,1773057720,'*','*','*','*','*',0,0,0,NULL,NULL,NULL),
 (114,'logstore_standard','\\logstore_standard\\task\\cleanup_task',0,1773117180,'33','4','*','*','*',0,0,0,NULL,NULL,NULL),
 (115,'factor_grace','\\factor_grace\\task\\revoke_expired_factors',0,1773101400,'10','0','*','*','*',0,0,0,NULL,NULL,NULL),
-(116,'factor_nosetup','\\factor_nosetup\\task\\delete_unusable_factors',0,1773100980,'3','0','*','*','*',0,0,0,NULL,NULL,NULL);
+(116,'factor_nosetup','\\factor_nosetup\\task\\delete_unusable_factors',0,1773100980,'3','0','*','*','*',0,0,0,NULL,NULL,NULL),
+(117,'mod_customcert','\\mod_customcert\\task\\email_certificate_task',0,1777291920,'*','*','*','*','*',0,0,0,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `m_task_scheduled` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -45174,7 +45509,7 @@ CREATE TABLE `m_upgrade_log` (
   KEY `m_upgrlog_tim_ix` (`timemodified`),
   KEY `m_upgrlog_typtim_ix` (`type`,`timemodified`),
   KEY `m_upgrlog_use_ix` (`userid`)
-) ENGINE=InnoDB AUTO_INCREMENT=1239 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Upgrade logging';
+) ENGINE=InnoDB AUTO_INCREMENT=1299 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Upgrade logging';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -46421,7 +46756,67 @@ INSERT INTO `m_upgrade_log` VALUES
 (1235,0,'factor_totp','2025100600','2025100600','Plugin installed',NULL,'',0,1773047437),
 (1236,0,'factor_webauthn',NULL,'2025100600','Starting plugin installation',NULL,'',0,1773047437),
 (1237,0,'factor_webauthn','2025100600','2025100600','Upgrade savepoint reached',NULL,'',0,1773047437),
-(1238,0,'factor_webauthn','2025100600','2025100600','Plugin installed',NULL,'',0,1773047437);
+(1238,0,'factor_webauthn','2025100600','2025100600','Plugin installed',NULL,'',0,1773047437),
+(1239,0,'mod_customcert',NULL,'2022041910','Starting plugin installation',NULL,'',0,1777291905),
+(1240,0,'mod_customcert','2022041910','2022041910','Upgrade savepoint reached',NULL,'',0,1777291905),
+(1241,0,'mod_customcert','2022041910','2022041910','Plugin installed',NULL,'',0,1777291906),
+(1242,0,'local_wsmanageactivities','2026030400','2026042202','Starting plugin upgrade',NULL,'',0,1777291906),
+(1243,0,'local_wsmanageactivities','2026042202','2026042202','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1244,0,'local_wsmanageactivities','2026042202','2026042202','Plugin upgraded',NULL,'',0,1777291906),
+(1245,0,'customcertelement_bgimage',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1246,0,'customcertelement_bgimage','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1247,0,'customcertelement_bgimage','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1248,0,'customcertelement_border',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1249,0,'customcertelement_border','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1250,0,'customcertelement_border','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1251,0,'customcertelement_categoryname',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1252,0,'customcertelement_categoryname','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1253,0,'customcertelement_categoryname','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1254,0,'customcertelement_code',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1255,0,'customcertelement_code','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1256,0,'customcertelement_code','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1257,0,'customcertelement_coursefield',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1258,0,'customcertelement_coursefield','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1259,0,'customcertelement_coursefield','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1260,0,'customcertelement_coursename',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1261,0,'customcertelement_coursename','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1262,0,'customcertelement_coursename','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1263,0,'customcertelement_date',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1264,0,'customcertelement_date','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1265,0,'customcertelement_date','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1266,0,'customcertelement_daterange',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1267,0,'customcertelement_daterange','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1268,0,'customcertelement_daterange','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1269,0,'customcertelement_digitalsignature',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1270,0,'customcertelement_digitalsignature','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1271,0,'customcertelement_digitalsignature','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1272,0,'customcertelement_grade',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1273,0,'customcertelement_grade','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1274,0,'customcertelement_grade','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1275,0,'customcertelement_gradeitemname',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1276,0,'customcertelement_gradeitemname','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1277,0,'customcertelement_gradeitemname','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1278,0,'customcertelement_image',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1279,0,'customcertelement_image','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1280,0,'customcertelement_image','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1281,0,'customcertelement_qrcode',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1282,0,'customcertelement_qrcode','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1283,0,'customcertelement_qrcode','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1284,0,'customcertelement_studentname',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1285,0,'customcertelement_studentname','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1286,0,'customcertelement_studentname','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1287,0,'customcertelement_teachername',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1288,0,'customcertelement_teachername','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1289,0,'customcertelement_teachername','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1290,0,'customcertelement_text',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1291,0,'customcertelement_text','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1292,0,'customcertelement_text','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1293,0,'customcertelement_userfield',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1294,0,'customcertelement_userfield','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1295,0,'customcertelement_userfield','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906),
+(1296,0,'customcertelement_userpicture',NULL,'2022041900','Starting plugin installation',NULL,'',0,1777291906),
+(1297,0,'customcertelement_userpicture','2022041900','2022041900','Upgrade savepoint reached',NULL,'',0,1777291906),
+(1298,0,'customcertelement_userpicture','2022041900','2022041900','Plugin installed',NULL,'',0,1777291906);
 /*!40000 ALTER TABLE `m_upgrade_log` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -46540,7 +46935,7 @@ LOCK TABLES `m_user` WRITE;
 /*!40000 ALTER TABLE `m_user` DISABLE KEYS */;
 INSERT INTO `m_user` VALUES
 (1,'manual',1,0,0,0,1,'guest','$6$rounds=10000$9ZXPSrK6uuwMzNU7$k.t3pFEL9zsSU2BgOtqK0ycZt2PB0VzNOErNDnH4o4LQ.AMUFOrbqcS.qOn26ol/WeLAAkjhKuMh820pOmfBp/','','Visitante',' ','root@localhost',0,'','','','','','','','pt','gregorian','','99',0,0,0,0,'','',0,'Este nome de utilizador é especial e só permite acesso a algumas disciplinas.',1,1,0,2,1,0,0,1773047408,0,NULL,NULL,NULL,NULL,NULL,NULL),
-(2,'manual',1,0,0,0,1,'admin','$6$rounds=10000$ufLXK7WOJmeZVPtn$GMRB/QlaZzGVRb5FR12BPSvHnWdZOERhOJq5WbeCRslT70cX7/WF.mZ.1jLXzcLz9IJD4fTCxQdoFoIvClPWW0','','Administrador','Utilizador','admin@example.com',0,'','','','','','','','pt','gregorian','','99',1773055029,1773844872,1773738425,1773827112,'172.20.0.1','',0,NULL,1,1,0,1,1,0,0,1773047408,0,NULL,NULL,NULL,NULL,NULL,NULL);
+(2,'manual',1,0,0,0,1,'admin','$6$rounds=10000$ufLXK7WOJmeZVPtn$GMRB/QlaZzGVRb5FR12BPSvHnWdZOERhOJq5WbeCRslT70cX7/WF.mZ.1jLXzcLz9IJD4fTCxQdoFoIvClPWW0','','Administrador','Utilizador','admin@example.com',0,'','','','','','','','pt','gregorian','','99',1773055029,1777363103,1777292001,1777363103,'172.19.0.1','',0,NULL,1,1,0,1,1,0,0,1773047408,0,NULL,NULL,NULL,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `m_user` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -46808,7 +47203,7 @@ CREATE TABLE `m_user_preferences` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `m_userpref_usenam_uix` (`userid`,`name`),
   KEY `m_userpref_nam_ix` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Allows modules to store arbitrary user preferences';
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='Allows modules to store arbitrary user preferences';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -46831,7 +47226,8 @@ INSERT INTO `m_user_preferences` VALUES
 (11,2,'ifirst',''),
 (12,2,'ilast',''),
 (13,2,'tool_usertours_tour_completion_time_1','1773758865'),
-(14,2,'coursesectionspreferences_94','{\"contentcollapsed\":[]}');
+(14,2,'coursesectionspreferences_94','{\"contentcollapsed\":[]}'),
+(18,2,'last_time_enrolments_synced','1777363251');
 /*!40000 ALTER TABLE `m_user_preferences` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -46854,7 +47250,7 @@ CREATE TABLE `m_user_private_key` (
   PRIMARY KEY (`id`),
   KEY `m_userprivkey_scrval_ix` (`script`,`value`),
   KEY `m_userprivkey_use_ix` (`userid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='access keys used in cookieless scripts - rss, etc.';
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=COMPRESSED COMMENT='access keys used in cookieless scripts - rss, etc.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -46863,6 +47259,8 @@ CREATE TABLE `m_user_private_key` (
 
 LOCK TABLES `m_user_private_key` WRITE;
 /*!40000 ALTER TABLE `m_user_private_key` DISABLE KEYS */;
+INSERT INTO `m_user_private_key` VALUES
+(1,'core_files','0ea1b56c3293ba18e14f744fc3299369',2,NULL,NULL,NULL,1777292008);
 /*!40000 ALTER TABLE `m_user_private_key` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -47561,4 +47959,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-18 14:48:21
+-- Dump completed on 2026-04-28  8:54:10

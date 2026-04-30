@@ -16,7 +16,7 @@ $placeholder_id = optional_param('placeholder_id', '', PARAM_RAW);
 $newimg = optional_param('newimg', '', PARAM_RAW);
 $deleteimg = optional_param('deleteimg', 0, PARAM_INT);
 
-$PAGE->set_url(new moodle_url('/local/wsmanageactivities/fix_images.php'), ['courseid' => $courseid]);
+$PAGE->set_url(new moodle_url('/local/wsmanageactivities/fix_images.php', ['courseid' => $courseid]));
 $PAGE->set_context($context);
 $PAGE->set_title("Gerir Imagens e Tabelas");
 $PAGE->set_heading("🖼️ Ajustar Conteúdo Visual");
@@ -42,7 +42,14 @@ function renumber_all_figures($courseid) {
                 if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\/(?:figcaption|div)>/is', $block, $lm)) {
                     $old_caption_html = $lm[0];
                     $current_text = trim(strip_tags($lm[1]));
-                    $clean_text = preg_replace('/^Figura\s*\d+\s*(?:-\s*)?/i', '', $current_text);
+                    
+                    // Limpeza ultra-agressiva recursiva
+                    $clean_regex = '/^\s*(?:Figura|Figure|Fig\.?|Tabela|Table|Tab\.?)(?:\s*\d+)?\s*[:\-\d\s\.]*/i';
+                    $clean_text = $current_text;
+                    for($i=0; $i<3; $i++) {
+                        $clean_text = preg_replace($clean_regex, '', trim($clean_text));
+                    }
+                    
                     $new_text = "Figura " . $count . (!empty($clean_text) ? " - " . $clean_text : "");
                     $tag = (stripos($old_caption_html, '<figcaption') !== false) ? 'figcaption' : 'div';
                     $style = (stripos($old_caption_html, '<figcaption') !== false) 
@@ -83,23 +90,35 @@ if ($pageid && confirm_sesskey() && $placeholder_id) {
     $pattern_find = '/<(figure|div)[^>]*data-placeholder="' . preg_quote($placeholder_id, '/') . '"[^>]*>.*?<\/\1>/is';
     if (preg_match($pattern_find, $page->content, $m)) {
         $old_block = $m[0];
-        $new_block = "";
-        if (!$deleteimg && $final_url) {
+        
+        if ($deleteimg) {
+            $new_block = "";
+        } elseif ($final_url) {
             $legend = "";
             if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\/(?:figcaption|div)>/is', $old_block, $lm)) {
                 $legend = trim(strip_tags($lm[1]));
-                $legend = preg_replace('/^Figura\s*\d+\s*(?:-\s*)?/i', '', $legend);
+                // Limpeza agressiva: remove variações de "Figura X" ou "Tabela X"
+                $clean_regex = '/^\s*(?:Figura|Figure|Fig\.?|Tabela|Table|Tab\.?)\s*[:\-\d\s\.]*/i';
+                $legend = preg_replace($clean_regex, '', $legend);
+                $legend = preg_replace($clean_regex, '', $legend);
             }
             $new_block = '<figure class="ailms-figure" data-placeholder="'.$placeholder_id.'" style="text-align: center; margin: 30px auto; max-width: 90%; border: 1px solid #ddd; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">' .
                            '<img src="' . $final_url . '" data-legend="'.htmlspecialchars($legend).'" class="img-fluid" style="border-radius: 8px; max-width: 100%; height: auto;">' .
-                           '<figcaption class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#111; text-align:center;">' . $legend . '</figcaption>' .
+                           '<figcaption class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#111; text-align:center;">' . trim($legend) . '</figcaption>' .
                            '</figure>';
+        } else {
+            // Se clicar em atualizar sem nova imagem, apenas avisamos e continuamos para renderizar o layout
+            echo $OUTPUT->notification("Nenhuma nova imagem selecionada. Mantendo original.", 'notifyproblem');
+            $new_block = $old_block;
         }
-        $new_content = str_replace($old_block, $new_block, $page->content);
-        $DB->set_field('page', 'content', $new_content, ['id' => $pageid]);
-        renumber_all_figures($courseid);
-        echo $OUTPUT->notification("Ação concluída!", 'notifysuccess');
-        rebuild_course_cache($page->course, true);
+
+        if ($new_block !== $old_block || $deleteimg) {
+            $new_content = str_replace($old_block, $new_block, $page->content);
+            $DB->set_field('page', 'content', $new_content, ['id' => $pageid]);
+            renumber_all_figures($courseid);
+            echo $OUTPUT->notification("Ação concluída!", 'notifysuccess');
+            rebuild_course_cache($page->course, true);
+        }
     }
 }
 

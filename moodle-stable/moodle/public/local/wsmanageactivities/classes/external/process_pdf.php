@@ -25,6 +25,13 @@ class process_pdf extends external_api {
 
     public static function execute($filename, $filecontent) {
         global $CFG;
+        
+        // Impedir que Warnings/Notices sujem o JSON
+        @error_reporting(0);
+        @ini_set('display_errors', 0);
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300); // 5 minutos
+        while (ob_get_level()) ob_end_clean();
 
         $params = self::validate_parameters(self::execute_parameters(), [
             'filename' => $filename,
@@ -39,50 +46,90 @@ class process_pdf extends external_api {
         $safe_filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $params['filename']);
         $pdf_name = str_ireplace('.pdf', '', $safe_filename);
         
-        // Caminho físico REAL no contentor
-        $plugin_root = $CFG->dirroot . "/local/wsmanageactivities";
+        // Caminho relativo ao ficheiro para garantir que fica na pasta public/local/
+        $plugin_root = dirname(dirname(dirname(__FILE__)));
         
         $temp_dir = $plugin_root . "/temp_pdfs";
         if (!is_dir($temp_dir)) mkdir($temp_dir, 0777, true);
 
         $pdf_path = $temp_dir . "/" . time() . "_" . $safe_filename;
-        $decoded_content = base64_decode($params['filecontent']);
-        if (!$decoded_content) throw new Exception("Invalid base64 content");
+        $log_file = $plugin_root . "/debug_log.txt";
+
+        // Procura Robusta no Servidor
+        $possible_paths = [
+            $CFG->dirroot . "/../Cursos/" . $params['filename'],
+            $CFG->dirroot . "/../Cursos/" . $safe_filename,
+            $CFG->dirroot . "/Cursos/" . $params['filename']
+        ];
         
-        file_put_contents($pdf_path, $decoded_content);
+        $pdf_already_on_server = false;
+        foreach ($possible_paths as $path) {
+            if (file_exists($path)) {
+                $pdf_path = $path;
+                $pdf_already_on_server = true;
+                break;
+            }
+        }
+
+        if (!$pdf_already_on_server) {
+            if (empty($params['filecontent'])) {
+                return [
+                    'status' => 'error',
+                    'image_folder' => $pdf_name,
+                    'count' => 0,
+                    'message' => "Ficheiro demasiado grande (>15MB). Por favor, coloque '{$params['filename']}' na pasta /Cursos/ do servidor."
+                ];
+            }
+            
+            $decoded_content = base64_decode($params['filecontent']);
+            if (!$decoded_content) {
+                throw new Exception("Invalid base64 content");
+            }
+            file_put_contents($pdf_path, $decoded_content);
+        }
 
         // 2. Pasta de destino
         $target_dir = $plugin_root . "/extracted_images/" . $pdf_name;
-        if (!is_dir($plugin_root . "/extracted_images")) mkdir($plugin_root . "/extracted_images", 0777, true);
+        
+        if (!is_dir($plugin_root . "/extracted_images")) {
+            mkdir($plugin_root . "/extracted_images", 0777, true);
+        }
         
         if (is_dir($target_dir)) {
             exec("rm -rf \"$target_dir\"/*");
         } else {
             mkdir($target_dir, 0777, true);
         }
+        @chmod($target_dir, 0777);
 
+        // 3. Extração
         $all_output = [];
-        // 3. Extração (Loop Idêntico ao upload.php)
-        for ($p = 1; $p <= 150; $p++) {
-            $p_pad = str_pad($p, 3, '0', STR_PAD_LEFT);
-            $cmd = "pdfimages -f $p -l $p -j \"$pdf_path\" \"$target_dir/img-$p_pad\" 2>&1";
-            exec($cmd, $all_output);
-        }
+        // Usar -all para extrair tudo (incluindo imagens de alta fidelidade raster)
+        $cmd = "pdfimages -p -all \"$pdf_path\" \"$target_dir/img\" 2>&1";
+        exec($cmd, $all_output);
 
-        // 4. Otimização
+        // 4. Otimização Python (OBRIGATÓRIO para converter PPM para JPG)
         $py_script = $plugin_root . "/optimize_images.py";
         if (file_exists($py_script)) {
-            exec("python3 \"$py_script\" \"$target_dir\" 2>&1", $all_output);
+            $py_output = [];
+            $py_cmd = "python3 \"$py_script\" \"$target_dir\" 2>&1";
+            exec($py_cmd, $py_output);
+        }
+        
+        // Garantir permissões nos ficheiros extraídos
+        exec("chmod -R 777 \"$target_dir\"");
+
+        // Cleanup apenas se foi upload temporário
+        if (!$pdf_already_on_server && file_exists($pdf_path)) {
+            unlink($pdf_path);
         }
 
-        // Cleanup do PDF temporário
-        unlink($pdf_path);
+        // Contar todos os formatos que o browser entende agora (JPG e PNG)
+        $final_count = count(glob("$target_dir/*.{jpg,png}", GLOB_BRACE));
 
-        $final_count = count(glob("$target_dir/*.jpg"));
-
-        // Debug: Log output if no images found
+        // Debug: Log output only if no images found
         if ($final_count === 0) {
-            error_log("PDF extraction failed for $filename. Cmd output: " . implode("\n", $all_output));
+            file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ⚠️ PDF extraction failed for $filename. Cmd output: " . implode("\n", $all_output) . "\n", FILE_APPEND);
         }
 
         return [
