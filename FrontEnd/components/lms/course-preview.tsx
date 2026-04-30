@@ -124,6 +124,7 @@ function ActivityPreview({ activity, index, imageFolder }: { activity: Activity;
     let processed = html;
 
     // 1. Processar Imagens [[IMG_Pxx_yy]]
+    // Tenta pegar do env ou assume localhost:8080
     const moodleUrl = process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080";
     const imgRegex = /\[\[IMG_P?(\d+)_(\d+)(?:_([^\]]+))?\]\]/gi;
     
@@ -132,12 +133,19 @@ function ActivityPreview({ activity, index, imageFolder }: { activity: Activity;
       
       const pPad = p.padStart(3, '0');
       const sPad = s.padStart(3, '0');
-      const imgUrl = `${moodleUrl}/local/wsmanageactivities/extracted_images/${imageFolder}/img-${pPad}-${sPad}.jpg`;
+      
+      // Usar o proxy get_image.php para evitar erros de CORS e Caminho
+      const imgPath = `${imageFolder}/img-${pPad}-${sPad}.jpg`;
+      const imgUrl = `${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imgPath}`;
       
       return `
         <figure class="my-6 text-center">
-          <img src="${imgUrl}" class="rounded-lg shadow-md mx-auto max-w-full h-auto border border-gray-100" onerror="this.parentElement.innerHTML='<div class=\\'p-4 border-2 border-dashed border-amber-200 bg-amber-50 text-amber-500 rounded-lg text-center my-4\\'>🖼️ Imagem não encontrada na extração: ${match}</div>'" />
-          <figcaption class="mt-3 text-xs italic text-gray-500 font-medium">Preview da Figura (Extração: ${imageFolder})</figcaption>
+          <img src="${imgUrl}" 
+               crossorigin="anonymous"
+               class="rounded-lg shadow-md mx-auto max-w-full h-auto border border-gray-100" 
+               alt="${match}"
+               onerror="this.src='${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imageFolder}/img-${pPad}-000.jpg'; this.onerror=() => { this.parentElement.innerHTML='<div class=\\'p-4 border-2 border-dashed border-amber-200 bg-amber-50 text-amber-500 rounded-lg text-center my-4\\'>🖼️ Imagem não encontrada (Pág ${p}): ${match}</div>' }" />
+          <figcaption class="mt-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">Preview Extração: ${imageFolder}</figcaption>
         </figure>
       `;
     });
@@ -233,6 +241,11 @@ export function CoursePreview({
 }: CoursePreviewProps) {
   const [success, setSuccess] = useState(false)
   const [courseId, setCourseId] = useState<string | number | null>(null)
+
+  // Debug para detetar se a pasta está a chegar
+  useEffect(() => {
+    console.log("CoursePreview: Pasta de imagens recebida ->", course.image_folder);
+  }, [course.image_folder]);
 
   useEffect(() => {
     if (createdCourseId) {

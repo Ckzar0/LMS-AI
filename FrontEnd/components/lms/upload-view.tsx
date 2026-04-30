@@ -290,6 +290,43 @@ export function UploadView() {
     reader.readAsText(file)
   }
 
+  const handleOpenJsonPreview = async () => {
+    if (!generatedCourse || !courseName) return;
+
+    let finalImageFolder = generatedCourse.image_folder || "";
+
+    if (factoryPdfFile) {
+      setGenerationState({ status: "extracting", progress: 50, message: "A preparar imagens para o preview..." });
+      try {
+        const base64Content = await fileToBase64(factoryPdfFile);
+        const imgRes = await fetch("/api/send-to-moodle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            course: { course_name: courseName, course_shortname: "PREVIEW_EXTRACT" }, 
+            pdfFile: { name: factoryPdfFile.name, content: base64Content },
+            onlyExtract: true
+          })
+        });
+        const imgData = await imgRes.json();
+        if (imgData.success) {
+          finalImageFolder = imgData.image_folder;
+        }
+      } catch (err) {
+        console.warn("Extração pré-preview falhou:", err);
+      }
+    }
+
+    const courseWithImages = {
+      ...generatedCourse,
+      image_folder: finalImageFolder
+    };
+
+    setGeneratedCourse(courseWithImages);
+    setGenerationState({ status: "idle", progress: 0, message: "" });
+    setShowPreview(true);
+  };
+
   const handleGenerate = async () => {
     if (files.length === 0 || !courseName) return
     
@@ -351,13 +388,14 @@ export function UploadView() {
 
       const data = await response.json()
       
-      // Injetar a pasta de imagens no curso gerado para que o Preview as encontre
-      if (imageFolder && data.course) {
-        data.course.image_folder = imageFolder;
-      }
+      // Criar o objeto do curso final com a pasta de imagens injetada
+      const finalCourse = {
+        ...data.course,
+        image_folder: imageFolder || data.course?.image_folder || ""
+      };
 
-      setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: data.course })
-      setGeneratedCourse(data.course)
+      setGeneratedCourse(finalCourse)
+      setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse })
       setShowPreview(true)
     } catch (error) {
       setGenerationState({ status: "error", progress: 0, message: "Erro ao gerar curso", error: error instanceof Error ? error.message : "Unknown error" })
@@ -366,40 +404,11 @@ export function UploadView() {
 
   const handleSendToMoodle = async () => {
     if (!generatedCourse || !courseName) return
-    setGenerationState({ status: "sending", progress: 80, message: "A enviar para o Moodle..." })
+    setGenerationState({ status: "sending", progress: 90, message: "A criar estrutura do curso no Moodle..." })
     try {
-      let finalImageFolder = generatedCourse.image_folder || "";
-
-      // 1. Se estivermos na aba JSON e tivermos um PDF, extraímos primeiro as imagens
-      if (factoryPdfFile) {
-        setGenerationState({ status: "extracting", progress: 82, message: "A extrair imagens do PDF para o Moodle..." });
-        try {
-          const base64Content = await fileToBase64(factoryPdfFile);
-          const imgRes = await fetch("/api/send-to-moodle", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              course: { course_name: courseName, course_shortname: "TEMP_JSON" }, 
-              pdfFile: { name: factoryPdfFile.name, content: base64Content },
-              onlyExtract: true
-            })
-          });
-          const imgData = await imgRes.json();
-          if (imgData.success) {
-            finalImageFolder = imgData.image_folder;
-          }
-        } catch (imgErr) {
-          console.warn("Extração falhou no fluxo JSON:", imgErr);
-        }
-      }
-
-      // 2. Criar o curso final
-      setGenerationState({ status: "sending", progress: 90, message: "A criar estrutura do curso..." });
-      
       const courseWithFinalName = {
         ...generatedCourse,
-        course_name: courseName,
-        image_folder: finalImageFolder // Injetar a pasta correta
+        course_name: courseName
       };
 
       const response = await fetch("/api/send-to-moodle", {
@@ -407,7 +416,7 @@ export function UploadView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           course: courseWithFinalName, 
-          pdfFile: null, // Já extraímos acima
+          pdfFile: null, 
           onlyExtract: false 
         })
       })
@@ -425,12 +434,10 @@ export function UploadView() {
         message: `Sucesso! [ID: ${data.courseId}] | [Código: ${courseWithFinalName.course_shortname}]` 
       })
       
-      // Mostrar o nome original do JSON como feedback extra
       toast({
         title: "Curso Criado!",
-        description: `Nome Final: ${courseWithFinalName.course_name}\n(Baseado em: ${generatedCourse.course_name})`,
+        description: `Nome Final: ${courseWithFinalName.course_name}`,
       });
-      // Removido o reset automático para permitir clicar no link do curso criado
     } catch (error) {
       setGenerationState({ status: "error", progress: 0, message: "Erro ao enviar", error: error instanceof Error ? error.message : "Unknown error" })
     }
@@ -822,7 +829,7 @@ export function UploadView() {
                   (generatedCourse && courseName) ? "bg-primary text-primary-foreground hover:scale-[1.01] shadow-xl" : "bg-muted text-muted-foreground"
                 )} 
                 disabled={!generatedCourse || !courseName} 
-                onClick={() => setShowPreview(true)}
+                onClick={handleOpenJsonPreview}
               >
                 {!courseName ? "Defina o Nome do Curso" : generatedCourse ? "🚀 Visualizar e Criar Curso" : "Aguardando JSON Válido..."}
               </Button>
