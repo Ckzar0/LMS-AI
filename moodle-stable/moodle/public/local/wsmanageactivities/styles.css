@@ -1,22 +1,5 @@
 /* Design Global para Cursos Gerados por IA */
 
-/* Reset do contador na raiz e no container do curso */
-body, .ailms-page-container, #fix-images-container {
-    counter-reset: ailms-figure-counter 0 !important;
-}
-
-.ailms-figure {
-    counter-increment: ailms-figure-counter !important;
-    display: block;
-}
-
-/* Forçar a exibição do prefixo "Figura X - " */
-.ailms-img-caption::before {
-    content: "Figura " counter(ailms-figure-counter) " - " !important;
-    font-weight: bold !important;
-    color: #111 !important;
-}
-
 .ailms-img-caption {
     font-size: 0.95em !important;
     color: #222 !important;
@@ -29,7 +12,7 @@ body, .ailms-page-container, #fix-images-container {
     display: none !important;
 }
 
-/* Resto dos estilos existentes */
+/* Layout do Contentor de Página */
 .ailms-page-container {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.7;
@@ -41,4 +24,37 @@ body, .ailms-page-container, #fix-images-container {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.08);
     border: 1px solid #eee;
+}
+
+/* Tabelas e Boxes Auxiliares */
+.ailms-info-box {
+    background: #f8f9fa;
+    border-left: 5px solid #6B46C1;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.ailms-atencao {
+    background: #fff5f5;
+    border-left: 5px solid #e53e3e;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.ailms-dica {
+    background: #f0fff4;
+    border-left: 5px solid #38a169;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
+}
+
+.ailms-quick-check {
+    background: #ebf8ff;
+    border-left: 5px solid #3182ce;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 4px;
 }

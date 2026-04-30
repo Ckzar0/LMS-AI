@@ -78,19 +78,23 @@ class ActivityCreator {
                 $context->id, 
                 'mod_page', 
                 'content', 
-                0,
+                $page_id,
                 $image_folder,
                 $course_id
             );
             
             if ($new_content !== $moduleinfo->content) {
                 $DB->set_field('page', 'content', $new_content, ['id' => $page_id]);
+                $moduleinfo->content = $new_content;
             }
         } catch (\Throwable $e) {
             // Log silencioso do erro de imagens
         }
 
-        return (int)$info->coursemodule;
+        return [
+            'cmid' => (int)$info->coursemodule,
+            'content' => $moduleinfo->content
+        ];
     }
     
     public static function create_quiz($course_id, $activity, $json_data = null, $section = 1, $prerequisite_ids = []) {

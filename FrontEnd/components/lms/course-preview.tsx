@@ -115,26 +115,69 @@ function QuestionPreview({ question, index }: { question: Question; index: numbe
   )
 }
 
-function ActivityPreview({ activity, index }: { activity: Activity; index: number }) {
+function ActivityPreview({ activity, index, imageFolder }: { activity: Activity; index: number; imageFolder?: string }) {
   const [expanded, setExpanded] = useState(index === 0)
 
+  // Função para transformar placeholders em imagens REAIS no preview
+  const processPreviewContent = (html: string) => {
+    if (!html) return "";
+    let processed = html;
+
+    // 1. Processar Imagens [[IMG_Pxx_yy]]
+    // Tenta pegar do env ou assume localhost:8080
+    const moodleUrl = process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080";
+    const imgRegex = /\[\[IMG_P?(\d+)_(\d+)(?:_([^\]]+))?\]\]/gi;
+    
+    processed = processed.replace(imgRegex, (match, p, s, suffix) => {
+      if (!imageFolder) return `<div class="p-4 border-2 border-dashed border-red-200 bg-red-50 text-red-500 rounded-lg text-center my-4 font-bold">⚠️ Extração Necessária: ${match}</div>`;
+      
+      const pPad = p.padStart(3, '0');
+      const sPad = s.padStart(3, '0');
+      
+      // Usar o proxy get_image.php para evitar erros de CORS e Caminho
+      const imgPath = `${imageFolder}/img-${pPad}-${sPad}.jpg`;
+      const imgUrl = `${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imgPath}`;
+      
+      return `
+        <figure class="my-6 text-center">
+          <img src="${imgUrl}" 
+               crossorigin="anonymous"
+               class="rounded-lg shadow-md mx-auto max-w-full h-auto border border-gray-100" 
+               alt="${match}"
+               onerror="this.src='${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imageFolder}/img-${pPad}-000.jpg'; this.onerror=() => { this.parentElement.innerHTML='<div class=\\'p-4 border-2 border-dashed border-amber-200 bg-amber-50 text-amber-500 rounded-lg text-center my-4\\'>🖼️ Imagem não encontrada (Pág ${p}): ${match}</div>' }" />
+          <figcaption class="mt-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">Preview Extração: ${imageFolder}</figcaption>
+        </figure>
+      `;
+    });
+
+    // 2. Processar Tabelas [[TABLE_Pxx]]
+    const tableRegex = /\[\[TABLE_P?(\d+)(?:_([^\]]+))?\]\]/gi;
+    processed = processed.replace(tableRegex, (match, p) => {
+      return `<div class="p-6 border-2 border-dashed border-blue-200 bg-blue-50 text-blue-600 rounded-xl text-center my-6">
+        <div class="font-bold text-lg mb-1">📊 TABELA: Página ${p}</div>
+        <div class="text-xs opacity-75">${match}</div>
+      </div>`;
+    });
+
+    return processed;
+  };
+
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
+    <div className="border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 bg-muted/50 hover:bg-muted transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/70 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">{index + 1}.</span>
+          <span className="text-sm font-bold text-muted-foreground/60 w-6">{index + 1}.</span>
           <div className="flex items-center gap-2">
             {activity.type === "page" && <BookOpen className="h-4 w-4 text-primary" />}
             {activity.type === "quiz" && <FileQuestion className="h-4 w-4 text-primary" />}
-            <span className="font-medium text-foreground">{activity.name}</span>
+            <span className="font-semibold text-foreground">{activity.name}</span>
           </div>
-          <Badge variant="outline">
+          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider">
             {activity.type === "page" && "Pagina"}
             {activity.type === "quiz" && "Quiz"}
-            {activity.type === "lesson" && "Licao"}
           </Badge>
         </div>
         {expanded ? (
@@ -145,37 +188,37 @@ function ActivityPreview({ activity, index }: { activity: Activity; index: numbe
       </button>
       
       {expanded && (
-        <div className="p-4 border-t border-border">
+        <div className="p-6 border-t border-border bg-white">
           {activity.type === "page" && activity.content && (
             <div 
-              className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: activity.content }}
+              className="prose prose-sm max-w-none prose-headings:text-primary prose-strong:text-foreground"
+              dangerouslySetInnerHTML={{ __html: processPreviewContent(activity.content) }}
             />
           )}
           {activity.type === "quiz" && (
             <div className="space-y-3">
-              {activity.intro && <p className="text-sm text-muted-foreground">{activity.intro}</p>}
+              {activity.intro && <p className="text-sm text-muted-foreground border-l-4 border-primary/20 pl-4 py-1 italic">{activity.intro}</p>}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-muted-foreground">Duracao</p>
-                  <p className="font-medium">{activity.timelimit ? `${activity.timelimit / 60} min` : "Sem limite"}</p>
+                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Duracao</p>
+                  <p className="font-bold">{activity.timelimit ? `${activity.timelimit / 60} min` : "Sem limite"}</p>
                 </div>
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-muted-foreground">Tentativas</p>
-                  <p className="font-medium">{activity.attempts || "Ilimitadas"}</p>
+                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Tentativas</p>
+                  <p className="font-bold">{activity.attempts || "Ilimitadas"}</p>
                 </div>
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-muted-foreground">Nota Minima</p>
-                  <p className="font-medium">
+                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Nota Minima</p>
+                  <p className="font-bold">
                     {activity.gradepass ? `${activity.gradepass}/20 (${(activity.gradepass/20*100).toFixed(0)}%)` : "0%"}
                   </p>
                 </div>
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-muted-foreground">Banco de Questoes</p>
-                  <p className="font-medium truncate">
+                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Banco</p>
+                  <p className="font-bold truncate">
                     {typeof activity.questions_from_bank === 'object' 
-                      ? `${activity.questions_from_bank.bank_name} (${activity.questions_from_bank.count} qts)`
-                      : <SafeRender value={activity.questions_from_bank} />}
+                      ? activity.questions_from_bank.bank_name 
+                      : "Geral"}
                   </p>
                 </div>
               </div>
@@ -199,6 +242,11 @@ export function CoursePreview({
   const [success, setSuccess] = useState(false)
   const [courseId, setCourseId] = useState<string | number | null>(null)
 
+  // Debug para detetar se a pasta está a chegar
+  useEffect(() => {
+    console.log("CoursePreview: Pasta de imagens recebida ->", course.image_folder);
+  }, [course.image_folder]);
+
   useEffect(() => {
     if (createdCourseId) {
       setSuccess(true)
@@ -206,8 +254,8 @@ export function CoursePreview({
     }
   }, [createdCourseId])
 
-  const totalQuestions = course.question_banks.reduce(
-    (acc, bank) => acc + bank.questions.length, 
+  const totalQuestions = (course.question_banks || []).reduce(
+    (acc, bank) => acc + (bank.questions || []).length, 
     0
   )
 
@@ -256,7 +304,7 @@ export function CoursePreview({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="activities" className="gap-2">
             <BookOpen className="h-4 w-4" />
-            Estrutura de Paginas ({course.activities.length})
+            Estrutura de Paginas ({(course.activities || []).length})
           </TabsTrigger>
           <TabsTrigger value="questions" className="gap-2">
             <FileQuestion className="h-4 w-4" />
@@ -265,24 +313,30 @@ export function CoursePreview({
         </TabsList>
         
         <TabsContent value="activities" className="space-y-4 mt-4">
-          {course.activities.map((activity, index) => (
-            <ActivityPreview key={index} activity={activity} index={index} />
+          {(course.activities || []).map((activity, index) => (
+            <ActivityPreview key={index} activity={activity} index={index} imageFolder={course.image_folder} />
           ))}
+          {(course.activities || []).length === 0 && (
+            <div className="text-center py-10 text-muted-foreground italic">Nenhuma atividade gerada.</div>
+          )}
         </TabsContent>
         
         <TabsContent value="questions" className="space-y-4 mt-4">
-          {course.question_banks.map((bank) => (
+          {(course.question_banks || []).map((bank) => (
             <Card key={bank.name}>
               <CardHeader>
                 <CardTitle className="text-lg">{bank.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {bank.questions.map((question, index) => (
+                {(bank.questions || []).map((question, index) => (
                   <QuestionPreview key={index} question={question} index={index} />
                 ))}
               </CardContent>
             </Card>
           ))}
+          {(course.question_banks || []).length === 0 && (
+            <div className="text-center py-10 text-muted-foreground italic">Nenhum banco de questões gerado.</div>
+          )}
         </TabsContent>
       </Tabs>
 
