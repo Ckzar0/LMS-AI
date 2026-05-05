@@ -61,7 +61,8 @@ export async function GET(
           url: m.url,
           instance: m.instance,
           description: m.description,
-          completion: m.completiondata?.state === 1
+          completion: m.completiondata && m.completiondata.state > 0,
+          locked: m.uservisible === false
         }))
       })) : []
     })

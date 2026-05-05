@@ -12,7 +12,8 @@ import {
   FileQuestion,
   BookOpen,
   MessageSquare,
-  Loader2
+  Loader2,
+  Lock
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,9 +25,10 @@ import { cn } from "@/lib/utils"
 interface CourseDetailProps {
   courseId: string | null
   onBack: () => void
+  onStartActivity: (activityId: string) => void
 }
 
-export function CourseDetail({ courseId, onBack }: CourseDetailProps) {
+export function CourseDetail({ courseId, onBack, onStartActivity }: CourseDetailProps) {
   const [activeTab, setActiveTab] = useState("content")
   const [expandedModule, setExpandedModule] = useState<number | null>(null)
   const [course, setCourse] = useState<any>(null)
@@ -226,13 +228,19 @@ export function CourseDetail({ courseId, onBack }: CourseDetailProps) {
                           {section.modules.map((module: any) => (
                             <div 
                               key={module.id}
-                              className="group flex items-center gap-5 p-5 hover:bg-primary/[0.02] transition-colors cursor-pointer"
+                              className={cn(
+                                "group flex items-center gap-5 p-5 transition-colors cursor-pointer",
+                                module.locked ? "opacity-60 cursor-not-allowed" : "hover:bg-primary/[0.02]"
+                              )}
+                              onClick={() => !module.locked && onStartActivity(module.id.toString())}
                             >
                               <div className={cn(
                                 "h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm",
                                 module.completion ? "bg-green-500/10 border border-green-200" : "bg-muted border border-border"
                               )}>
-                                {module.completion ? (
+                                {module.locked ? (
+                                  <Lock className="h-5 w-5 text-muted-foreground" />
+                                ) : module.completion ? (
                                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                                 ) : module.modname === "page" ? (
                                   <BookOpen className="h-5 w-5 text-blue-500" />
@@ -258,10 +266,24 @@ export function CourseDetail({ courseId, onBack }: CourseDetailProps) {
                                       <CheckCircle2 className="h-3 w-3" /> CONCLUÍDO
                                     </span>
                                   )}
+                                  {module.locked && (
+                                    <span className="text-[11px] text-muted-foreground font-bold flex items-center gap-1">
+                                      <Lock className="h-3 w-3" /> BLOQUEADO
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              <Button variant={module.completion ? "outline" : "default"} size="sm" className="font-bold shadow-sm">
-                                {module.completion ? "Rever" : "Iniciar"}
+                              <Button 
+                                variant={module.completion ? "outline" : "default"} 
+                                size="sm" 
+                                className="font-bold shadow-sm"
+                                disabled={module.locked}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!module.locked) onStartActivity(module.id.toString());
+                                }}
+                              >
+                                {module.locked ? "Bloqueado" : module.completion ? "Rever" : "Iniciar"}
                               </Button>
                             </div>
                           ))}

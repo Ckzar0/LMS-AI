@@ -35,12 +35,12 @@ export async function GET(request: NextRequest) {
       totalUsers: users.length,
       totalCertifications,
       averageRating,
-      recentCourses: realCourses.slice(0, 5).map((c: any) => ({
+      recentCourses: realCourses.map((c: any) => ({
         id: c.id,
         name: c.fullname,
         shortname: c.shortname,
         timecreated: c.timecreated,
-        enrolled: 0, // In Moodle you'd need core_enrol_get_enrolled_users per course
+        enrolled: 0,
         progress: 100,
         status: "published"
       }))

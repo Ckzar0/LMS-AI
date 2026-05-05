@@ -1,145 +1,90 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Filter, Play, Users, Clock, FileText, MoreVertical, Star } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Play, Users, Clock, FileText, Loader2, BookOpen } from "lucide-react"
 import { StarRating } from "./star-rating"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+
+interface Course {
+  id: number
+  name: string
+  shortname: string
+  description: string
+  status: string
+  enrolled: number
+  progress: number
+  timecreated: number
+  sourceFile: string
+}
 
 interface CoursesViewProps {
   onCourseSelect: (courseId: string) => void
 }
 
-const courses = [
-  {
-    id: "1",
-    name: "Segurança no Trabalho - Normas ISO 45001",
-    description: "Formação completa sobre normas de segurança ocupacional e gestão de riscos.",
-    thumbnail: "/api/placeholder/400/200",
-    modules: 8,
-    videos: 24,
-    duration: "4h 30min",
-    enrolled: 45,
-    completions: 38,
-    status: "published",
-    sourceFile: "manual_iso_45001.pdf",
-    createdAt: "2024-01-15",
-    rating: 4.7,
-    totalReviews: 38,
-    qualityScore: 92
-  },
-  {
-    id: "2",
-    name: "Operação de Empilhadores",
-    description: "Curso certificado para operação segura de empilhadores industriais.",
-    thumbnail: "/api/placeholder/400/200",
-    modules: 6,
-    videos: 18,
-    duration: "3h 15min",
-    enrolled: 32,
-    completions: 28,
-    status: "published",
-    sourceFile: "manual_empilhadores_v2.pdf",
-    createdAt: "2024-01-20",
-    rating: 4.2,
-    totalReviews: 28,
-    qualityScore: 85
-  },
-  {
-    id: "3",
-    name: "Procedimentos de Qualidade - QMS",
-    description: "Sistema de gestão da qualidade e procedimentos operacionais.",
-    thumbnail: "/api/placeholder/400/200",
-    modules: 5,
-    videos: 15,
-    duration: "2h 45min",
-    enrolled: 0,
-    completions: 0,
-    status: "generating",
-    sourceFile: "qms_procedures_2024.pdf",
-    createdAt: "2024-02-01",
-    rating: 0,
-    totalReviews: 0,
-    qualityScore: null
-  },
-  {
-    id: "4",
-    name: "Manutenção Preventiva de Equipamentos",
-    description: "Técnicas e procedimentos de manutenção preventiva industrial.",
-    thumbnail: "/api/placeholder/400/200",
-    modules: 4,
-    videos: 12,
-    duration: "2h 00min",
-    enrolled: 0,
-    completions: 0,
-    status: "generating",
-    sourceFile: "maintenance_guide.pdf",
-    createdAt: "2024-02-05",
-    rating: 0,
-    totalReviews: 0,
-    qualityScore: null
-  },
-  {
-    id: "5",
-    name: "HACCP - Segurança Alimentar",
-    description: "Princípios e implementação do sistema HACCP na indústria alimentar.",
-    thumbnail: "/api/placeholder/400/200",
-    modules: 7,
-    videos: 21,
-    duration: "3h 45min",
-    enrolled: 67,
-    completions: 52,
-    status: "published",
-    sourceFile: "haccp_manual_2024.pdf",
-    createdAt: "2024-01-10",
-    rating: 4.8,
-    totalReviews: 52,
-    qualityScore: 95
-  },
-  {
-    id: "6",
-    name: "Primeiros Socorros no Local de Trabalho",
-    description: "Formação em primeiros socorros e resposta a emergências.",
-    thumbnail: "/api/placeholder/400/200",
-    modules: 5,
-    videos: 16,
-    duration: "2h 30min",
-    enrolled: 89,
-    completions: 76,
-    status: "published",
-    sourceFile: "first_aid_procedures.pdf",
-    createdAt: "2024-01-05",
-    rating: 3.9,
-    totalReviews: 76,
-    qualityScore: 78
-  },
-]
-
 export function CoursesView({ onCourseSelect }: CoursesViewProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filter, setFilter] = useState<"all" | "published" | "generating">("all")
+  const [courses, setCourses] = useState<Course[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchCourses() {
+      setLoading(true)
+      try {
+        const response = await fetch('/api/dashboard-stats')
+        if (!response.ok) throw new Error("Falha ao carregar cursos")
+        const data = await response.json()
+        
+        // A API dashboard-stats retorna 'recentCourses', vamos usar isso como base
+        // Nota: Em uma fase posterior, podemos criar uma API /api/courses para paginação
+        setCourses(data.recentCourses || [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro ao carregar dados")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCourses()
+  }, [])
 
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         course.shortname.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = filter === "all" || course.status === filter
     return matchesSearch && matchesFilter
   })
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">A carregar catálogo de cursos...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center border-2 border-dashed border-destructive/20 rounded-xl bg-destructive/5">
+        <p className="text-destructive font-medium">Erro ao carregar cursos: {error}</p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="mt-4">
+          Tentar Novamente
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Cursos</h1>
-          <p className="text-muted-foreground">Gerencie todos os cursos gerados automaticamente</p>
+          <p className="text-muted-foreground">Gerencie todos os cursos gerados automaticamente no Moodle</p>
         </div>
       </div>
 
@@ -148,7 +93,7 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Pesquisar cursos..." 
+            placeholder="Pesquisar por nome ou código..." 
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -160,7 +105,7 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
             size="sm"
             onClick={() => setFilter("all")}
           >
-            Todos
+            Todos ({courses.length})
           </Button>
           <Button 
             variant={filter === "published" ? "default" : "outline"} 
@@ -180,72 +125,65 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
       </div>
 
       {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCourses.map((course) => (
-          <Card 
-            key={course.id} 
-            className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-            onClick={() => onCourseSelect(course.id)}
-          >
-            <div className="relative h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <div className="absolute inset-0 bg-primary/10 group-hover:bg-primary/20 transition-colors" />
-              <Play className="h-12 w-12 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
-              <Badge 
-                className={`absolute top-3 right-3 ${
-                  course.status === "published" 
-                    ? "bg-green-500 hover:bg-green-600" 
-                    : "bg-amber-500 hover:bg-amber-600"
-                }`}
-              >
-                {course.status === "published" ? "Publicado" : "A gerar..."}
-              </Badge>
-            </div>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-foreground line-clamp-2 mb-2">{course.name}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{course.description}</p>
-              
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                <span className="flex items-center gap-1">
-                  <Play className="h-4 w-4" />
-                  {course.videos} vídeos
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {course.duration}
-                </span>
+      {filteredCourses.length === 0 ? (
+        <div className="p-12 text-center border-2 border-dashed border-border rounded-xl">
+          <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+          <h3 className="text-lg font-medium">Nenhum curso encontrado</h3>
+          <p className="text-muted-foreground mt-2">Tente ajustar os seus filtros ou termos de pesquisa.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCourses.map((course) => (
+            <Card 
+              key={course.id} 
+              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+              onClick={() => onCourseSelect(course.id.toString())}
+            >
+              <div className="relative h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                <div className="absolute inset-0 bg-primary/10 group-hover:bg-primary/20 transition-colors" />
+                <Play className="h-12 w-12 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+                <Badge 
+                  className={`absolute top-3 right-3 ${
+                    course.status === "published" 
+                      ? "bg-green-500 hover:bg-green-600" 
+                      : "bg-amber-500 hover:bg-amber-600"
+                  }`}
+                >
+                  {course.status === "published" ? "Publicado" : "A gerar..."}
+                </Badge>
               </div>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                   <Badge variant="outline" className="text-[10px] font-mono">{course.shortname}</Badge>
+                </div>
+                <h3 className="font-semibold text-foreground line-clamp-2 mb-2 h-12">{course.name}</h3>
+                
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    Duração N/A
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    Moodle ID: {course.id}
+                  </span>
+                </div>
 
-              {course.status === "published" && course.rating > 0 && (
-                <div className="flex items-center justify-between mb-3">
-                  <StarRating rating={course.rating} totalReviews={course.totalReviews} size="sm" />
-                  {course.qualityScore && (
-                    <span className={cn(
-                      "text-xs font-medium px-2 py-0.5 rounded-full",
-                      course.qualityScore >= 90 ? "bg-green-100 text-green-700" :
-                      course.qualityScore >= 80 ? "bg-blue-100 text-blue-700" :
-                      course.qualityScore >= 70 ? "bg-amber-100 text-amber-700" :
-                      "bg-red-100 text-red-700"
-                    )}>
-                      Qualidade: {course.qualityScore}%
-                    </span>
-                  )}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span>{course.enrolled} inscritos</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <FileText className="h-3 w-3" />
+                    <span className="truncate max-w-[100px]">{course.sourceFile || "manual.pdf"}</span>
+                  </div>
                 </div>
-              )}
-
-              <div className="flex items-center justify-between pt-3 border-t border-border">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{course.enrolled} inscritos</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <FileText className="h-3 w-3" />
-                  <span className="truncate max-w-[100px]">{course.sourceFile}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -9,16 +9,24 @@ import { CourseDetail } from "@/components/lms/course-detail"
 import { UploadView } from "@/components/lms/upload-view"
 import { CertificationsView } from "@/components/lms/certifications-view"
 import { UsersView } from "@/components/lms/users-view"
+import { LearningViewer } from "@/components/lms/learning-viewer"
 
-export type ViewType = "dashboard" | "courses" | "course-detail" | "upload" | "certifications" | "users"
+export type ViewType = "dashboard" | "courses" | "course-detail" | "upload" | "certifications" | "users" | "learning-viewer"
 
 export default function LMSPage() {
   const [currentView, setCurrentView] = useState<ViewType>("dashboard")
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
 
   const handleCourseSelect = (courseId: string) => {
     setSelectedCourseId(courseId)
     setCurrentView("course-detail")
+  }
+
+  const handleActivitySelect = (courseId: string, activityId: string) => {
+    setSelectedCourseId(courseId)
+    setSelectedActivityId(activityId)
+    setCurrentView("learning-viewer")
   }
 
   const renderView = () => {
@@ -28,7 +36,21 @@ export default function LMSPage() {
       case "courses":
         return <CoursesView onCourseSelect={handleCourseSelect} />
       case "course-detail":
-        return <CourseDetail courseId={selectedCourseId} onBack={() => setCurrentView("courses")} />
+        return (
+          <CourseDetail 
+            courseId={selectedCourseId} 
+            onBack={() => setCurrentView("courses")} 
+            onStartActivity={(activityId) => handleActivitySelect(selectedCourseId!, activityId)}
+          />
+        )
+      case "learning-viewer":
+        return (
+          <LearningViewer 
+            courseId={selectedCourseId!} 
+            initialActivityId={selectedActivityId!} 
+            onBack={() => setCurrentView("course-detail")} 
+          />
+        )
       case "upload":
         return <UploadView />
       case "certifications":

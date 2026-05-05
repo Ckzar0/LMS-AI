@@ -152,6 +152,26 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
+
+    'local_wsmanageactivities_get_activity_content' => [
+        'classname'   => 'local_wsmanageactivities\\external\\get_activity_content',
+        'methodname'  => 'execute',
+        'description' => 'Get processed HTML content for a course activity',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
+    'local_wsmanageactivities_get_quiz_data' => [
+        'classname'   => 'local_wsmanageactivities\\external\\get_quiz_data',
+        'methodname'  => 'execute',
+        'description' => 'Get structured quiz questions and options',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
     
     // ==========================================
     // FUNÇÕES v22.0 - BANCO DE QUESTÕES
