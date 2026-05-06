@@ -342,7 +342,7 @@ export function UploadView() {
       divideInModules: selectedOptions.includes("modules")
     }
 
-    setGenerationState({ status: "extracting", progress: 5, message: "A extrair imagens e texto do PDF..." })
+    setGenerationState({ status: "extracting", progress: 5, message: "A enviar PDF para o servidor..." })
 
     try {
       // 1. Extrair Imagens no Moodle primeiro para garantir que o Preview as mostra
@@ -350,6 +350,8 @@ export function UploadView() {
       try {
         const file = files[0].file;
         const base64Content = await fileToBase64(file);
+        
+        setGenerationState({ status: "extracting", progress: 15, message: "Moodle a extrair imagens do manual..." })
         
         const imgResponse = await fetch("/api/send-to-moodle", {
           method: "POST",
@@ -367,7 +369,7 @@ export function UploadView() {
       }
 
       // 2. Gerar o curso com a IA
-      setGenerationState({ status: "generating", progress: 30, message: "A IA está a desenhar o curso..." })
+      setGenerationState({ status: "generating", progress: 40, message: "IA a analisar conteúdo e a desenhar curso..." })
       
       const formData = new FormData()
       files.forEach(f => formData.append("files", f.file))
