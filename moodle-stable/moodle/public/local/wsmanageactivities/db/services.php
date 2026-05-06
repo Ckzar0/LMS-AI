@@ -173,6 +173,28 @@ $functions = [
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
 
+    'local_wsmanageactivities_get_feedback_data' => [
+        'classname'   => 'local_wsmanageactivities_external',
+        'methodname'  => 'get_feedback_data',
+        'classpath'   => 'local/wsmanageactivities/externallib.php',
+        'description' => 'Get questions for a feedback module',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
+    'local_wsmanageactivities_submit_feedback_responses' => [
+        'classname'   => 'local_wsmanageactivities_external',
+        'methodname'  => 'submit_feedback_responses',
+        'classpath'   => 'local/wsmanageactivities/externallib.php',
+        'description' => 'Submit responses for a feedback module',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
     'local_wsmanageactivities_enrol_user' => [
         'classname'   => 'local_wsmanageactivities\\external\\enrol_user',
         'methodname'  => 'execute',

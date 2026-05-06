@@ -371,16 +371,23 @@ class ActivityCreator {
             $DB->update_record($type, $record);
         } catch (\Throwable $e) {}
     }
-    public static function add_completion_restriction($cm_id, $prev_cm_id, $hide_completely = false) {
+    public static function add_completion_restriction($cm_id, $prev_cm_id, $hide_completely = false, $require_grade = false) {
         global $DB;
         if (!$prev_cm_id) return;
         try {
             $cm = $DB->get_record('course_modules', ['id' => $cm_id], '*', MUST_EXIST);
-            // e:1 = Completa | showc: visibilidade se bloqueada
             $showc = $hide_completely ? false : true;
-            $cm->availability = json_encode(['op' => '&', 'c' => [['type' => 'completion', 'cm' => (int)$prev_cm_id, 'e' => 1]], 'showc' => [$showc]]);
-            $DB->update_record('course_modules', $cm);
             
+            if ($require_grade) {
+                // Restrição por NOTA (tem de passar no quiz)
+                $restriction = ['type' => 'grade', 'id' => (int)$prev_cm_id, 'min' => 100.0];
+            } else {
+                // Restrição por CONCLUSÃO simples
+                $restriction = ['type' => 'completion', 'cm' => (int)$prev_cm_id, 'e' => 1];
+            }
+
+            $cm->availability = json_encode(['op' => '&', 'c' => [$restriction], 'showc' => [$showc]]);
+            $DB->update_record('course_modules', $cm);
             \rebuild_course_cache($cm->course, true);
         } catch (\Throwable $e) {}
     }

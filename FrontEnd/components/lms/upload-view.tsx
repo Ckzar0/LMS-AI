@@ -36,6 +36,7 @@ interface UploadedFile {
 const generationOptions = [
   { id: "videos", label: "Gerar Vídeos Explicativos", icon: Video, description: "Cria vídeos com narração AI a partir do conteúdo" },
   { id: "quizzes", label: "Gerar Exames e Quizzes", icon: FileQuestion, description: "Cria perguntas de avaliação automáticas" },
+  { id: "evaluation", label: "Avaliação da Formação", icon: ClipboardCopy, description: "Questionário final sobre a satisfação do curso" },
   { id: "certificate", label: "Certificação Automática", icon: Award, description: "Emite certificado ao completar o curso" },
 ]
 
@@ -47,7 +48,7 @@ export function UploadView() {
   const [depth, setDepth] = useState<"Resumo Executivo" | "Profissional" | "Especialista Técnico">("Profissional")
   const [quizDuration, setQuizDuration] = useState(30)
   const [numberOfQuestions, setNumberOfQuestions] = useState(20)
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(["quizzes", "certificate"])
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(["quizzes", "evaluation", "certificate"])
   const [isDragOver, setIsDragOver] = useState(false)
   const [isCopyingPrompt, setIsCopyingPrompt] = useState(false)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
@@ -410,7 +411,8 @@ export function UploadView() {
     try {
       const courseWithFinalName = {
         ...generatedCourse,
-        course_name: courseName
+        course_name: courseName,
+        generate_evaluation: selectedOptions.includes("evaluation")
       };
 
       const response = await fetch("/api/send-to-moodle", {
