@@ -11,22 +11,75 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Get Courses
     const coursesRes = await fetch(
-      `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_course_get_courses&moodlewsrestformat=json`
+      `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_course_get_courses&moodlewsrestformat=json`,
+      { cache: 'no-store' }
     )
     const courses = await coursesRes.json()
     
     // Filter out course with ID 1 (Front page)
     const realCourses = Array.isArray(courses) ? courses.filter((c: any) => c.id !== 1) : []
 
+    // Sort by timecreated DESC (newest first)
+    realCourses.sort((a, b) => (b.timecreated || 0) - (a.timecreated || 0))
+
     // 2. Get Users
     const usersRes = await fetch(
-      `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_user_get_users&moodlewsrestformat=json&criteria[0][key]=username&criteria[0][value]=%`
+      `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_user_get_users&moodlewsrestformat=json&criteria[0][key]=username&criteria[0][value]=%`,
+      { cache: 'no-store' }
     )
     const usersData = await usersRes.json()
     const users = usersData.users || []
 
-    // 3. Mock some data for the ones not easily available via WS
-    // In a real scenario, you'd calculate this from completions or other tables
+    // 3. Calculate Real Progress for each course
+    // To be efficient, we only do this for recent courses (e.g., top 10)
+    const topCourses = realCourses.slice(0, 10);
+    
+    const coursesWithProgress = await Promise.all(topCourses.map(async (course: any) => {
+      try {
+        const contentsRes = await fetch(
+          `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_course_get_contents&moodlewsrestformat=json&courseid=${course.id}`,
+          { cache: 'no-store' }
+        );
+        const sections = await contentsRes.json();
+        
+        if (!Array.isArray(sections)) return { ...course, progress: 0 };
+
+        const allModules = sections.flatMap((s: any) => s.modules);
+        const modulesWithCompletion = allModules.filter((m: any) => m.completion !== 0);
+        
+        if (modulesWithCompletion.length === 0) {
+           return { ...course, progress: 100 }; // If no completion rules, consider 100% or 0%? Let's say 100%
+        }
+
+        const completedModules = modulesWithCompletion.filter((m: any) => 
+          m.completiondata && m.completiondata.state > 0
+        );
+
+        const progress = Math.round((completedModules.length / modulesWithCompletion.length) * 100);
+
+        return {
+          id: course.id,
+          name: course.fullname,
+          shortname: course.shortname,
+          timecreated: course.timecreated,
+          enrolled: 0, // Placeholder
+          progress: progress,
+          status: "published"
+        };
+      } catch (e) {
+        return {
+          id: course.id,
+          name: course.fullname,
+          shortname: course.shortname,
+          timecreated: course.timecreated,
+          enrolled: 0,
+          progress: 0,
+          status: "published"
+        };
+      }
+    }));
+
+    // 4. Totals
     const totalCertifications = realCourses.length * 5 // Mock
     const averageRating = 4.5 // Mock
 
@@ -35,15 +88,7 @@ export async function GET(request: NextRequest) {
       totalUsers: users.length,
       totalCertifications,
       averageRating,
-      recentCourses: realCourses.slice(0, 5).map((c: any) => ({
-        id: c.id,
-        name: c.fullname,
-        shortname: c.shortname,
-        timecreated: c.timecreated,
-        enrolled: 0, // In Moodle you'd need core_enrol_get_enrolled_users per course
-        progress: 100,
-        status: "published"
-      }))
+      recentCourses: coursesWithProgress
     })
 
   } catch (error) {

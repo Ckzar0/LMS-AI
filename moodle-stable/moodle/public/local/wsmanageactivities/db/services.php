@@ -152,6 +152,46 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
+
+    'local_wsmanageactivities_get_activity_content' => [
+        'classname'   => 'local_wsmanageactivities\\external\\get_activity_content',
+        'methodname'  => 'execute',
+        'description' => 'Get processed HTML content for a course activity',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
+    'local_wsmanageactivities_get_quiz_data' => [
+        'classname'   => 'local_wsmanageactivities\\external\\get_quiz_data',
+        'methodname'  => 'execute',
+        'description' => 'Get structured quiz questions and options',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
+    'local_wsmanageactivities_enrol_user' => [
+        'classname'   => 'local_wsmanageactivities\\external\\enrol_user',
+        'methodname'  => 'execute',
+        'description' => 'Enrol a user in a course automatically',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:enrolreview',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
+    'local_wsmanageactivities_submit_quiz_grade' => [
+        'classname'   => 'local_wsmanageactivities\\external\\submit_quiz_grade',
+        'methodname'  => 'execute',
+        'description' => 'Submit a grade for a quiz to trigger completion',
+        'type'        => 'write',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
     
     // ==========================================
     // FUNÇÕES v22.0 - BANCO DE QUESTÕES
