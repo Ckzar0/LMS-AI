@@ -5,6 +5,7 @@ import {
   CheckCircle2, 
   XCircle, 
   ArrowRight, 
+  ArrowLeft,
   RotateCcw, 
   Trophy,
   AlertCircle
@@ -26,7 +27,7 @@ interface QuizEngineProps {
 }
 
 export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEngineProps) {
-  const [currentStep, setCurrentStep] = useState<"intro" | "questions" | "result">("intro")
+  const [currentStep, setCurrentStep] = useState<"intro" | "questions" | "result" | "review">("intro")
   const [currentQuestionIndex, setCurrentStepIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<number, any>>({})
   const [score, setScore] = useState(0)
@@ -38,10 +39,27 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
   const handleStart = () => setCurrentStep("questions")
 
   const handleNext = () => {
+    if (currentStep === "review") {
+      if (isLastQuestion) {
+        setCurrentStep("result")
+      } else {
+        setCurrentStepIndex(prev => prev + 1)
+      }
+      return
+    }
+
     if (isLastQuestion) {
       calculateResult()
     } else {
       setCurrentStepIndex(prev => prev + 1)
+    }
+  }
+
+  const handleBack = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1)
+    } else if (currentStep === "review") {
+      setCurrentStep("result")
     }
   }
 
@@ -56,7 +74,6 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
             correctMatches++
           }
         })
-        // Points for this question = fraction of correct matches
         if (q.subquestions.length > 0) {
           totalScore += (correctMatches / q.subquestions.length)
         }
@@ -83,13 +100,19 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
     setCurrentStep("intro")
   }
 
+  const handleStartReview = () => {
+    setCurrentStepIndex(0)
+    setCurrentStep("review")
+  }
+
   // Check if current question is fully answered
   const isQuestionAnswered = () => {
+    if (currentStep === "review") return true
+    
     const currentAnswer = answers[currentQuestion?.id]
     if (!currentAnswer) return false
     
     if (currentQuestion?.type === 'match') {
-      // Must have an answer for every subquestion
       return currentQuestion.subquestions.every((sq: any) => !!currentAnswer[sq.id])
     }
     
@@ -97,6 +120,7 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
   }
 
   const handleMatchChange = (subQId: number, value: string) => {
+    if (currentStep === "review") return
     setAnswers(prev => ({
       ...prev,
       [currentQuestion.id]: {
@@ -176,37 +200,55 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
               : "Infelizmente ainda não atingiste a nota mínima de 15 valores. Tenta rever os conteúdos e tenta novamente."}
           </p>
         </CardContent>
-        <CardFooter className="bg-muted/30 p-6 gap-3">
-          {!passed && (
-            <Button variant="outline" onClick={handleRestart} className="flex-1 gap-2 h-12 font-bold">
-              <RotateCcw className="h-4 w-4" /> Tentar Novamente
+        <CardFooter className="bg-muted/30 p-6 flex flex-col gap-3">
+          <div className="flex w-full gap-3">
+            {!passed ? (
+              <Button variant="outline" onClick={handleRestart} className="flex-1 gap-2 h-12 font-bold">
+                <RotateCcw className="h-4 w-4" /> Tentar Novamente
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={handleStartReview} className="flex-1 gap-2 h-12 font-bold">
+                 Rever Respostas
+              </Button>
+            )}
+            <Button 
+              onClick={passed ? onFinish : onReview} 
+              className={`flex-1 h-12 font-bold ${passed ? "bg-green-600 hover:bg-green-700" : ""}`}
+            >
+               {passed ? "Continuar para Conclusão" : "Rever Conteúdos"}
             </Button>
-          )}
-          <Button 
-            onClick={passed ? onFinish : onReview} 
-            className={`flex-1 h-12 font-bold ${passed ? "bg-green-600 hover:bg-green-700" : ""}`}
-          >
-             {passed ? "Finalizar Curso" : "Rever Conteúdos"}
-          </Button>
+          </div>
         </CardFooter>
       </Card>
     )
   }
 
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100
+  const isReviewMode = currentStep === "review"
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="space-y-2">
         <div className="flex justify-between items-end text-sm font-bold">
-           <span className="text-primary uppercase tracking-tighter">Pergunta {currentQuestionIndex + 1} de {questions.length}</span>
+           <span className={cn(
+             "uppercase tracking-tighter",
+             isReviewMode ? "text-amber-600" : "text-primary"
+           )}>
+             {isReviewMode ? "Modo de Revisão" : "Pergunta"} {currentQuestionIndex + 1} de {questions.length}
+           </span>
            <span className="text-muted-foreground">{Math.round(progress)}%</span>
         </div>
-        <Progress value={progress} className="h-2" />
+        <Progress value={progress} className={cn("h-2", isReviewMode && "bg-amber-100")} />
       </div>
 
-      <Card className="shadow-lg border-primary/10">
-        <CardHeader className="bg-muted/30 border-b">
+      <Card className={cn(
+        "shadow-lg border-primary/10",
+        isReviewMode && "border-amber-200"
+      )}>
+        <CardHeader className={cn(
+          "border-b",
+          isReviewMode ? "bg-amber-50/50" : "bg-muted/30"
+        )}>
           <CardTitle className="text-xl font-semibold leading-snug">
             {currentQuestion.text}
           </CardTitle>
@@ -214,70 +256,142 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
         <CardContent className="pt-8">
           {currentQuestion.type === 'match' ? (
             <div className="space-y-4">
-              {currentQuestion.subquestions.map((sq: any) => (
-                <div key={sq.id} className="flex flex-col space-y-3 p-5 rounded-xl bg-muted/30 border border-border/50">
-                  <div className="font-medium text-foreground leading-relaxed">
-                    {sq.text}
+              {currentQuestion.subquestions.map((sq: any) => {
+                const userAns = answers[currentQuestion.id]?.[sq.id]
+                const isCorrect = userAns === sq.correct_answer
+                
+                return (
+                  <div 
+                    key={sq.id} 
+                    className={cn(
+                      "flex flex-col space-y-3 p-5 rounded-xl border",
+                      isReviewMode 
+                        ? isCorrect 
+                          ? "bg-green-50 border-green-200" 
+                          : "bg-red-50 border-red-200"
+                        : "bg-muted/30 border-border/50"
+                    )}
+                  >
+                    <div className="font-medium text-foreground leading-relaxed flex justify-between items-start">
+                      <span>{sq.text}</span>
+                      {isReviewMode && (
+                        isCorrect ? <CheckCircle2 className="h-4 w-4 text-green-600 mt-1" /> : <XCircle className="h-4 w-4 text-red-600 mt-1" />
+                      )}
+                    </div>
+                    <div className="w-full">
+                      <Select 
+                        onValueChange={(val) => handleMatchChange(sq.id, val)}
+                        value={userAns || ""}
+                        disabled={isReviewMode}
+                      >
+                        <SelectTrigger className={cn(
+                          "bg-white min-h-[44px] h-auto py-2 text-left flex items-center justify-between whitespace-normal",
+                          isReviewMode && !isCorrect && "border-red-300 ring-red-100"
+                        )}>
+                          <SelectValue placeholder="Escolha a associação correspondente..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-w-[90vw]">
+                          {currentQuestion.options.map((opt: any) => (
+                            <SelectItem key={opt.id} value={opt.text} className="whitespace-normal py-3">
+                              {opt.text}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isReviewMode && !isCorrect && (
+                        <p className="mt-2 text-xs font-bold text-green-700">
+                          Resposta correta: <span className="underline">{sq.correct_answer}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="w-full">
-                    <Select 
-                      onValueChange={(val) => handleMatchChange(sq.id, val)}
-                      value={answers[currentQuestion.id]?.[sq.id] || ""}
-                    >
-                      <SelectTrigger className="bg-white min-h-[44px] h-auto py-2 text-left flex items-center justify-between whitespace-normal">
-                        <SelectValue placeholder="Escolha a associação correspondente..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-w-[90vw]">
-                        {currentQuestion.options.map((opt: any) => (
-                          <SelectItem key={opt.id} value={opt.text} className="whitespace-normal py-3">
-                            {opt.text}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <RadioGroup 
               value={answers[currentQuestion.id]?.toString()} 
-              onValueChange={(val) => setAnswers(prev => ({ ...prev, [currentQuestion.id]: parseInt(val) }))}
+              onValueChange={(val) => {
+                if (!isReviewMode) {
+                  setAnswers(prev => ({ ...prev, [currentQuestion.id]: parseInt(val) }))
+                }
+              }}
               className="space-y-4"
+              disabled={isReviewMode}
             >
-              {currentQuestion.options.map((option: any) => (
-                <div 
-                  key={option.id}
-                  className={cn(
-                    "flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer",
-                    answers[currentQuestion.id] === option.id 
-                      ? "border-primary bg-primary/5 shadow-sm" 
-                      : "border-transparent bg-muted/50 hover:bg-muted"
-                  )}
-                  onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion.id]: option.id }))}
-                >
-                  <RadioGroupItem value={option.id.toString()} id={`opt-${option.id}`} />
-                  <Label htmlFor={`opt-${option.id}`} className="flex-1 cursor-pointer text-base font-medium">
-                    {option.text}
-                  </Label>
-                </div>
-              ))}
+              {currentQuestion.options.map((option: any) => {
+                const isSelected = answers[currentQuestion.id] === option.id
+                const isCorrect = option.is_correct
+                
+                let variantClass = "border-transparent bg-muted/50"
+                if (isReviewMode) {
+                  if (isCorrect) variantClass = "border-green-500 bg-green-50"
+                  else if (isSelected && !isCorrect) variantClass = "border-red-500 bg-red-50"
+                } else if (isSelected) {
+                  variantClass = "border-primary bg-primary/5 shadow-sm"
+                }
+
+                return (
+                  <div 
+                    key={option.id}
+                    className={cn(
+                      "flex items-center space-x-3 p-4 rounded-xl border-2 transition-all cursor-pointer relative",
+                      variantClass,
+                      !isReviewMode && "hover:bg-muted"
+                    )}
+                    onClick={() => {
+                      if (!isReviewMode) {
+                        setAnswers(prev => ({ ...prev, [currentQuestion.id]: option.id }))
+                      }
+                    }}
+                  >
+                    <RadioGroupItem 
+                      value={option.id.toString()} 
+                      id={`opt-${option.id}`} 
+                      className={cn(isReviewMode && isCorrect && "border-green-600 text-green-600")}
+                    />
+                    <Label htmlFor={`opt-${option.id}`} className="flex-1 cursor-pointer text-base font-medium flex justify-between items-center">
+                      <span>{option.text}</span>
+                      {isReviewMode && isSelected && (
+                        isCorrect ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <XCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      {isReviewMode && !isSelected && isCorrect && (
+                        <span className="text-[10px] font-black text-green-600 uppercase italic">Opção correta</span>
+                      )}
+                    </Label>
+                  </div>
+                )
+              })}
             </RadioGroup>
           )}
         </CardContent>
         <CardFooter className="border-t bg-muted/10 p-6 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-muted-foreground">
-             <AlertCircle className="h-4 w-4" />
-             <span className="text-xs">
-               {currentQuestion.type === 'match' ? "Associa todos os itens corretamente." : "Escolhe a opção mais correta baseada no manual."}
-             </span>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBack}
+              disabled={currentQuestionIndex === 0 && !isReviewMode}
+              className="gap-2 font-bold"
+            >
+              <ArrowLeft className="h-4 w-4" /> {currentQuestionIndex === 0 && isReviewMode ? "Voltar ao Resultado" : "Anterior"}
+            </Button>
+            <div className="flex items-center gap-2 text-muted-foreground">
+               <AlertCircle className="h-4 w-4" />
+               <span className="text-xs hidden sm:inline">
+                 {isReviewMode ? "Estás em modo de consulta." : currentQuestion.type === 'match' ? "Associa todos os itens." : "Escolhe a opção correta."}
+               </span>
+            </div>
           </div>
           <Button 
             onClick={handleNext} 
             disabled={!isQuestionAnswered()} 
-            className="min-w-[140px] font-bold gap-2 shadow-md"
+            className={cn(
+              "min-w-[140px] font-bold gap-2 shadow-md",
+              isReviewMode && "bg-amber-600 hover:bg-amber-700"
+            )}
           >
-            {isLastQuestion ? "Finalizar" : "Seguinte"} <ArrowRight className="h-4 w-4" />
+            {isLastQuestion ? (isReviewMode ? "Sair da Revisão" : "Finalizar") : "Seguinte"} <ArrowRight className="h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>

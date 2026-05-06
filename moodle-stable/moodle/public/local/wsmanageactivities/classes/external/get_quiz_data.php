@@ -86,6 +86,8 @@ class get_quiz_data extends external_api {
                         'is_correct' => ($ans->fraction > 0)
                     ];
                 }
+                // Shuffle options for standard questions
+                shuffle($options);
             }
 
             $questions[] = [

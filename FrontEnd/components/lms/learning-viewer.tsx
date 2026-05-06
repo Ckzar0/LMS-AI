@@ -36,6 +36,22 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
+  // 0. Auto-Enrol user to ensure progress tracking works
+  useEffect(() => {
+    const autoEnrol = async () => {
+      try {
+        await fetch('/api/course/enrol', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId })
+        });
+      } catch (err) {
+        console.error("Auto enrolment failed:", err);
+      }
+    }
+    autoEnrol();
+  }, [courseId])
+
   // 1. Fetch Course Structure (Index)
   const fetchCourse = async () => {
     try {
@@ -77,7 +93,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
       })
       
       if (markRes.ok) {
-        fetchCourse()
+        setTimeout(fetchCourse, 1000)
       }
 
     } catch (err) {
@@ -238,17 +254,37 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                 <div className="py-8">
                   <QuizEngine 
                     quizData={quizData} 
-                    onComplete={(passed, score) => {
-                      console.log(`Quiz completed: Passed=${passed}, Score=${score}`);
-                      fetchCourse(); // Update sidebar status
+                    onComplete={async (passed, score) => {
+                      console.log(`[QUIZ] Completed. Passed: ${passed}, Score: ${score}`);
+                      if (passed) {
+                        console.log(`[QUIZ] Submitting grade to Moodle for CMID ${currentActivity.id}...`);
+                        try {
+                          const res = await fetch('/api/quiz/grade', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                              cmid: currentActivity.id,
+                              grade: score 
+                            })
+                          });
+                          const result = await res.json();
+                          console.log(`[QUIZ] Moodle Grade API Result:`, result);
+                        } catch (err) {
+                          console.error(`[QUIZ] Failed to submit grade:`, err);
+                        }
+                      }
+                      console.log(`[QUIZ] Scheduling sidebar refresh in 3.5s...`);
+                      setTimeout(fetchCourse, 3500); 
                     }} 
+
+
                     onReview={() => {
                       // Go to the first activity
                       if (allActivities.length > 0) {
                         loadActivity(allActivities[0].id.toString());
                       }
                     }}
-                    onFinish={onBack}
+                    onFinish={() => handleNavigate('next')}
                   />
                 </div>
               ) : (
@@ -409,11 +445,20 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
           padding: 1.5rem;
           border-radius: 2rem;
           border: 1px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
         }
         
         .ailms-figure img {
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
           border-radius: 1rem;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+          max-width: 100%;
+          height: auto;
         }
 
         .ailms-img-caption {
@@ -423,6 +468,9 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
           text-transform: uppercase;
           font-size: 0.85rem;
           letter-spacing: 0.05em;
+          max-width: 80%;
+          text-align: center;
+          display: inline-block;
         }
 
         /* --- Lists --- */
