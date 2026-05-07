@@ -79,7 +79,6 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
       const response = await fetch(`/api/activity/${id}`)
       if (!response.ok) throw new Error("Falha ao carregar conteúdo")
       const data = await response.json()
-      console.log(`[VIEWER] Loaded activity ${id}, type: ${data.type}`);
       setCurrentActivity(data)
       
       // If it's a quiz, fetch full quiz data
@@ -88,10 +87,8 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         const qData = await quizRes.json()
         setQuizData(qData)
       } else if (data.type === 'feedback') {
-        console.log(`[VIEWER] Fetching feedback data for CMID ${id}...`);
         const feedbackRes = await fetch(`/api/feedback/${id}?t=${Date.now()}`)
         const fData = await feedbackRes.json()
-        console.log(`[VIEWER] Feedback data received:`, fData);
         setFeedbackData(fData)
       }
 
@@ -283,9 +280,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                   <QuizEngine 
                     quizData={quizData} 
                     onComplete={async (passed, score) => {
-                      console.log(`[QUIZ] Completed. Passed: ${passed}, Score: ${score}`);
                       if (passed) {
-                        console.log(`[QUIZ] Submitting grade to Moodle for CMID ${currentActivity.id}...`);
                         try {
                           const res = await fetch('/api/quiz/grade', {
                             method: 'POST',
@@ -296,12 +291,10 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                             })
                           });
                           const result = await res.json();
-                          console.log(`[QUIZ] Moodle Grade API Result:`, result);
                         } catch (err) {
                           console.error(`[QUIZ] Failed to submit grade:`, err);
                         }
                       }
-                      console.log(`[QUIZ] Scheduling sidebar refresh in 3.5s...`);
                       setTimeout(fetchCourse, 3500); 
                     }} 
 
@@ -587,10 +580,6 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
           border-top: 1px solid #e2e8f0;
         }
       `}</style>
-    </div>
-  )
-}
-e>
     </div>
   )
 }

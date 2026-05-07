@@ -53,10 +53,10 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
   }
 
   const stats = [
-    { label: "Cursos Ativos", value: data?.totalCourses.toString() || "0", icon: BookOpen, change: "+2 este mês" },
-    { label: "Colaboradores", value: data?.totalUsers.toString() || "0", icon: Users, change: "+23 este mês" },
-    { label: "Certificações", value: data?.totalCertifications.toString() || "0", icon: Award, change: "+15 esta semana" },
-    { label: "Avaliação Média", value: data?.averageRating.toString() || "4.5", icon: Star, change: "92% satisfação" },
+    { label: "Cursos Ativos", value: data?.totalCourses?.toString() || "0", icon: BookOpen, change: "+2 este mês" },
+    { label: "Colaboradores", value: data?.totalUsers?.toString() || "0", icon: Users, change: "+23 este mês" },
+    { label: "Certificações", value: data?.totalCertifications?.toString() || "0", icon: Award, change: "+15 esta semana" },
+    { label: "Avaliação Média", value: data?.averageRating?.toString() || "4.5", icon: Star, change: "92% satisfação" },
   ]
 
   return (

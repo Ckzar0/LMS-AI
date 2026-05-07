@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
     // 1. Get Courses
     const coursesRes = await fetch(
       `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_course_get_courses&moodlewsrestformat=json`,
-      { cache: 'no-store' }
+      { 
+        method: 'POST',
+        cache: 'no-store' 
+      }
     )
     const courses = await coursesRes.json()
     
@@ -25,7 +28,10 @@ export async function GET(request: NextRequest) {
     // 2. Get Users
     const usersRes = await fetch(
       `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_user_get_users&moodlewsrestformat=json&criteria[0][key]=username&criteria[0][value]=%`,
-      { cache: 'no-store' }
+      { 
+        method: 'POST',
+        cache: 'no-store' 
+      }
     )
     const usersData = await usersRes.json()
     const users = usersData.users || []
@@ -38,7 +44,10 @@ export async function GET(request: NextRequest) {
       try {
         const contentsRes = await fetch(
           `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_course_get_contents&moodlewsrestformat=json&courseid=${course.id}`,
-          { cache: 'no-store' }
+          { 
+            method: 'POST',
+            cache: 'no-store' 
+          }
         );
         const sections = await contentsRes.json();
         

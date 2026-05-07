@@ -244,7 +244,6 @@ export function CoursePreview({
 
   // Debug para detetar se a pasta está a chegar
   useEffect(() => {
-    console.log("CoursePreview: Pasta de imagens recebida ->", course.image_folder);
   }, [course.image_folder]);
 
   useEffect(() => {

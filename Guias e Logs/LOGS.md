@@ -54,11 +54,14 @@
 - **Upgrade Plugin:** Correção de erros 500 ao forçar o upgrade do plugin via CLI no Docker.
 - **Fix UI:** Ajuste no `course-preview.tsx` para processar a estrutura `questions_from_bank: { bank_name, count }`.
 
-### 🕒 [25/03/2026] - Sessão de Estabilização e Fábrica de Cursos
-- **Fábrica de Cursos:** Implementada aba de configuração manual no Next.js espelhando o Moodle.
-- **Prompt Preview:** Adicionado Accordion na UI para visualizar o texto final antes do envio à IA.
-- **Dashboard Dinâmico:** Integração real com `/api/dashboard-stats` buscando contagens diretas no Moodle.
-- **Branding:** Atualizado ícone para `umain_icon.png`.
+### 🕒 [07/05/2026] - Infraestrutura: Dockerização e Estabilização Final
+- **Nova Branch:** Criada a branch `feat/containerization-setup` para isolar as mudanças de infraestrutura.
+- **FrontEnd Docker:** Criação do `FrontEnd/Dockerfile` otimizado e `.dockerignore`.
+- **Orquestrador Master:** Implementação do `docker-compose.yml` na raiz, unificando os 3 serviços.
+- **Fix Conectividade:** Alterado `moodle-stable/moodle/config.php` para suportar `wwwroot` dinâmico, permitindo que o FrontEnd aceda à API internamente sem erros de redirecionamento.
+- **Resiliência UI:** Aplicado optional chaining no `Dashboard.tsx` para evitar quebras de renderização com dados vazios.
+- **Limpeza:** Remoção global de `console.log` de debug no FrontEnd para código de produção.
+- **Sincronização:** Trabalho final sincronizado e enviado para GitLab (Oficial) e GitHub (Pessoal).
 
 ---
 
