@@ -85,4 +85,127 @@ class local_wsmanageactivities_external extends external_api {
     public static function get_module_types_returns() {
         return \local_wsmanageactivities\external\get_module_types::execute_returns();
     }
+
+    /**
+     * Get feedback data for the evaluation module.
+     */
+    public static function get_feedback_data_parameters() {
+        return new external_function_parameters([
+            'cmid' => new external_value(PARAM_INT, 'Course module ID')
+        ]);
+    }
+
+    public static function get_feedback_data($cmid) {
+        global $DB;
+        $cm = get_coursemodule_from_id('feedback', $cmid, 0, false, MUST_EXIST);
+        $feedback = $DB->get_record('feedback', ['id' => $cm->instance], '*', MUST_EXIST);
+        $items = $DB->get_records('feedback_item', ['feedback' => $feedback->id, 'template' => 0], 'position ASC');
+        
+        $processed_items = [];
+
+        foreach ($items as $item) {
+            if (empty($item->typ) || $item->typ === 'label') continue;
+            $options = [];
+            if ($item->typ === 'multichoice') {
+                $clean = str_replace(['r>>>>>', '<<<<<1'], '', $item->presentation);
+                $parts = explode('|', $clean);
+                foreach ($parts as $p) { $options[] = trim($p); }
+            }
+            $processed_items[] = [
+                'id' => (int)$item->id,
+                'name' => (string)$item->name,
+                'type' => (string)$item->typ,
+                'required' => (bool)$item->required,
+                'position' => (int)$item->position,
+                'options' => $options
+            ];
+        }
+
+        return [
+            'id' => (int)$feedback->id,
+            'name' => (string)$feedback->name,
+            'intro' => strip_tags($feedback->intro),
+            'items' => $processed_items
+        ];
+    }
+
+    public static function get_feedback_data_returns() {
+        return new external_single_structure([
+            'id' => new external_value(PARAM_INT, 'Feedback ID'),
+            'name' => new external_value(PARAM_TEXT, 'Feedback name'),
+            'intro' => new external_value(PARAM_TEXT, 'Feedback introduction'),
+            'items' => new external_multiple_structure(
+                new external_single_structure([
+                    'id' => new external_value(PARAM_INT, 'Item ID'),
+                    'name' => new external_value(PARAM_TEXT, 'Question text'),
+                    'type' => new external_value(PARAM_TEXT, 'Question type'),
+                    'required' => new external_value(PARAM_BOOL, 'Is required'),
+                    'position' => new external_value(PARAM_INT, 'Position'),
+                    'options' => new external_multiple_structure(
+                        new external_value(PARAM_TEXT, 'Option text'), 'Options', VALUE_OPTIONAL
+                    )
+                ])
+            )
+        ]);
+    }
+
+    /**
+     * Submit feedback responses.
+     */
+    public static function submit_feedback_responses_parameters() {
+        return new external_function_parameters([
+            'cmid' => new external_value(PARAM_INT, 'Course module ID'),
+            'responses' => new external_multiple_structure(
+                new external_single_structure([
+                    'itemid' => new external_value(PARAM_INT, 'Item ID'),
+                    'value' => new external_value(PARAM_RAW, 'Response value')
+                ])
+            )
+        ]);
+    }
+
+    public static function submit_feedback_responses($cmid, $responses) {
+        global $DB, $USER, $CFG;
+        require_once($CFG->libdir . '/completionlib.php');
+        
+        $cm = get_coursemodule_from_id('feedback', $cmid, 0, false, MUST_EXIST);
+        $feedback = $DB->get_record('feedback', ['id' => $cm->instance], '*', MUST_EXIST);
+        
+        // 1. Create a completion record
+        $completed = new \stdClass();
+        $completed->feedback = $feedback->id;
+        $completed->userid = $USER->id;
+        $completed->timemodified = time();
+        $completed->anonymous_response = 1; // Anonymous as per our XML
+        $completedid = $DB->insert_record('feedback_completed', $completed);
+
+        // 2. Insert values
+        foreach ($responses as $resp) {
+            $val = new \stdClass();
+            $val->feedback = $feedback->id;
+            $val->completed = $completedid;
+            $val->item = $resp['itemid'];
+            $val->value = $resp['value'];
+            $DB->insert_record('feedback_value', $val);
+        }
+
+        // 3. Trigger activity completion
+        $course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
+        $completion = new \completion_info($course);
+        if ($completion->is_enabled($cm)) {
+            $completion->update_state($cm, COMPLETION_COMPLETE, $USER->id);
+        }
+
+        return [
+            'status' => 'success',
+            'message' => 'Feedback submitted successfully'
+        ];
+    }
+
+    public static function submit_feedback_responses_returns() {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_ALPHA, 'Status'),
+            'message' => new external_value(PARAM_TEXT, 'Message')
+        ]);
+    }
 }

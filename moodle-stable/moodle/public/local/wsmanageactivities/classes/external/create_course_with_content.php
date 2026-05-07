@@ -130,6 +130,34 @@ class create_course_with_content extends external_api {
             }
         }
 
+        // 4. Create Feedback/Evaluation if requested
+        $evaluation_enabled = !empty($data['generate_evaluation']) || !empty($data['evaluation']);
+        if ($evaluation_enabled) {
+            $feedback_cmid = ActivityCreator::create_feedback($courseid);
+            if ($feedback_cmid) {
+                // Determine which activity should unlock the feedback (Quiz)
+                $quiz_cmid = null;
+                foreach ($created_activities as $act) {
+                    if ($act['type'] === 'quiz') {
+                        $quiz_cmid = $act['cmid'];
+                        break;
+                    }
+                }
+                
+                if ($quiz_cmid) {
+                    // Bloquear Avaliação até PASSAR no Quiz (require_grade = true)
+                    ActivityCreator::add_completion_restriction($feedback_cmid, $quiz_cmid, true, true);
+                }
+
+                $created_activities[] = [
+                    'cmid' => $feedback_cmid,
+                    'name' => 'Avaliação da Formação',
+                    'type' => 'feedback',
+                    'content' => 'A sua opinião é fundamental.',
+                    'url' => $CFG->wwwroot . '/mod/feedback/view.php?id=' . $feedback_cmid
+                ];
+            }
+        }
 
         return [
             'status' => 'success',
@@ -148,7 +176,7 @@ class create_course_with_content extends external_api {
                 new external_single_structure([
                     'cmid' => new external_value(PARAM_INT, 'Course module ID'),
                     'name' => new external_value(PARAM_TEXT, 'Activity name'),
-                    'type' => new external_value(PARAM_ALPHA, 'Activity type (page/quiz)'),
+                    'type' => new external_value(PARAM_ALPHA, 'Activity type (page/quiz/feedback)'),
                     'content' => new external_value(PARAM_RAW, 'Processed HTML content'),
                     'url' => new external_value(PARAM_URL, 'Absolute URL to the activity')
                 ]), 'List of created activities', VALUE_OPTIONAL

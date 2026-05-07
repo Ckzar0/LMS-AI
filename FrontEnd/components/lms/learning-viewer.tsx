@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 import { QuizEngine } from "@/components/lms/quiz-engine"
+import { FeedbackEngine } from "@/components/lms/feedback-engine"
 
 interface LearningViewerProps {
   courseId: string
@@ -31,6 +32,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
   const [course, setCourse] = useState<any>(null)
   const [currentActivity, setCurrentActivity] = useState<any>(null)
   const [quizData, setQuizData] = useState<any>(null)
+  const [feedbackData, setFeedbackData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [loadingContent, setLoadingContent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -72,10 +74,12 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
   const loadActivity = async (id: string) => {
     setLoadingContent(true)
     setQuizData(null) // Reset quiz data
+    setFeedbackData(null) // Reset feedback data
     try {
       const response = await fetch(`/api/activity/${id}`)
       if (!response.ok) throw new Error("Falha ao carregar conteúdo")
       const data = await response.json()
+      console.log(`[VIEWER] Loaded activity ${id}, type: ${data.type}`);
       setCurrentActivity(data)
       
       // If it's a quiz, fetch full quiz data
@@ -83,6 +87,12 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         const quizRes = await fetch(`/api/quiz/${id}`)
         const qData = await quizRes.json()
         setQuizData(qData)
+      } else if (data.type === 'feedback') {
+        console.log(`[VIEWER] Fetching feedback data for CMID ${id}...`);
+        const feedbackRes = await fetch(`/api/feedback/${id}?t=${Date.now()}`)
+        const fData = await feedbackRes.json()
+        console.log(`[VIEWER] Feedback data received:`, fData);
+        setFeedbackData(fData)
       }
 
       // Mark as viewed in Moodle
@@ -249,6 +259,24 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <Loader2 className="h-8 w-8 animate-spin text-primary opacity-50" />
                   <p className="text-muted-foreground">A processar conteúdo do Moodle...</p>
+                </div>
+              ) : currentActivity?.type === 'feedback' && feedbackData ? (
+                <div className="py-8">
+                  <FeedbackEngine 
+                    cmid={currentActivity.id}
+                    feedbackData={feedbackData} 
+                    onComplete={async (average, responses) => {
+                      // 1. Mark as viewed/complete in Moodle
+                      await fetch('/api/activity/mark-viewed', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cmid: currentActivity.id })
+                      });
+                      
+                      // 2. Update sidebar status
+                      setTimeout(fetchCourse, 2000);
+                    }}
+                  />
                 </div>
               ) : currentActivity?.type === 'quiz' && quizData ? (
                 <div className="py-8">
@@ -559,6 +587,10 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
           border-top: 1px solid #e2e8f0;
         }
       `}</style>
+    </div>
+  )
+}
+e>
     </div>
   )
 }
