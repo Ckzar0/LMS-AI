@@ -100,7 +100,7 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data?.recentCourses.map((course) => (
+              {(data?.recentCourses || []).map((course) => (
                 <div 
                   key={course.id}
                   className="p-4 rounded-lg border border-border hover:border-primary/50 cursor-pointer transition-colors"
@@ -129,7 +129,7 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
                   </div>
                 </div>
               ))}
-              {data?.recentCourses.length === 0 && (
+              {(!data?.recentCourses || data.recentCourses.length === 0) && (
                 <p className="text-center py-6 text-muted-foreground">Nenhum curso encontrado no Moodle.</p>
               )}
             </div>

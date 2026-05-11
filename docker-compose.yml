@@ -53,6 +53,7 @@ services:
       - /app/node_modules
       - /app/.next
       - ./moodle-stable/moodle/public/local/wsmanageactivities/extracted_images:/app/public/extracted_images:ro
+      - ./Prompts:/app/Prompts:ro
     environment:
       - NEXT_PUBLIC_MOODLE_URL=http://localhost:8080
       - MOODLE_URL=http://webserver

@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "sync-prompt": "cp ../Prompts/PROMPT_GERACAO_CURSO.md ../moodle-stable/moodle/public/local/wsmanageactivities/master_prompt.md || true",
-    "dev": "npm run sync-prompt && next dev",
-    "build": "npm run sync-prompt && next build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint ."
   },

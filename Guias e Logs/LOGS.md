@@ -61,7 +61,10 @@
 - **Fix Conectividade:** Alterado `moodle-stable/moodle/config.php` para suportar `wwwroot` dinâmico, permitindo que o FrontEnd aceda à API internamente sem erros de redirecionamento.
 - **Resiliência UI:** Aplicado optional chaining no `Dashboard.tsx` para evitar quebras de renderização com dados vazios.
 - **Limpeza:** Remoção global de `console.log` de debug no FrontEnd para código de produção.
-- **Sincronização:** Trabalho final sincronizado e enviado para GitLab (Oficial) e GitHub (Pessoal).
+- **Estado Local:** Alterações confirmadas em commit local na branch `feat/containerization-setup`.
+- **Próxima Sessão (Planeado):** 
+    1. Realizar Push da branch `feat/containerization-setup` (após autorização).
+    2. Configurar integração agnóstica com Portkey (usando Virtual Keys e Config IDs) para permitir a troca de modelos via Dashboard sem alterar código.
 
 ---
 
@@ -194,3 +197,17 @@
 - **Refinação UI:**
     - Adicionado toggle "Avaliação da Formação" nos Recursos Adicionais para ativação dinâmica por curso.
     - Correção de erros de runtime (TypeError) em estados de transição do componente de feedback.
+
+### 🕒 [11/05/2026] - Automação Total e Baseline de Infraestrutura
+- **Bootstrap Automático:** Implementação do script `bootstrap.sh` que automatiza 100% do setup inicial (clonagem do core, orquestração Docker, permissões e envs).
+- **Clean Baseline:** Atualização do `moodle_base_setup.sql` para um estado "limpo mas pronto", eliminando dados de teste antigos mas preservando configurações de Web Services.
+- **Simplificação de Acesso:** Alteração da password padrão do admin para `admin` para facilitar a primeira entrada em novos ambientes.
+- **Conectividade API:** Injeção automática do serviço 'LMS AI' e do Token fixo via SQL no processo de bootstrap, eliminando configuração manual.
+- **Documentação:** Reescrita do `README.md` e `SETUP.md` com foco na portabilidade e no novo workflow de um clique.
+- **Estado de Infra:** Ambiente validado como "Portátil", pronto para ser clonado e iniciado em qualquer máquina com Docker.
+
+### 🕒 [11/05/2026] - Estabilização de Conectividade e Motor de Imagens
+- **Correção de Redes:** Implementada lógica de URL dinâmica no `config.php` para suportar simultaneamente chamadas internas (http://webserver) e acessos externos (http://localhost:8080).
+- **Fix do Dashboard:** Resolvido o crash de `recentCourses undefined` quando a BD está limpa.
+- **Motor de Imagens Docker:** Instaladas dependências `poppler-utils` e `Pillow` (Python) no contentor para garantir a extração e otimização de imagens.
+- **Persistência de Prompts:** Mapeamento de volume adicionado para que o FrontEnd leia o Prompt Master em tempo real do host.

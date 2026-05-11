@@ -1,92 +1,72 @@
-# 🚩 LMS AI - Guia de Configuração (Setup)
+# 🚩 LMS AI - Guia de Configuração Detalhado (Setup)
 
-Este repositório contém o ecossistema completo para a geração de cursos via IA com integração Moodle.
-- **FrontEnd:** Next.js (Porto 3000)
-- **Moodle Stable:** Moodle 5.1.3+ Dockerizado (Porto 8080)
+Este guia descreve como o ambiente está estruturado e como mantê-lo.
 
 ---
 
 ## 🛠️ Requisitos do Sistema
 
-1. **Docker & Docker Compose** (v2.0+)
-2. **Node.js** (v20+) e **npm/pnpm**
-3. **Chave API Gemini** (Necessária para geração de conteúdo)
+1. **Docker & Docker Compose** (Obrigatório)
+2. **Node.js v20+** (Apenas se quiser correr o FrontEnd fora do Docker)
+3. **Chave API Gemini** (Necessária para a geração de cursos)
 
 ---
 
-## 🚀 Como Iniciar o Projeto (Passo a Passo)
+## 🚀 Método Recomendado: Bootstrap Automático
 
-### 1. Configurar as Variáveis de Ambiente
-Crie um ficheiro chamado `.env.local` na pasta `FrontEnd/` com o seguinte conteúdo:
+O script `bootstrap.sh` é a forma mais rápida de colocar tudo a funcionar. Ele lida com a criação de volumes, permissões, restauração de BD e configuração de tokens.
+
+```bash
+./bootstrap.sh
+```
+
+**Credenciais Iniciais:**
+- **Moodle:** `admin` / `admin`
+- **WS Token:** `14c68ff68a1a57cdc4cf4d72f443b87d` (Já configurado no `.env.local`)
+
+---
+
+## ⚙️ Configuração Manual (Se necessário)
+
+### 1. Variáveis de Ambiente (FrontEnd)
+O FrontEnd necessita de um ficheiro `FrontEnd/.env.local`. O bootstrap cria um básico, mas deve editá-lo para adicionar a sua chave da Gemini:
 
 ```env
-# URL base do Moodle (onde os contentores Docker estão a ouvir)
-MOODLE_URL=http://localhost:8080
-
-# Token de acesso ao Web Service (gerado no Moodle)
+NEXT_PUBLIC_MOODLE_URL=http://localhost:8080
+MOODLE_URL=http://webserver  # Se correr dentro do Docker
+# MOODLE_URL=http://localhost:8080 # Se correr fora do Docker
 MOODLE_TOKEN=14c68ff68a1a57cdc4cf4d72f443b87d
-
-# Chave API do Google Gemini (para a IA gerar os cursos)
 GEMINI_API_KEY=SUA_CHAVE_AQUI
-### 2. Iniciar o Backend (Moodle)
-Navegue até à pasta raiz do projeto. O método mais seguro e automatizado é utilizar o script de arranque:
-
-```bash
-# Dar permissão (apenas na primeira vez)
-chmod +x start-moodle.sh
-
-# Correr o arranque seguro (limpa redes, inicia docker e aguarda DB)
-./start-moodle.sh
 ```
 
----
-
-### 3. Restaurar a Base de Dados (Apenas se necessário ou primeira vez)
-Este passo cria as tabelas e configura a API. **Certifique-se de que o Moodle já arrancou.**
-
-```bash
-# 1. Restaurar o Dump SQL
-docker exec -i moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle < moodle_base_setup.sql
-
-# 2. ATIVAÇÃO E ATUALIZAÇÃO:
-docker exec moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle -e "update m_config set value = '1' where name = 'enablewebservices';"
-docker exec moodle-stable-webserver-1 php admin/cli/upgrade.php --non-interactive
-docker exec moodle-stable-db-1 mariadb -u moodle -pm@0dl3ing moodle -e "insert ignore into m_external_services_functions (externalserviceid, functionname) values (3, 'local_wsmanageactivities_create_course_with_content'), (3, 'core_webservice_get_site_info'), (3, 'core_course_get_courses'), (3, 'core_course_get_contents'), (3, 'core_user_get_users');"
-```
+### 2. Comandos Úteis do Docker
+- **Ver logs:** `docker compose logs -f`
+- **Parar tudo:** `docker compose down`
+- **Limpar caches do Moodle:** `docker exec lms-ai-webserver-1 php admin/cli/purge_caches.php`
 
 ---
 
 ## 🔍 Resolução de Problemas (Troubleshooting)
 
-### "Error: Database connection failed"
-Se este erro aparecer ao rodar comandos `docker exec` ou ao aceder ao browser:
-1. **Causa:** O banco de dados ainda não terminou de inicializar ou a rede Docker está em cache.
-2. **Solução:**
-   - Corra `./bin/moodle-docker-wait-for-db` na pasta `moodle-stable/`.
-   - Verifique se no `moodle-stable/moodle/config.php` o `$CFG->dbtype` está como `'mariadb'`.
-   - Se persistir, faça `./bin/moodle-docker-compose down` e repita o "Comando de Arranque Seguro".
+### "Database connection failed"
+- Verifique se o contentor da DB (`lms-ai-db-1`) está ativo: `docker ps`.
+- O Moodle demora cerca de 30-60 segundos a aceitar ligações após o primeiro arranque.
 
+### Imagens não aparecem no FrontEnd
+- As imagens extraídas são mapeadas via volume:
+  `moodle-stable/moodle/public/local/wsmanageactivities/extracted_images` -> `FrontEnd/public/extracted_images`
+- Certifique-se de que a pasta tem permissões `777`.
 
-### 4. Iniciar o Frontend (Next.js)
+### Alterar a Password do Admin
+Se precisar de resetar a password via terminal:
 ```bash
-cd FrontEnd
-npm install
-npm run dev
+docker exec lms-ai-webserver-1 php admin/cli/reset_password.php --username=admin --password=SUA_NOVA_PASS --ignore-password-policy
 ```
-O dashboard estará disponível em: `http://localhost:3000`
 
 ---
 
-## 🔌 Configurações de Conectividade (API)
-
-O sistema utiliza o plugin customizado `local_wsmanageactivities`. Se a ligação falhar:
-1. Verifique se o Moodle está ativo no porto 8080.
-2. Certifique-se de que o Token no `.env.local` coincide com o do Moodle.
-
----
-
-## 📂 Estrutura do Repositório
-- `/FrontEnd`: Aplicação Next.js.
-- `/moodle-stable`: Ambiente Moodle Docker.
-- `/moodle_base_setup.sql`: Base de dados inicial pronta a usar.
-- `SETUP.md`: Este manual.
+## 📂 Estrutura de Pastas Críticas
+- `bootstrap.sh`: Orquestrador de setup inicial.
+- `moodle_base_setup.sql`: Baseline da BD (limpa e configurada).
+- `FrontEnd/`: Código fonte Next.js.
+- `moodle-stable/moodle/public/local/wsmanageactivities/`: Plugin customizado da API.
