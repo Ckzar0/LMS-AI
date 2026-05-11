@@ -148,10 +148,11 @@ class create_course_with_content extends external_api {
         }
 
         // 4. Create Feedback/Evaluation if requested
+        $evaluation_cmid = null;
         $evaluation_enabled = !empty($data['generate_evaluation']) || !empty($data['evaluation']);
         if ($evaluation_enabled) {
-            $feedback_cmid = ActivityCreator::create_feedback($courseid);
-            if ($feedback_cmid) {
+            $evaluation_cmid = ActivityCreator::create_feedback($courseid);
+            if ($evaluation_cmid) {
                 // Determine which activity should unlock the feedback (Quiz)
                 $quiz_cmid = null;
                 foreach ($created_activities as $act) {
@@ -163,15 +164,50 @@ class create_course_with_content extends external_api {
                 
                 if ($quiz_cmid) {
                     // Bloquear Avaliação até PASSAR no Quiz (require_grade = true)
-                    ActivityCreator::add_completion_restriction($feedback_cmid, $quiz_cmid, true, true);
+                    ActivityCreator::add_completion_restriction($evaluation_cmid, $quiz_cmid, true, true);
                 }
 
                 $created_activities[] = [
-                    'cmid' => $feedback_cmid,
+                    'cmid' => $evaluation_cmid,
                     'name' => 'Avaliação da Formação',
                     'type' => 'feedback',
                     'content' => 'A sua opinião é fundamental.',
-                    'url' => $CFG->wwwroot . '/mod/feedback/view.php?id=' . $feedback_cmid
+                    'url' => $CFG->wwwroot . '/mod/feedback/view.php?id=' . $evaluation_cmid
+                ];
+            }
+        }
+
+        // 5. Create Certificate if requested
+        $certificate_enabled = !empty($data['generate_certificate']) || !empty($data['certificate']);
+        if ($certificate_enabled) {
+            $cert_cmid = ActivityCreator::create_certificate($courseid, 'LMS-AI_Certificate');
+            if ($cert_cmid) {
+                // O Certificado deve ser a ÚLTIMA coisa. 
+                // Se houver Avaliação, depende da Avaliação. Se não, depende do Quiz.
+                $unlock_cmid = null;
+                if ($evaluation_cmid) {
+                    $unlock_cmid = $evaluation_cmid;
+                } else {
+                    foreach ($created_activities as $act) {
+                        if ($act['type'] === 'quiz') {
+                            $unlock_cmid = $act['cmid'];
+                            break;
+                        }
+                    }
+                }
+
+                if ($unlock_cmid) {
+                    // Se for desbloqueado pelo Quiz, exigir nota. Se for pela Avaliação, apenas conclusão.
+                    $is_quiz = $evaluation_cmid ? false : true;
+                    ActivityCreator::add_completion_restriction($cert_cmid, $unlock_cmid, true, $is_quiz);
+                }
+
+                $created_activities[] = [
+                    'cmid' => $cert_cmid,
+                    'name' => 'Certificado de Conclusão',
+                    'type' => 'customcert', 
+                    'content' => 'Descarregue aqui o seu certificado.',
+                    'url' => $CFG->wwwroot . '/mod/customcert/view.php?id=' . $cert_cmid
                 ];
             }
         }

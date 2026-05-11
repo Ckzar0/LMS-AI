@@ -30,6 +30,7 @@ services:
     volumes:
       - ./moodle-stable/moodle:/var/www/html
       - ./Cursos:/var/www/Cursos:ro
+      - ./Certificado:/var/www/Certificado:ro
       - ./Prompts:/var/www/Prompts:ro
       - moodledata:/var/www/moodledata
     environment:

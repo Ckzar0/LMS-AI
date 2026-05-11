@@ -412,7 +412,8 @@ export function UploadView() {
       const courseWithFinalName = {
         ...generatedCourse,
         course_name: courseName,
-        generate_evaluation: selectedOptions.includes("evaluation")
+        generate_evaluation: selectedOptions.includes("evaluation"),
+        generate_certificate: selectedOptions.includes("certificate")
       };
 
       const response = await fetch("/api/send-to-moodle", {
@@ -596,7 +597,7 @@ export function UploadView() {
                   {generationOptions.map((option) => {
                     const Icon = option.icon
                     const isSelected = selectedOptions.includes(option.id)
-                    const isComingSoon = option.id === "videos" || option.id === "certificate"
+                    const isComingSoon = option.id === "videos"
                     
                     return (
                       <Card 
@@ -776,7 +777,7 @@ export function UploadView() {
                   {generationOptions.map((option) => {
                     const Icon = option.icon
                     const isSelected = selectedOptions.includes(option.id)
-                    const isComingSoon = option.id === "videos" || option.id === "certificate"
+                    const isComingSoon = option.id === "videos"
                     
                     return (
                       <Card 

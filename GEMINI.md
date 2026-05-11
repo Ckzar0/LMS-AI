@@ -16,6 +16,10 @@
 - **Conectividade & LLM:**
     - **Portkey Ativo:** Integração com Portkey AI Gateway corrigida e funcional (suporta Config IDs/Slugs `@`).
     - **Toggle Inteligente:** `USE_PORTKEY` no FrontEnd permite alternar entre Portkey e Gemini Direto.
+- **Certificação (PAI-1215):** 
+    - **100% Funcional:** Implementado sistema de **Clonagem Automática de Templates** para garantir isolamento por curso.
+    - **Download Nativo:** Novo ecrã de conclusão no FrontEnd com download direto de PDF via API (Base64), sem necessidade de o aluno visitar o Moodle.
+    - **UX:** Transição fluida entre Avaliação e Certificado com design Premium e animações.
 - **Pipeline de Media:**
     - **Images Fix:** Suporte para `.png` e `.jpg`. URLs agora são relativos (`/course_assets/`), resolvendo o problema de bloqueio de rede interna do Docker.
     - **Auto-Cleanup:** Remoção automática do fórum de "Announcements" para garantir progresso de 100%.

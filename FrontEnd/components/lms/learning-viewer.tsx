@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { 
   ArrowLeft, 
   ChevronLeft, 
@@ -11,41 +11,44 @@ import {
   Loader2,
   Menu,
   X,
-  Lock
+  Lock,
+  Trophy,
+  FileDown,
+  PartyPopper
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { QuizEngine } from "./quiz-engine"
+import { FeedbackEngine } from "./feedback-engine"
 import { cn } from "@/lib/utils"
 
-import { QuizEngine } from "@/components/lms/quiz-engine"
-import { FeedbackEngine } from "@/components/lms/feedback-engine"
-
 interface LearningViewerProps {
-  courseId: string
-  initialActivityId: string
+  courseId: number
+  initialActivityId?: string
   onBack: () => void
 }
 
 export function LearningViewer({ courseId, initialActivityId, onBack }: LearningViewerProps) {
   const [course, setCourse] = useState<any>(null)
   const [currentActivity, setCurrentActivity] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [quizData, setQuizData] = useState<any>(null)
   const [feedbackData, setFeedbackData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [loadingContent, setLoadingContent] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [downloadingCert, setDownloadingCert] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  // 0. Auto-Enrol user to ensure progress tracking works
+  // 0. Auto-enrol user
   useEffect(() => {
-    const autoEnrol = async () => {
+    async function autoEnrol() {
       try {
-        await fetch('/api/course/enrol', {
+        await fetch('/api/activity/enrol', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId })
+          body: JSON.stringify({ courseid: courseId })
         });
       } catch (err) {
         console.error("Auto enrolment failed:", err);
@@ -55,7 +58,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
   }, [courseId])
 
   // 1. Fetch Course Structure (Index)
-  const fetchCourse = async () => {
+  const fetchCourse = useCallback(async () => {
     try {
       const response = await fetch(`/api/course/${courseId}`)
       if (!response.ok) throw new Error("Falha ao carregar estrutura do curso")
@@ -64,11 +67,11 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro desconhecido")
     }
-  }
+  }, [courseId])
 
   useEffect(() => {
     fetchCourse()
-  }, [courseId])
+  }, [fetchCourse])
 
   // 2. Fetch Activity Content & Mark Viewed
   const loadActivity = async (id: string) => {
@@ -108,6 +111,44 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
     } finally {
       setLoadingContent(false)
       setLoading(false)
+    }
+  }
+
+  const handleDownloadCertificate = async () => {
+    if (!currentActivity || downloadingCert) return;
+    
+    setDownloadingCert(true);
+    try {
+      const res = await fetch(`/api/course/certificate/${currentActivity.id}`);
+      const data = await res.json();
+      
+      if (data.filecontent) {
+        // Converter Base64 para Blob
+        const byteCharacters = atob(data.filecontent);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        
+        // Criar link de download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename || `Certificado_${course?.name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        throw new Error(data.error || "Falha ao gerar PDF");
+      }
+    } catch (err) {
+      console.error("Erro no download:", err);
+      alert("Ainda não podes descarregar o certificado. Certifica-te que completaste todas as atividades anteriores.");
+    } finally {
+      setDownloadingCert(false);
     }
   }
 
@@ -201,6 +242,8 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                             <CheckCircle2 className="h-4 w-4 text-green-500" />
                           ) : module.modname === "page" ? (
                             <BookOpen className="h-4 w-4" />
+                          ) : module.modname === "customcert" ? (
+                            <Trophy className="h-4 w-4 text-amber-500" />
                           ) : (
                             <FileQuestion className="h-4 w-4" />
                           )}
@@ -232,7 +275,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                </h1>
                <div className="flex items-center gap-2">
                  <Badge variant="secondary" className="text-[10px] h-4">
-                   {currentActivity?.type === 'page' ? 'Conteúdo' : 'Avaliação'}
+                   {currentActivity?.type === 'page' ? 'Conteúdo' : currentActivity?.type === 'customcert' ? 'Certificação' : 'Avaliação'}
                  </Badge>
                  <span className="text-[10px] text-muted-foreground">
                    Atividade {currentIndex + 1} de {allActivities.length}
@@ -271,8 +314,9 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                       });
                       
                       // 2. Update sidebar status
-                      setTimeout(fetchCourse, 2000);
+                      setTimeout(fetchCourse, 1000);
                     }}
+                    onFinish={() => handleNavigate('next')}
                   />
                 </div>
               ) : currentActivity?.type === 'quiz' && quizData ? (
@@ -308,6 +352,38 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                     onFinish={() => handleNavigate('next')}
                   />
                 </div>
+              ) : currentActivity?.type === 'customcert' ? (
+                <div className="py-12 flex flex-col items-center text-center space-y-8 animate-in fade-in zoom-in duration-500">
+                  <div className="relative">
+                    <div className="absolute -inset-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                    <Trophy className="h-24 w-24 text-primary relative z-10" />
+                    <PartyPopper className="absolute -top-2 -right-2 h-8 w-8 text-amber-500 animate-bounce" />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h2 className="text-4xl font-black tracking-tight text-primary uppercase italic">CURSO CONCLUÍDO!</h2>
+                    <p className="text-xl text-muted-foreground max-w-md mx-auto">
+                      Parabéns! Concluíste com sucesso todos os requisitos do curso <strong>{course?.name}</strong>.
+                    </p>
+                  </div>
+
+                  <div className="bg-muted/30 p-8 rounded-3xl border-2 border-dashed border-primary/20 w-full max-w-lg">
+                    <p className="text-sm font-medium mb-6">O teu certificado oficial está pronto a ser emitido.</p>
+                    <Button 
+                      size="lg" 
+                      className="h-16 px-8 text-lg font-bold gap-3 shadow-xl hover:scale-105 transition-transform"
+                      disabled={downloadingCert}
+                      onClick={handleDownloadCertificate}
+                    >
+                      {downloadingCert ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileDown className="h-6 w-6" />}
+                      {downloadingCert ? "A gerar PDF..." : "Descarregar Certificado (PDF)"}
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                    O ficheiro será guardado diretamente no teu dispositivo e pode ser validado via código QR.
+                  </p>
+                </div>
               ) : (
                 <div className="prose prose-slate max-w-none prose-headings:text-primary prose-a:text-primary mb-12">
                   <div 
@@ -319,7 +395,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
             </div>
 
             {/* Navigation Footer - Always at the bottom of content */}
-            {!loadingContent && currentActivity?.type !== 'quiz' && (
+            {!loadingContent && currentActivity?.type !== 'quiz' && currentActivity?.type !== 'customcert' && (
               <div className="mt-auto pt-8 border-t flex items-center justify-between bg-white pb-4 shrink-0">
                 <Button 
                   variant="outline" 
@@ -340,6 +416,26 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
                   className="gap-2 font-bold shadow-md"
                 >
                   Próximo <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Special footer for Certificate page to allow going back but not "Next" */}
+            {currentActivity?.type === 'customcert' && (
+              <div className="mt-auto pt-8 border-t flex items-center justify-between bg-white pb-4 shrink-0">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleNavigate('prev')}
+                  className="gap-2"
+                >
+                  <ChevronLeft className="h-4 w-4" /> Rever Curso
+                </Button>
+                <Button 
+                  variant="ghost"
+                  onClick={onBack}
+                  className="gap-2 text-muted-foreground"
+                >
+                  Voltar ao Dashboard
                 </Button>
               </div>
             )}
@@ -550,34 +646,14 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
           padding: 1.25rem 1.5rem;
           border-bottom: 1px solid #f1f5f9;
           color: #475569;
-          line-height: 1.5;
         }
-        
+
         .ailms-table tr:last-child td {
           border-bottom: none;
         }
 
-        .ailms-table tr:nth-child(even) {
-          background-color: #f8fafc;
-        }
-
         .ailms-table tr:hover td {
-          background-color: #f1f5f9;
-          color: hsl(var(--primary));
-        }
-
-        /* Table Tip */
-        .ailms-table-container::after {
-          content: "↔ Deslize para ver mais colunas";
-          display: block;
-          text-align: right;
-          padding: 0.5rem 1.5rem;
-          font-size: 0.7rem;
-          color: #94a3b8;
-          font-weight: bold;
-          text-transform: uppercase;
-          background: #f8fafc;
-          border-top: 1px solid #e2e8f0;
+          background-color: #f8fafc;
         }
       `}</style>
     </div>

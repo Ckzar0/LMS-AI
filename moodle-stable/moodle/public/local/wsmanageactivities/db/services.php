@@ -173,6 +173,16 @@ $functions = [
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
 
+    'local_wsmanageactivities_get_certificate_pdf' => [
+        'classname'   => 'local_wsmanageactivities\\external\\get_certificate_pdf',
+        'methodname'  => 'execute',
+        'description' => 'Generate and return the PDF of a certificate as base64',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'mod/customcert:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
+
     'local_wsmanageactivities_get_feedback_data' => [
         'classname'   => 'local_wsmanageactivities_external',
         'methodname'  => 'get_feedback_data',

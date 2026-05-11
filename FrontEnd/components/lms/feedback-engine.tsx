@@ -36,9 +36,10 @@ interface FeedbackEngineProps {
   cmid: number
   feedbackData: FeedbackData
   onComplete: (average: number, responses: any) => void
+  onFinish?: () => void
 }
 
-export function FeedbackEngine({ cmid, feedbackData, onComplete }: FeedbackEngineProps) {
+export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: FeedbackEngineProps) {
   const [currentStep, setCurrentStep] = useState<"intro" | "questions" | "success">("intro")
   const [currentIndex, setCurrentIndex] = useState(0)
   const [responses, setResponses] = useState<Record<number, any>>({})
@@ -100,6 +101,11 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete }: FeedbackEngin
       
       setCurrentStep("success")
       onComplete(average, responses)
+
+      // Se existir onFinish, aguardar um pouco e avançar automaticamente
+      if (onFinish) {
+        setTimeout(onFinish, 2500)
+      }
     } catch (err) {
       console.error("Submission error:", err)
     } finally {
@@ -170,7 +176,7 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete }: FeedbackEngin
           </div>
 
           <p className="text-muted-foreground px-8">
-            As tuas respostas foram registadas com sucesso e ajudarão a melhorar os conteúdos deste curso.
+            As tuas respostas foram registadas com sucesso. A redirecionar para a conclusão do curso...
           </p>
         </CardContent>
       </Card>

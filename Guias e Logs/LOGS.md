@@ -10,7 +10,17 @@
 
 ## 📅 Maio 2026 - Consolidação de Infraestrutura e UX
 
+### 🕒 [11/05/2026] - PAI-1215: Implementação de Certificação Automática e Fluxo de Conclusão
+- **Moodle (Automação):** Criado sistema de **Clonagem de Templates** no `ActivityCreator.php`. Cada curso recebe uma cópia privada do layout `LMS-AI_Certificate`, evitando conflitos de BD.
+- **WebService (PDF):** Novo endpoint `local_wsmanageactivities_get_certificate_pdf` que gera o PDF e o devolve em Base64 para download direto.
+- **FrontEnd (UI de Conclusão):** 
+    - Novo ecrã de "Grand Finale" no `LearningViewer.tsx` com animações, troféu e mensagem de parabéns.
+    - Botão de **Download Direto** que consome a nova API, eliminando a necessidade de o aluno aceder ao Moodle.
+    - Transição automática (2.5s) da Avaliação da Formação para o ecrã de Certificado.
+- **Melhorias de Infra:** Mapeamento da pasta `/Certificado` no Docker e incremento de versão do plugin (`2026051101`) para registo de funções.
+
 ### 🕒 [11/05/2026] - Reforço de Infraestrutura, Segurança e Pipeline de Imagens
+- **Dívida Técnica / Quick Win (Pendente):** Identificada necessidade de ajustar o split de nomes de modelos na Portkey para suportar fornecedores como OpenRouter (ex: `provedor/modelo`). Atualmente o split falha se houver mais de uma barra.
 - **Segurança (Hardening):** Remoção de segredos (`GEMINI_API_KEY`, `PORTKEY_API_KEY`) do `docker-compose.yml`. Implementado sistema de herança de ambiente via ficheiro `.env` local (commit `1a6f9b1`).
 - **Dockerfile Customizado:** Criado `Dockerfile.moodle` para garantir a persistência de dependências críticas (`poppler-utils`, `imagemagick`, `python3-pillow`) em qualquer nova instalação.
 - **Ligação LLM (Portkey):** Ativação definitiva da integração Portkey com suporte para **Config IDs** (slugs com `@`). Corrigido erro 400 ao tratar corretamente Virtual Keys e nomes de modelos.

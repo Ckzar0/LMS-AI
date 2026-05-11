@@ -393,4 +393,65 @@ class ActivityCreator {
             \rebuild_course_cache($cm->course, true);
         } catch (\Throwable $e) {}
     }
+
+    public static function create_certificate($course_id, $template_name = 'LMS-AI_Certificate') {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/course/modlib.php');
+        
+        try {
+            // 1. Localizar o Template Mestre pelo nome
+            $master_template_rec = $DB->get_record('customcert_templates', ['name' => $template_name], '*', IGNORE_MULTIPLE);
+            if (!$master_template_rec) {
+                error_log("ActivityCreator: Template de certificado '$template_name' não encontrado.");
+                return null;
+            }
+
+            $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
+            $module = $DB->get_record('modules', ['name' => 'customcert'], '*', MUST_EXIST);
+            
+            // 2. CRIAR UMA CÓPIA PRIVADA DO TEMPLATE PARA ESTE CURSO
+            // Isto evita o erro "Multiple records found" no Moodle
+            $new_template_name = "Certificado - " . $course->fullname . " (" . time() . ")";
+            $context = \context_course::instance($course_id);
+            
+            // Criar novo template vazio
+            $new_template_rec = \mod_customcert\template::create($new_template_name, $context->id);
+            
+            // Clonar elementos do mestre para o novo
+            $master_template = new \mod_customcert\template($master_template_rec);
+            $master_template->copy_to_template($new_template_rec);
+            
+            $template_id = $new_template_rec->get_id();
+
+            // 3. Criar a atividade no curso vinculada ao novo template
+            $moduleinfo = new \stdClass();
+            $moduleinfo->modulename = 'customcert';
+            $moduleinfo->module = (int)$module->id;
+            $moduleinfo->course = (int)$course_id;
+            $moduleinfo->section = 1;
+            $moduleinfo->name = 'Certificado de Conclusão';
+            $moduleinfo->intro = 'Parabéns pela conclusão do curso! Descarregue aqui o seu certificado oficial.';
+            $moduleinfo->introformat = 1;
+            $moduleinfo->templateid = $template_id;
+            $moduleinfo->visible = 1;
+            $moduleinfo->completion = 2; 
+            $moduleinfo->completionview = 1;
+            
+            $moduleinfo->requiredtime = 0;
+            $moduleinfo->protection = '';
+            $moduleinfo->emaillceachers = 0;
+            $moduleinfo->emailothers = '';
+            $moduleinfo->verifyany = 1;
+            
+            $info = \add_moduleinfo($moduleinfo, $course);
+            
+            // Garantir que o templateid foi gravado (failsafe)
+            $DB->set_field('customcert', 'templateid', $template_id, ['id' => $info->instance]);
+            
+            return $info->coursemodule;
+        } catch (\Throwable $e) {
+            error_log("ActivityCreator: Erro ao criar certificado clonado: " . $e->getMessage());
+            return null;
+        }
+    }
 }

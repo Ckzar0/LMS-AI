@@ -60,6 +60,8 @@ class get_activity_content extends external_api {
         } else if ($type === 'quiz') {
             $quiz = $DB->get_record('quiz', ['id' => $cm->instance], '*', MUST_EXIST);
             $content = $quiz->intro; // For now, just intro. Full quiz engine later.
+        } else if ($type === 'customcert') {
+            $content = '<h3>Certificado Disponível</h3><p>Clique no botão abaixo para descarregar o seu certificado oficial.</p>';
         }
 
         return [
