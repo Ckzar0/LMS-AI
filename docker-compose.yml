@@ -58,8 +58,8 @@ services:
       - NEXT_PUBLIC_MOODLE_URL=http://localhost:8080
       - MOODLE_URL=http://webserver
       - MOODLE_TOKEN=14c68ff68a1a57cdc4cf4d72f443b87d
-      - GEMINI_API_KEY=AIzaSyCgN0yz3bmBahqggALhknb3ovOiTQq7_DA
-      - PORTKEY_API_KEY=7BFb0PxmPmTF4slQG2Ijtha5QKXK
+      - GEMINI_API_KEY=
+      - PORTKEY_API_KEY=
       - PORTKEY_MODEL_PRO=@gemini-3-prod/gemini-3-pro-preview
       - PORTKEY_MODEL_FLASH=@gemini-3-prod/gemini-3-flash-preview
       - PORTKEY_MAX_TOKENS=65536
