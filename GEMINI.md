@@ -8,42 +8,37 @@
 
 ## 🚀 Estado Atual (Branch: feat/containerization-setup):
 - **Infraestrutura & Automação:** 
-    - Migração completa para ambiente 100% Docker.
-    - **Bootstrap Automático:** Criado `bootstrap.sh` para setup integral num clique (Core, DB, Permissões, Env).
-    - **Clean Baseline:** `moodle_base_setup.sql` atualizado com BD limpa e pré-configurada (Admin: `admin`/`admin`).
-- **Conectividade:** WebServices, Tokens e Serviços API (`lms_ai`) configurados automaticamente via script.
-- **Limpeza de Código:** Removidos todos os `console.log` de debug nos componentes do FrontEnd.
-- **Navegação Real:** Dashboard e Lista de Cursos agora são 100% dinâmicos e ordenados pelos mais recentes (DESC).
-- **Auto-Enrollment:** Inscrição automática do utilizador como estudante ao iniciar curso para garantir vistos de progresso.
-- **Modo de Estudo:** `LearningViewer.tsx` com interface Premium, imagens e legendas centradas.
-- **Avaliação do Curso (PAI-904):** Novo sistema de feedback com estrelas (1-5) e média automática, integrado no Moodle.
-- **Quiz Engine:** 
-    - Botão "Anterior" adicionado.
-    - Modo de Revisão detalhado (apenas para aprovados).
-    - Baralhamento (shuffle) de opções para evitar padrões fixos.
-    - Submissão de nota real para o Moodle Gradebook.
-- **Fluxo de Conclusão:** O sucesso no Quiz desbloqueia a Avaliação. A conclusão da Avaliação marca o fim do percurso.
-- **Documentação:** Novos `README.md` e `SETUP.md` focados no workflow automatizado.
+    - Migração completa para ambiente 100% Docker com orquestração via `docker-compose.yml`.
+    - **Custom Dockerfile:** Moodle agora usa `Dockerfile.moodle` para garantir dependências de extração de imagens (`pdfimages`, `python3`, `Pillow`).
+    - **Cursos Portáteis:** Pasta `/Cursos` na raiz mapeada para o Docker para processar PDFs grandes sem upload via browser.
+- **Segurança:** 
+    - Hardening de segredos: API Keys removidas do código e geridas via ficheiro `.env` local.
+- **Conectividade & LLM:**
+    - **Portkey Ativo:** Integração com Portkey AI Gateway corrigida e funcional (suporta Config IDs/Slugs `@`).
+    - **Toggle Inteligente:** `USE_PORTKEY` no FrontEnd permite alternar entre Portkey e Gemini Direto.
+- **Pipeline de Media:**
+    - **Images Fix:** Suporte para `.png` e `.jpg`. URLs agora são relativos (`/course_assets/`), resolvendo o problema de bloqueio de rede interna do Docker.
+    - **Auto-Cleanup:** Remoção automática do fórum de "Announcements" para garantir progresso de 100%.
+- **Quiz & Avaliação:** 
+    - Sistema de feedback (1-5 estrelas) e submissão de notas funcionais.
 
 ## 📂 Estrutura de Pastas:
-- **Orquestração:** `docker-compose.yml` e `bootstrap.sh` (raiz).
+- **Orquestração:** `docker-compose.yml`, `Dockerfile.moodle`, `bootstrap.sh`.
+- **Manuais PDFs:** `/Cursos/` (Raiz do projeto).
 - **Imagens Extraídas:** `moodle-stable/moodle/public/local/wsmanageactivities/extracted_images/`
-- **API Moodle:** `get_activity_content.php`, `get_feedback_data.php`, `submit_feedback_responses.php`, `submit_quiz_grade.php`
-- **Frontend API Gateway:** `/api/activity/`, `/api/feedback/`, `/api/quiz/grade`, `/api/course/`, `/api/dashboard-stats`
+- **Assets Públicos:** `moodle-stable/moodle/course_assets/` (URLs: `/course_assets/ID/img.jpg`)
 
 ## 📌 Próximos Passos (A Iniciar):
-6. **Quick Wins - UX & Progress (PAI-QW):**
-    - Ocultar ou remover conclusão da secção "Announcements" (não fica verde/100%).
+1. **Quick Wins - UX (PAI-QW):**
     - Substituir vídeo por imagem de capa nos Cards da aba "Cursos".
     - Exibir média de estrelas (Rating) nos Cards de listagem de cursos.
-1. **Infraestrutura:** Push da branch `feat/containerization-setup` para GitLab/GitHub.
-2. **Portkey Agnostic:** Migrar chamadas de IA para usar `PORTKEY_CONFIG_ID`, permitindo "Hot-Swap" de modelos via Dashboard.
-3. **Certificação (PAI-1215):** Botão na página de conclusão para gerar PDF de certificado via Moodle (CustomCert).
+2. **Portkey Agnostic:** Migrar todas as chamadas para usar `PORTKEY_CONFIG_ID` (Hot-Swap).
+3. **Certificação (PAI-1215):** Botão para gerar PDF de certificado via Moodle (CustomCert).
 4. **Áudio (TTS):** Botão "Play" para leitura do conteúdo via IA.
-5. **Extração de Tabelas:** Evoluir os placeholders `[[TABLE_PXX]]` para imagens reais das tabelas do PDF.
+5. **Extração de Tabelas:** Evoluir os placeholders `[[TABLE_PXX]]` para imagens reais das tabelas.
 
 ## ⚠️ Notas Técnicas:
-- O Moodle e o Next.js aceitam agora ficheiros até 100MB.
-- Sempre que houver alterações na BD, atualizar o `moodle_base_setup.sql` para manter o baseline sincronizado.
-- O Token de Web Service é fixo: `14c68ff68a1a57cdc4cf4d72f443b87d`.
-- **Automação:** O serviço `lms_ai` e o Token são injetados automaticamente pelo `bootstrap.sh`.
+- **Upload Grande:** PDFs >15MB devem ser colocados na pasta `/Cursos` para evitar erros de memória no PHP.
+- **URLs de Media:** Nunca usar URLs absolutos com `http://webserver` na base de dados; preferir caminhos relativos ou tradução via API Next.js.
+- **Token de Web Service:** `14c68ff68a1a57cdc4cf4d72f443b87d` (Fixo via Bootstrap).
+---
