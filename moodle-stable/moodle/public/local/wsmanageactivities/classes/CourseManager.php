@@ -46,7 +46,7 @@ class CourseManager {
         $course_data->summary = $summary;
         $course_data->format = 'topics';
         $course_data->showgrades = 1;
-        $course_data->newsitems = 5;
+        $course_data->newsitems = 0; // DESATIVAR ANÚNCIOS (Resolve o problema do 100% completion)
         $course_data->maxbytes = 0;
         $course_data->showreports = 0;
         $course_data->visible = 1;

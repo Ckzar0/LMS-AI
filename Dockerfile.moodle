@@ -1,0 +1,14 @@
+FROM moodlehq/moodle-php-apache:8.2
+
+# Instalar dependências de sistema para extração e processamento de imagens
+RUN apt-get update && apt-get install -y \
+    poppler-utils \
+    imagemagick \
+    python3 \
+    python3-pip \
+    python3-pillow \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configurar permissões para o ImageMagick (necessário para alguns PDFs)
+RUN sed -i 's/domain="coder" rights="none" pattern="PDF"/domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true

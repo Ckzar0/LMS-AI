@@ -515,12 +515,38 @@ export function UploadView() {
               </div>
               {files.length > 0 && (
                 <div className="mt-6 space-y-3">
-                  {files.map((file) => (
-                    <div key={file.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted">
-                      <FileText className="h-8 w-8 text-primary" /><div className="flex-1 truncate"><p className="font-medium">{file.name}</p></div>
-                      <Button variant="ghost" size="icon" onClick={() => removeFile(file.id)}><X className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
+                  {files.map((file) => {
+                    const sizeMB = parseFloat(file.size);
+                    const isLarge = sizeMB > 15;
+                    return (
+                      <div key={file.id} className="space-y-2">
+                        <div className={cn(
+                          "flex items-center gap-4 p-3 rounded-lg bg-muted transition-all",
+                          isLarge && "border-2 border-amber-500 bg-amber-50"
+                        )}>
+                          <FileText className={cn("h-8 w-8 text-primary", isLarge && "text-amber-600")} />
+                          <div className="flex-1 truncate">
+                            <p className="font-medium">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">{file.size}</p>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => removeFile(file.id)}><X className="h-4 w-4" /></Button>
+                        </div>
+                        {isLarge && (
+                          <div className="text-[11px] bg-amber-100/50 p-2.5 rounded-lg border border-amber-200 text-amber-800 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                            <div className="space-y-1">
+                              <p className="font-bold">PDF Grande Detetado!</p>
+                              <p>Este ficheiro excede 15MB. Para garantir a extração de imagens sem erros de memória:</p>
+                              <ol className="list-decimal ml-4 mt-1 space-y-0.5">
+                                <li>Coloca o ficheiro <strong>{file.name}</strong> na pasta <strong>/Cursos</strong> (na raiz do projeto).</li>
+                                <li>O sistema irá detetá-lo automaticamente durante a geração.</li>
+                              </ol>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>

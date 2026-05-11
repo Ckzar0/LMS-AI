@@ -14,13 +14,21 @@ export async function POST(req: Request) {
     let extractedFolder = "";
 
     // 1. If PDF is provided, send it first to extract images
-    if (pdfFile && pdfFile.content) {
+    if (pdfFile && pdfFile.name) {
       const pdfFormData = new FormData();
       pdfFormData.append("wstoken", moodleToken);
       pdfFormData.append("wsfunction", "local_wsmanageactivities_process_pdf");
       pdfFormData.append("moodlewsrestformat", "json");
       pdfFormData.append("filename", pdfFile.name);
-      pdfFormData.append("filecontent", pdfFile.content);
+      
+      // Se o ficheiro for grande (>15MB), enviamos conteúdo vazio.
+      // O Moodle vai procurá-lo na pasta /Cursos/ do servidor pelo nome.
+      if (pdfFile.content && pdfFile.content.length < 20000000) {
+        pdfFormData.append("filecontent", pdfFile.content);
+      } else {
+        pdfFormData.append("filecontent", "");
+        console.log(`[API] Ficheiro ${pdfFile.name} é grande. Enviando vazio e confiando na pasta /Cursos/ do servidor.`);
+      }
 
       try {
         const pdfResponse = await fetch(wsUrl, {

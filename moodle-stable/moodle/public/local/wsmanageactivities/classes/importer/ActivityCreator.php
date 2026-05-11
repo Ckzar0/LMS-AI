@@ -70,8 +70,10 @@ class ActivityCreator {
             
             // Tentar descobrir a pasta de imagens do JSON (ou o nome do ficheiro)
             $image_folder = $activity['image_folder'] ?? $activity['source_file'] ?? '';
-            // Se vier o nome do ficheiro (ex: Redes_3_Cap_08.pdf), remover a extensão .pdf
-            $image_folder = str_ireplace('.pdf', '', $image_folder);
+            
+            // APLICAR A MESMA SANITIZAÇÃO QUE NO process_pdf.php
+            $image_folder = preg_replace('/[^a-zA-Z0-9._-]/', '_', $image_folder);
+            $image_folder = preg_replace('/\.pdf$/i', '', $image_folder);
 
             $new_content = \local_wsmanageactivities\local\image_processor::process_placeholders(
                 $moduleinfo->content, 

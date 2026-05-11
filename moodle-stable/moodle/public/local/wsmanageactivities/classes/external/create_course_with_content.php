@@ -54,11 +54,28 @@ class create_course_with_content extends external_api {
         $course_data->category = $category->id;
         $course_data->summary = $data['course_summary'];
         $course_data->format = 'topics';
+        $course_data->newsitems = 0; // DESATIVAR ANÚNCIOS
         $course_data->numsections = 1;
         $course_data->enablecompletion = 1; // ATIVAR VISTOS VERDES NO CURSO
         
         $course = create_course($course_data);
         $courseid = $course->id;
+
+        // 1.1 Remover Fórum de Anúncios se existir (para garantir 100% de conclusão)
+        try {
+            $forum_module = $DB->get_record('modules', ['name' => 'forum']);
+            if ($forum_module) {
+                $announcements = $DB->get_records('course_modules', ['course' => $courseid, 'module' => $forum_module->id]);
+                foreach ($announcements as $ann) {
+                    $forum_instance = $DB->get_record('forum', ['id' => $ann->instance]);
+                    if ($forum_instance && ($forum_instance->type === 'news' || strpos(strtolower($forum_instance->name), 'anúncios') !== false || strpos(strtolower($forum_instance->name), 'announcements') !== false)) {
+                        \course_delete_module($ann->id);
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            // Log silencioso se não conseguir apagar
+        }
 
         // 2. Process Question Banks
         $bank_mapping = [];

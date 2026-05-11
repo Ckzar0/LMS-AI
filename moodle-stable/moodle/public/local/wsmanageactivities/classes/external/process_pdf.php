@@ -18,8 +18,8 @@ class process_pdf extends external_api {
 
     public static function execute_parameters() {
         return new external_function_parameters([
-            'filename' => new external_value(PARAM_FILE, 'PDF filename'),
-            'filecontent' => new external_value(PARAM_RAW, 'Base64 encoded PDF content')
+            'filename' => new external_value(PARAM_RAW, 'PDF filename'),
+            'filecontent' => new external_value(PARAM_RAW, 'Base64 encoded PDF content', VALUE_DEFAULT, '')
         ]);
     }
 
@@ -44,22 +44,26 @@ class process_pdf extends external_api {
 
         // 1. Preparar caminhos absolutos (considerando a pasta public/)
         $safe_filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $params['filename']);
-        $pdf_name = str_ireplace('.pdf', '', $safe_filename);
+        // Remover .pdf de forma insensível a maiúsculas/minúsculas
+        $pdf_name = preg_replace('/\.pdf$/i', '', $safe_filename);
         
         // Caminho relativo ao ficheiro para garantir que fica na pasta public/local/
         $plugin_root = dirname(dirname(dirname(__FILE__)));
         
         $temp_dir = $plugin_root . "/temp_pdfs";
-        if (!is_dir($temp_dir)) mkdir($temp_dir, 0777, true);
+        if (!is_dir($temp_dir)) {
+            mkdir($temp_dir, 0777, true);
+            @chmod($temp_dir, 0777);
+        }
 
         $pdf_path = $temp_dir . "/" . time() . "_" . $safe_filename;
         $log_file = $plugin_root . "/debug_log.txt";
 
         // Procura Robusta no Servidor
         $possible_paths = [
-            $CFG->dirroot . "/../Cursos/" . $params['filename'],
-            $CFG->dirroot . "/../Cursos/" . $safe_filename,
-            $CFG->dirroot . "/Cursos/" . $params['filename']
+            "/var/www/Cursos/" . $params['filename'],
+            "/var/www/Cursos/" . $safe_filename,
+            $CFG->dirroot . "/../Cursos/" . $params['filename']
         ];
         
         $pdf_already_on_server = false;
@@ -86,17 +90,24 @@ class process_pdf extends external_api {
                 throw new Exception("Invalid base64 content");
             }
             file_put_contents($pdf_path, $decoded_content);
+            @chmod($pdf_path, 0777);
         }
 
-        // 2. Pasta de destino
-        $target_dir = $plugin_root . "/extracted_images/" . $pdf_name;
-        
-        if (!is_dir($plugin_root . "/extracted_images")) {
-            mkdir($plugin_root . "/extracted_images", 0777, true);
+        // 2. Pasta de destino (extracted_images deve existir)
+        $images_root = $plugin_root . "/extracted_images";
+        if (!is_dir($images_root)) {
+            mkdir($images_root, 0777, true);
+            @chmod($images_root, 0777);
         }
+
+        $target_dir = $images_root . "/" . $pdf_name;
         
         if (is_dir($target_dir)) {
-            exec("rm -rf \"$target_dir\"/*");
+            // Limpar conteúdo mantendo a pasta
+            $files = glob($target_dir . '/*');
+            foreach($files as $file){
+                if(is_file($file)) unlink($file);
+            }
         } else {
             mkdir($target_dir, 0777, true);
         }
@@ -104,7 +115,6 @@ class process_pdf extends external_api {
 
         // 3. Extração
         $all_output = [];
-        // Usar -all para extrair tudo (incluindo imagens de alta fidelidade raster)
         $cmd = "pdfimages -p -all \"$pdf_path\" \"$target_dir/img\" 2>&1";
         exec($cmd, $all_output);
 
@@ -127,16 +137,18 @@ class process_pdf extends external_api {
         // Contar todos os formatos que o browser entende agora (JPG e PNG)
         $final_count = count(glob("$target_dir/*.{jpg,png}", GLOB_BRACE));
 
-        // Debug: Log output only if no images found
-        if ($final_count === 0) {
-            file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ⚠️ PDF extraction failed for $filename. Cmd output: " . implode("\n", $all_output) . "\n", FILE_APPEND);
+        // Log de atividade
+        $log_msg = "[" . date('Y-m-d H:i:s') . "] Processed: $pdf_name | Found: $final_count images.\n";
+        if ($final_count === 0 && !empty($all_output)) {
+            $log_msg .= "   ⚠️ Cmd Output: " . implode(" ", $all_output) . "\n";
         }
+        file_put_contents($log_file, $log_msg, FILE_APPEND);
 
         return [
             'status' => 'success',
             'image_folder' => $pdf_name,
             'count' => $final_count,
-            'message' => "Extracted $final_count images into $pdf_name. Logs: " . count($all_output) . " lines."
+            'message' => "Extracted $final_count images into $pdf_name."
         ];
     }
 

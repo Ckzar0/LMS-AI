@@ -9,6 +9,9 @@ class image_processor {
     public static function process_placeholders($content, $contextid, $component, $filearea, $itemid, $image_folder = '', $course_id = 0) {
         global $CFG, $DB;
         
+        $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+        file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🔍 Calling process_placeholders for Course $course_id, Folder: '$image_folder'\n", FILE_APPEND);
+
         if (empty($content)) return $content;
 
         self::$global_count = 0;
@@ -55,31 +58,50 @@ class image_processor {
             $p_pad = str_pad($p_num, 3, '0', STR_PAD_LEFT);
             $final_source = "";
 
-            // Tentar índices próximos (exato, -1, +1)
+            // Tentar índices próximos (exato, -1, +1) e ambos formatos
             $to_test = [$s_num_int, $s_num_int - 1, $s_num_int + 1, 0, 1, 2];
+            $extensions = ['jpg', 'png', 'jpeg'];
+            
             foreach (array_unique($to_test) as $idx) {
                 if ($idx < 0) continue;
                 $s_pad = str_pad($idx, 3, '0', STR_PAD_LEFT);
-                $cname = "img-$p_pad-$s_pad.jpg";
                 
-                if (file_exists($base_path . $cname)) { $final_source = $base_path . $cname; break; }
-                if (isset($mapping[$cname]) && file_exists($base_path . $mapping[$cname])) { $final_source = $base_path . $mapping[$cname]; break; }
+                foreach ($extensions as $ext) {
+                    $cname = "img-$p_pad-$s_pad.$ext";
+                    if (file_exists($base_path . $cname)) { $final_source = $base_path . $cname; break 2; }
+                    if (isset($mapping[$cname]) && file_exists($base_path . $mapping[$cname])) { $final_source = $base_path . $mapping[$cname]; break 2; }
+                }
             }
 
             // Fallback: Qualquer imagem daquela página
             if (!$final_source) {
-                $page_files = glob($base_path . "img-$p_pad-*.jpg");
+                $page_files = glob($base_path . "img-$p_pad-*.*");
                 if ($page_files) $final_source = $page_files[0];
             }
 
             if ($final_source) {
                 $assets_sub = ($course_id > 0) ? $course_id . '/' : '';
                 $public_dir = $CFG->dirroot . '/course_assets/' . $assets_sub;
-                if (!is_dir($public_dir)) mkdir($public_dir, 0777, true);
+                $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+                
+                if (!is_dir($public_dir)) {
+                    @mkdir($public_dir, 0777, true);
+                    @chmod($CFG->dirroot . '/course_assets/', 0777);
+                    @chmod($public_dir, 0777);
+                }
                 
                 $img_name = basename($final_source);
-                @copy($final_source, $public_dir . $img_name);
-                $img_url = $CFG->wwwroot . '/course_assets/' . $assets_sub . $img_name;
+                $dest_file = $public_dir . $img_name;
+                
+                if (@copy($final_source, $dest_file)) {
+                    @chmod($dest_file, 0777);
+                } else {
+                    $error = error_get_last();
+                    file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ❌ Failed to copy image $img_name: " . ($error['message'] ?? 'Unknown error') . "\n", FILE_APPEND);
+                }
+                
+                // Usar URL relativa para evitar problemas com 'http://webserver' vs 'http://localhost:8080'
+                $img_url = '/course_assets/' . $assets_sub . $img_name;
 
                 return '<figure class="ailms-figure" data-placeholder="'.$clean_id.'" style="margin: 25px auto; text-align: center; display: block; clear: both;">' .
                        '<img src="' . $img_url . '" data-legend="'.htmlspecialchars($final_legend).'" class="img-fluid" style="border-radius: 8px; max-width: 100%; height: auto; border: 1px solid #eee; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' .

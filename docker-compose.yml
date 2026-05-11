@@ -20,13 +20,16 @@ services:
 
   # --- MOODLE (WEBSERVER) ---
   webserver:
-    image: moodlehq/moodle-php-apache:8.2
+    build:
+      context: .
+      dockerfile: Dockerfile.moodle
     depends_on:
       - db
     ports:
       - "8080:80"
     volumes:
       - ./moodle-stable/moodle:/var/www/html
+      - ./Cursos:/var/www/Cursos:ro
       - ./Prompts:/var/www/Prompts:ro
       - moodledata:/var/www/moodledata
     environment:
