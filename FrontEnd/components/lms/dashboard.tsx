@@ -10,21 +10,14 @@ import { Button } from "@/components/ui/button"
 interface DashboardProps {
   onCourseSelect: (courseId: string) => void
 }
-
 interface DashboardData {
   totalCourses: number
   totalUsers: number
   totalCertifications: number
   averageRating: number
+  recentActivity: any[]
   recentCourses: any[]
 }
-
-const recentActivity = [
-  { user: "João Silva", action: "Completou o curso", course: "Segurança no Trabalho", time: "Há 2 horas" },
-  { user: "Maria Santos", action: "Passou no exame", course: "Operação de Empilhadores", time: "Há 3 horas" },
-  { user: "Pedro Costa", action: "Iniciou o curso", course: "Segurança no Trabalho", time: "Há 5 horas" },
-  { user: "Ana Oliveira", action: "Obteve certificação", course: "Procedimentos de Qualidade", time: "Há 1 dia" },
-]
 
 export function Dashboard({ onCourseSelect }: DashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null)
@@ -151,7 +144,7 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
           </CardContent>
         </Card>
 
-        {/* Recent Activity - Using Mock for now as requested to focus on courses */}
+        {/* Recent Activity - REAL LOGS */}
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -161,10 +154,10 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
+              {(data?.recentActivity || []).map((activity, index) => (
                 <div key={index} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                    {activity.user.split(" ").map(n => n[0]).join("")}
+                    {activity.user.split(" ").map((n: string) => n[0]).join("")}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm">
@@ -175,11 +168,19 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
                     <p className="text-sm text-primary font-medium">{activity.course}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <Clock className="h-3 w-3" />
-                      {activity.time}
+                      {new Date(activity.time * 1000).toLocaleString('pt-PT', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </p>
                   </div>
                 </div>
               ))}
+              {(!data?.recentActivity || data.recentActivity.length === 0) && (
+                <p className="text-center py-12 text-muted-foreground">Sem atividade recente registada.</p>
+              )}
             </div>
             <div className="mt-6 pt-6 border-t border-border">
                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">

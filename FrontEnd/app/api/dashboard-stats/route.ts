@@ -112,6 +112,7 @@ export async function GET(request: NextRequest) {
       totalCertifications: aggregateStats.total_certificates || 0,
       averageRating: aggregateStats.global_rating || 0,
       weeklyActivity: aggregateStats.weekly_activity,
+      recentActivity: aggregateStats.recent_activity,
       recentCourses: coursesWithProgress
     })
 

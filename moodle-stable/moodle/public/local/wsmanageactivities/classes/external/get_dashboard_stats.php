@@ -58,12 +58,48 @@ class get_dashboard_stats extends external_api {
         $rating_record = $DB->get_record_sql($rating_sql);
         $global_rating = $rating_record ? round((float)$rating_record->avg_rating, 1) : 0.0;
 
+        // 6. Recent Activity (Filtered and Grouped to avoid duplicates)
+        $recent_activity = [];
+        $sql = "SELECT MIN(l.id) as id, l.eventname, MAX(l.timecreated) as timecreated, u.firstname, u.lastname, c.fullname as coursename
+                FROM {logstore_standard_log} l
+                JOIN {user} u ON l.userid = u.id
+                LEFT JOIN {course} c ON l.courseid = c.id
+                WHERE l.eventname LIKE '%course_created'
+                   OR l.eventname LIKE '%course_updated'
+                   OR l.eventname LIKE '%course_module_created'
+                   OR l.eventname LIKE '%user_enrolment_created'
+                   OR l.eventname LIKE '%course_completed'
+                   OR l.eventname LIKE '%response_submitted'
+                   OR l.eventname LIKE '%attempt_submitted'
+                GROUP BY l.eventname, l.courseid, l.userid, u.firstname, u.lastname, c.fullname
+                ORDER BY timecreated DESC";
+        $logs = $DB->get_records_sql($sql, null, 0, 5);
+
+        foreach ($logs as $log) {
+            $action = 'Realizou uma ação';
+            if (strpos($log->eventname, 'course_created') !== false) $action = 'Criou o curso';
+            if (strpos($log->eventname, 'course_updated') !== false) $action = 'Atualizou o curso';
+            if (strpos($log->eventname, 'course_module_created') !== false) $action = 'Adicionou conteúdo em';
+            if (strpos($log->eventname, 'user_enrolment_created') !== false) $action = 'Inscreveu-se no curso';
+            if (strpos($log->eventname, 'course_completed') !== false) $action = 'Completou o curso';
+            if (strpos($log->eventname, 'response_submitted') !== false) $action = 'Enviou uma avaliação em';
+            if (strpos($log->eventname, 'attempt_submitted') !== false) $action = 'Submeteu um quiz em';
+
+            $recent_activity[] = [
+                'user' => $log->firstname . ' ' . $log->lastname,
+                'action' => $action,
+                'course' => $log->coursename ?: 'Sistema',
+                'time' => (int)$log->timecreated
+            ];
+        }
+
         return [
             'total_courses' => (int)$total_courses,
             'total_users' => (int)$total_users,
             'total_certificates' => (int)$total_certificates,
             'global_rating' => (float)$global_rating,
-            'weekly_activity' => $weekly_activity
+            'weekly_activity' => $weekly_activity,
+            'recent_activity' => $recent_activity
         ];
     }
 
@@ -77,6 +113,14 @@ class get_dashboard_stats extends external_api {
                 new external_single_structure([
                     'day' => new external_value(PARAM_TEXT, 'Day of week'),
                     'count' => new external_value(PARAM_INT, 'Activity count')
+                ])
+            ),
+            'recent_activity' => new external_multiple_structure(
+                new external_single_structure([
+                    'user' => new external_value(PARAM_TEXT, 'User name'),
+                    'action' => new external_value(PARAM_TEXT, 'Action description'),
+                    'course' => new external_value(PARAM_TEXT, 'Course name'),
+                    'time' => new external_value(PARAM_INT, 'Timestamp')
                 ])
             )
         ]);
