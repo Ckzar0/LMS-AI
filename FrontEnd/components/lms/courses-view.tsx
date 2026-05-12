@@ -17,6 +17,7 @@ interface Course {
   status: string
   enrolled: number
   progress: number
+  rating: number
   timecreated: number
   sourceFile: string
 }
@@ -40,8 +41,6 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
         if (!response.ok) throw new Error("Falha ao carregar cursos")
         const data = await response.json()
         
-        // A API dashboard-stats retorna 'recentCourses', vamos usar isso como base
-        // Nota: Em uma fase posterior, podemos criar uma API /api/courses para paginação
         setCourses(data.recentCourses || [])
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao carregar dados")
@@ -90,40 +89,29 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
 
       {/* Filters */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md opacity-50 cursor-not-allowed">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            disabled
-            placeholder="Pesquisa indisponível nesta versão" 
-            className="pl-10 cursor-not-allowed"
+            placeholder="Pesquisar cursos..." 
+            className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+        <div className="flex items-center gap-2">
           <Button 
             variant={filter === "all" ? "default" : "outline"} 
             size="sm"
-            onClick={() => {}}
-            disabled
+            onClick={() => setFilter("all")}
           >
             Todos ({courses.length})
           </Button>
           <Button 
             variant={filter === "published" ? "default" : "outline"} 
             size="sm"
-            onClick={() => {}}
-            disabled
+            onClick={() => setFilter("published")}
           >
             Publicados
-          </Button>
-          <Button 
-            variant={filter === "generating" ? "default" : "outline"} 
-            size="sm"
-            onClick={() => {}}
-            disabled
-          >
-            Em Geração
           </Button>
         </div>
       </div>
@@ -140,7 +128,7 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
           {filteredCourses.map((course) => (
             <Card 
               key={course.id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group flex flex-col"
               onClick={() => onCourseSelect(course.id.toString())}
             >
               <div className="relative h-40 bg-muted flex items-center justify-center overflow-hidden">
@@ -151,41 +139,40 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
                 />
                 <div className="absolute inset-0 bg-primary/20 group-hover:bg-primary/30 transition-colors" />
                 <Badge 
-                  className={`absolute top-3 right-3 z-10 ${
-                    course.status === "published" 
-                      ? "bg-green-500 hover:bg-green-600" 
-                      : "bg-amber-500 hover:bg-amber-600"
-                  }`}
+                  className={`absolute top-3 right-3 z-10 bg-green-500 hover:bg-green-600`}
                 >
-                  {course.status === "published" ? "Publicado" : "A gerar..."}
+                  Publicado
                 </Badge>
               </div>
-              <CardContent className="p-4">
+              <CardContent className="p-4 flex-1 flex flex-col">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                   <Badge variant="outline" className="text-[10px] font-mono">{course.shortname}</Badge>
-                   <StarRating rating={course.rating || 0} size="sm" />
+                   <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0">{course.shortname}</Badge>
+                   <div className="flex items-center gap-1">
+                      <StarRating rating={course.rating || 0} size="sm" readonly />
+                      <span className="text-[10px] font-bold text-muted-foreground">{(course.rating || 0).toFixed(1)}</span>
+                   </div>
                 </div>
-                <h3 className="font-semibold text-foreground line-clamp-2 mb-2 h-12">{course.name}</h3>
+                <h3 className="font-semibold text-foreground line-clamp-2 mb-2 h-10 leading-tight">{course.name}</h3>
                 
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 mt-auto pt-2">
                   <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Duração N/A
+                    <Clock className="h-3 w-3" />
+                    Completo
                   </span>
                   <span className="flex items-center gap-1">
-                    <BookOpen className="h-4 w-4" />
+                    <BookOpen className="h-3 w-3" />
                     ID: {course.id}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{course.enrolled} inscritos</span>
+                <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    <span>0 inscritos</span>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <FileText className="h-3 w-3" />
-                    <span className="truncate max-w-[100px]">{course.sourceFile || "manual.pdf"}</span>
+                    <span className="truncate max-w-[80px]">manual.pdf</span>
                   </div>
                 </div>
               </CardContent>

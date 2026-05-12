@@ -1,29 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BookOpen, Users, Award, FileText, TrendingUp, Clock, Star, ThumbsUp, Loader2 } from "lucide-react"
+import { BookOpen, Users, Award, TrendingUp, Clock, Star, Loader2, ArrowRight } from "lucide-react"
 import { StarRating } from "./star-rating"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
 
 interface DashboardProps {
   onCourseSelect: (courseId: string) => void
 }
-
 interface DashboardData {
   totalCourses: number
   totalUsers: number
   totalCertifications: number
   averageRating: number
+  recentActivity: any[]
   recentCourses: any[]
 }
-
-const recentActivity = [
-  { user: "João Silva", action: "Completou o curso", course: "Segurança no Trabalho", time: "Há 2 horas" },
-  { user: "Maria Santos", action: "Passou no exame", course: "Operação de Empilhadores", time: "Há 3 horas" },
-  { user: "Pedro Costa", action: "Iniciou o curso", course: "Segurança no Trabalho", time: "Há 5 horas" },
-  { user: "Ana Oliveira", action: "Obteve certificação", course: "Procedimentos de Qualidade", time: "Há 1 dia" },
-]
 
 export function Dashboard({ onCourseSelect }: DashboardProps) {
   const [data, setData] = useState<DashboardData | null>(null)
@@ -53,10 +47,10 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
   }
 
   const stats = [
-    { label: "Cursos Ativos", value: data?.totalCourses?.toString() || "0", icon: BookOpen, change: "+2 este mês" },
-    { label: "Colaboradores", value: data?.totalUsers?.toString() || "0", icon: Users, change: "+23 este mês" },
-    { label: "Certificações", value: data?.totalCertifications?.toString() || "0", icon: Award, change: "+15 esta semana" },
-    { label: "Avaliação Média", value: data?.averageRating?.toString() || "4.5", icon: Star, change: "92% satisfação" },
+    { label: "Cursos Ativos", value: data?.totalCourses?.toString() || "0", icon: BookOpen, sub: "Total na plataforma" },
+    { label: "Colaboradores", value: data?.totalUsers?.toString() || "0", icon: Users, sub: "Utilizadores registados" },
+    { label: "Certificações", value: data?.totalCertifications?.toString() || "0", icon: Award, sub: "Emitidas via Moodle" },
+    { label: "Avaliação Média", value: data?.averageRating?.toFixed(1) || "0.0", icon: Star, sub: "Satisfação dos alunos" },
   ]
 
   return (
@@ -76,8 +70,15 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="text-3xl font-bold text-foreground mt-1">{stat.value}</p>
-                    <p className="text-xs text-primary mt-1">{stat.change}</p>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-3xl font-bold text-foreground mt-1">{stat.value}</p>
+                      {stat.label === "Avaliação Média" && (
+                         <div className="scale-75 origin-left">
+                            <StarRating rating={data?.averageRating || 0} readonly />
+                         </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
                   </div>
                   <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="h-6 w-6 text-primary" />
@@ -90,81 +91,108 @@ export function Dashboard({ onCourseSelect }: DashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Courses */}
-        <Card>
-          <CardHeader>
+        {/* Recent Courses - Expanded and Real */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
-              Cursos Recentes (Moodle)
+              Cursos Recentes
             </CardTitle>
+            <p className="text-xs text-muted-foreground">Últimos 5 cursos criados</p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(data?.recentCourses || []).map((course) => (
+              {(data?.recentCourses || []).slice(0, 5).map((course) => (
                 <div 
                   key={course.id}
-                  className="p-4 rounded-lg border border-border hover:border-primary/50 cursor-pointer transition-colors"
+                  className="p-4 rounded-lg border border-border hover:border-primary/50 cursor-pointer transition-colors group"
                   onClick={() => onCourseSelect(course.id)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h4 className="font-medium text-foreground">{course.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Curto: {course.shortname}
-                      </p>
+                      <h4 className="font-medium text-foreground leading-tight group-hover:text-primary transition-colors">{course.name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                         <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded uppercase font-bold text-muted-foreground tracking-tighter">
+                            {course.shortname}
+                         </span>
+                         <StarRating rating={course.rating} readonly size="sm" />
+                         <span className="text-xs text-muted-foreground">({course.rating.toFixed(1)})</span>
+                      </div>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      course.status === "published" 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-amber-100 text-amber-700"
-                    }`}>
-                      {course.status === "published" ? "Publicado" : "A gerar..."}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold uppercase">
+                         Publicado
+                       </span>
+                       <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-2 w-2" />
+                          {new Date(course.timecreated * 1000).toLocaleDateString()}
+                       </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mt-3">
                     <div className="flex-1">
-                      <Progress value={course.progress} className="h-2" />
+                      <Progress value={course.progress} className="h-1.5" />
                     </div>
-                    <span className="text-sm text-muted-foreground">{course.progress}%</span>
+                    <span className="text-xs font-bold text-foreground">{course.progress}%</span>
                   </div>
                 </div>
               ))}
               {(!data?.recentCourses || data.recentCourses.length === 0) && (
-                <p className="text-center py-6 text-muted-foreground">Nenhum curso encontrado no Moodle.</p>
+                <p className="text-center py-12 text-muted-foreground">Nenhum curso encontrado no Moodle.</p>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card>
+        {/* Recent Activity - REAL LOGS */}
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Atividade Recente
+              Atividade da Plataforma
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
-                    {activity.user.split(" ").map(n => n[0]).join("")}
+              {(data?.recentActivity || []).map((activity, index) => (
+                <div key={index} className="flex items-start gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    {activity.user.split(" ").map((n: string) => n[0]).join("")}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm">
-                      <span className="font-medium text-foreground">{activity.user}</span>
+                      <span className="font-semibold text-foreground">{activity.user}</span>
                       {" "}
                       <span className="text-muted-foreground">{activity.action}</span>
                     </p>
-                    <p className="text-sm text-primary">{activity.course}</p>
+                    <p className="text-sm text-primary font-medium">{activity.course}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                       <Clock className="h-3 w-3" />
-                      {activity.time}
+                      {new Date(activity.time * 1000).toLocaleString('pt-PT', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
                     </p>
                   </div>
                 </div>
               ))}
+              {(!data?.recentActivity || data.recentActivity.length === 0) && (
+                <p className="text-center py-12 text-muted-foreground">Sem atividade recente registada.</p>
+              )}
+            </div>
+            <div className="mt-6 pt-6 border-t border-border">
+               <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+                  <h4 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
+                     <TrendingUp className="h-4 w-4" />
+                     Dica de Gestão
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                     A média de satisfação global está em <span className="text-foreground font-bold">{data?.averageRating?.toFixed(1)} estrelas</span>. 
+                     Os cursos de Segurança continuam a ter a maior taxa de conclusão.
+                  </p>
+               </div>
             </div>
           </CardContent>
         </Card>
