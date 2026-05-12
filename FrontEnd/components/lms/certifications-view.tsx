@@ -1,98 +1,102 @@
 "use client"
 
-import { useState } from "react"
-import { Award, Download, Search, Calendar, User, BookOpen, CheckCircle2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Award, Download, Search, Calendar, User, BookOpen, CheckCircle2, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "sonner"
 
-const certifications = [
-  {
-    id: "1",
-    user: "João Silva",
-    course: "Segurança no Trabalho - Normas ISO 45001",
-    score: 92,
-    issuedAt: "2024-02-10",
-    expiresAt: "2025-02-10",
-    certificateId: "CERT-2024-001",
-    status: "active"
-  },
-  {
-    id: "2",
-    user: "Ana Oliveira",
-    course: "Segurança no Trabalho - Normas ISO 45001",
-    score: 95,
-    issuedAt: "2024-02-08",
-    expiresAt: "2025-02-08",
-    certificateId: "CERT-2024-002",
-    status: "active"
-  },
-  {
-    id: "3",
-    user: "Maria Santos",
-    course: "Operação de Empilhadores",
-    score: 88,
-    issuedAt: "2024-01-25",
-    expiresAt: "2025-01-25",
-    certificateId: "CERT-2024-003",
-    status: "active"
-  },
-  {
-    id: "4",
-    user: "Pedro Costa",
-    course: "HACCP - Segurança Alimentar",
-    score: 91,
-    issuedAt: "2024-01-20",
-    expiresAt: "2025-01-20",
-    certificateId: "CERT-2024-004",
-    status: "active"
-  },
-  {
-    id: "5",
-    user: "Rui Ferreira",
-    course: "Primeiros Socorros no Local de Trabalho",
-    score: 86,
-    issuedAt: "2023-06-15",
-    expiresAt: "2024-06-15",
-    certificateId: "CERT-2023-089",
-    status: "expired"
-  },
-  {
-    id: "6",
-    user: "Sofia Martins",
-    course: "Operação de Empilhadores",
-    score: 94,
-    issuedAt: "2024-02-12",
-    expiresAt: "2025-02-12",
-    certificateId: "CERT-2024-005",
-    status: "active"
-  },
-]
-
-const stats = [
-  { label: "Total de Certificações", value: "89", icon: Award },
-  { label: "Certificações Ativas", value: "82", icon: CheckCircle2 },
-  { label: "A Expirar (30 dias)", value: "7", icon: Calendar },
-]
+interface Certification {
+  course_name: string
+  user_name: string
+  date: number
+  cmid: number
+}
 
 export function CertificationsView() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filter, setFilter] = useState<"all" | "active" | "expired">("all")
+  const [certifications, setCertifications] = useState<Certification[]>([])
+  const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState<number | null>(null)
+
+  useEffect(() => {
+    async function fetchCertifications() {
+      try {
+        const response = await fetch('/api/course/all-certificates')
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setCertifications(data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch certifications", error)
+        toast.error("Erro ao carregar arquivo de certificados")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCertifications()
+  }, [])
 
   const filteredCertifications = certifications.filter(cert => {
     const matchesSearch = 
-      cert.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cert.course.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filter === "all" || cert.status === filter
-    return matchesSearch && matchesFilter
+      cert.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cert.course_name.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesSearch
   })
+
+  const handleDownload = async (cmid: number, courseName: string, userName: string) => {
+    if (cmid === 0) {
+      toast.error("Este curso não tem certificado configurado.")
+      return
+    }
+
+    setDownloading(cmid)
+    try {
+      const response = await fetch(`/api/course/certificate/${cmid}`)
+      const data = await response.json()
+
+      if (data.pdf) {
+        const linkSource = `data:application/pdf;base64,${data.pdf}`
+        const downloadLink = document.createElement("a")
+        const fileName = `Certificado_${courseName.replace(/\s+/g, '_')}_${userName.replace(/\s+/g, '_')}.pdf`
+
+        downloadLink.href = linkSource
+        downloadLink.download = fileName
+        downloadLink.click()
+        toast.success("Certificado descarregado com sucesso!")
+      } else {
+        throw new Error("PDF not found")
+      }
+    } catch (err) {
+      console.error("Download error:", err)
+      toast.error("Erro ao gerar o PDF do certificado.")
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">A carregar arquivo de certificados...</p>
+      </div>
+    )
+  }
+
+  const stats = [
+    { label: "Total de Certificações", value: certifications.length.toString(), icon: Award },
+    { label: "Colaboradores Únicos", value: new Set(certifications.map(c => c.user_name)).size.toString(), icon: CheckCircle2 },
+    { label: "Última Emissão", value: certifications.length > 0 ? new Date(certifications[0].date * 1000).toLocaleDateString('pt-PT') : "N/A", icon: Calendar },
+  ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Certificações</h1>
-        <p className="text-muted-foreground">Gerencie todas as certificações emitidas</p>
+        <h1 className="text-2xl font-bold text-foreground">Arquivo de Certificações</h1>
+        <p className="text-muted-foreground">Repositório centralizado de todos os certificados emitidos pela IA</p>
       </div>
 
       {/* Stats */}
@@ -128,37 +132,14 @@ export function CertificationsView() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant={filter === "all" ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setFilter("all")}
-          >
-            Todas
-          </Button>
-          <Button 
-            variant={filter === "active" ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setFilter("active")}
-          >
-            Ativas
-          </Button>
-          <Button 
-            variant={filter === "expired" ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setFilter("expired")}
-          >
-            Expiradas
-          </Button>
-        </div>
       </div>
 
       {/* Certifications List */}
       <Card>
         <CardContent className="p-0">
           <div className="divide-y divide-border">
-            {filteredCertifications.map((cert) => (
-              <div key={cert.id} className="flex items-center gap-6 p-4 hover:bg-muted/50 transition-colors">
+            {filteredCertifications.map((cert, idx) => (
+              <div key={idx} className="flex items-center gap-6 p-4 hover:bg-muted/50 transition-colors">
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Award className="h-6 w-6 text-primary" />
                 </div>
@@ -166,33 +147,43 @@ export function CertificationsView() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium text-foreground">{cert.user}</span>
-                    <Badge variant={cert.status === "active" ? "default" : "secondary"}>
-                      {cert.status === "active" ? "Ativa" : "Expirada"}
+                    <span className="font-medium text-foreground">{cert.user_name}</span>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      Emitido
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">{cert.course}</span>
+                    <span className="text-sm text-muted-foreground truncate">{cert.course_name}</span>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">Nota: {cert.score}%</p>
-                  <p className="text-xs text-muted-foreground">{cert.certificateId}</p>
+                  <p className="text-sm text-muted-foreground">Emissão</p>
+                  <p className="text-xs font-medium text-foreground">{new Date(cert.date * 1000).toLocaleString('pt-PT')}</p>
                 </div>
 
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Emitido: {cert.issuedAt}</p>
-                  <p className="text-xs text-muted-foreground">Expira: {cert.expiresAt}</p>
-                </div>
-
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  PDF
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => handleDownload(cert.cmid, cert.course_name, cert.user_name)}
+                  disabled={downloading === cert.cmid}
+                >
+                  {downloading === cert.cmid ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  Descarregar
                 </Button>
               </div>
             ))}
+            {filteredCertifications.length === 0 && (
+              <div className="p-12 text-center text-muted-foreground">
+                Nenhum certificado encontrado no arquivo.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

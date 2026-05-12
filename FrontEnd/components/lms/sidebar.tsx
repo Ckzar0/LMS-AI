@@ -42,7 +42,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = currentView === item.id
-            const isDisabled = ["certifications", "users"].includes(item.id)
+            const isDisabled = ["users"].includes(item.id)
             
             return (
               <li key={item.id}>

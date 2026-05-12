@@ -306,6 +306,16 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
+
+    'local_wsmanageactivities_get_all_certificates' => [
+        'classname'   => 'local_wsmanageactivities\\external\\get_all_certificates',
+        'methodname'  => 'execute',
+        'description' => 'Get a list of all issued certificates (audit log)',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
 ];
 
 // ==========================================
@@ -344,6 +354,7 @@ $services = [
 
             // Funções de feedback e ratings
             'local_wsmanageactivities_get_dashboard_stats',
+            'local_wsmanageactivities_get_all_certificates',
             'local_wsmanageactivities_get_course_rating',
             'local_wsmanageactivities_get_feedback_data',
             'local_wsmanageactivities_submit_feedback_responses',
