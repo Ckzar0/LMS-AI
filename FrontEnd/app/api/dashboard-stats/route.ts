@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  const moodleUrl = "http://webserver"
+  const moodleUrl = process.env.MOODLE_URL || "http://localhost:8080"
   const moodleToken = process.env.MOODLE_TOKEN
 
   if (!moodleToken) {
