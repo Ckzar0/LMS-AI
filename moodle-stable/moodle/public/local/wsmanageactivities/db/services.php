@@ -224,6 +224,17 @@ $functions = [
         'capabilities' => 'moodle/course:view',
         'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
     ],
+
+    'local_wsmanageactivities_get_course_rating' => [
+        'classname'   => 'local_wsmanageactivities_external',
+        'methodname'  => 'get_course_rating',
+        'classpath'   => 'local/wsmanageactivities/externallib.php',
+        'description' => 'Get average rating for a course',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities' => 'moodle/course:view',
+        'services'    => [MOODLE_OFFICIAL_MOBILE_SERVICE]
+    ],
     
     // ==========================================
     // FUNÇÕES v22.0 - BANCO DE QUESTÕES
@@ -320,6 +331,11 @@ $services = [
             'local_wsmanageactivities_add_random_questions_to_quiz',
             'local_wsmanageactivities_get_question_categories',
             'local_wsmanageactivities_get_bank_statistics',
+
+            // Funções de feedback e ratings
+            'local_wsmanageactivities_get_course_rating',
+            'local_wsmanageactivities_get_feedback_data',
+            'local_wsmanageactivities_submit_feedback_responses',
             
             // Funções core necessárias
             'core_course_create_courses',

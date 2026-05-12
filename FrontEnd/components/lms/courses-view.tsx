@@ -90,34 +90,38 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
 
       {/* Filters */}
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-md opacity-50 cursor-not-allowed">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Pesquisar por nome ou código..." 
-            className="pl-10"
+            disabled
+            placeholder="Pesquisa indisponível nesta versão" 
+            className="pl-10 cursor-not-allowed"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 opacity-50 cursor-not-allowed">
           <Button 
             variant={filter === "all" ? "default" : "outline"} 
             size="sm"
-            onClick={() => setFilter("all")}
+            onClick={() => {}}
+            disabled
           >
             Todos ({courses.length})
           </Button>
           <Button 
             variant={filter === "published" ? "default" : "outline"} 
             size="sm"
-            onClick={() => setFilter("published")}
+            onClick={() => {}}
+            disabled
           >
             Publicados
           </Button>
           <Button 
             variant={filter === "generating" ? "default" : "outline"} 
             size="sm"
-            onClick={() => setFilter("generating")}
+            onClick={() => {}}
+            disabled
           >
             Em Geração
           </Button>
@@ -139,11 +143,15 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
               className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
               onClick={() => onCourseSelect(course.id.toString())}
             >
-              <div className="relative h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                <div className="absolute inset-0 bg-primary/10 group-hover:bg-primary/20 transition-colors" />
-                <Play className="h-12 w-12 text-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+              <div className="relative h-40 bg-muted flex items-center justify-center overflow-hidden">
+                <img 
+                  src={`https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop&q=80`} 
+                  alt={course.name}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                />
+                <div className="absolute inset-0 bg-primary/20 group-hover:bg-primary/30 transition-colors" />
                 <Badge 
-                  className={`absolute top-3 right-3 ${
+                  className={`absolute top-3 right-3 z-10 ${
                     course.status === "published" 
                       ? "bg-green-500 hover:bg-green-600" 
                       : "bg-amber-500 hover:bg-amber-600"
@@ -153,8 +161,9 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
                 </Badge>
               </div>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                    <Badge variant="outline" className="text-[10px] font-mono">{course.shortname}</Badge>
+                   <StarRating rating={course.rating || 0} size="sm" />
                 </div>
                 <h3 className="font-semibold text-foreground line-clamp-2 mb-2 h-12">{course.name}</h3>
                 
@@ -165,7 +174,7 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
                   </span>
                   <span className="flex items-center gap-1">
                     <BookOpen className="h-4 w-4" />
-                    Moodle ID: {course.id}
+                    ID: {course.id}
                   </span>
                 </div>
 

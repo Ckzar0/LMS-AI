@@ -208,4 +208,71 @@ class local_wsmanageactivities_external extends external_api {
             'message' => new external_value(PARAM_TEXT, 'Message')
         ]);
     }
+
+    /**
+     * Get average rating for a course based on feedback activities.
+     */
+    public static function get_course_rating_parameters() {
+        return new external_function_parameters([
+            'courseid' => new external_value(PARAM_INT, 'Course ID')
+        ]);
+    }
+
+    public static function get_course_rating($courseid) {
+        global $DB;
+        
+        // 1. Find feedback modules in this course
+        $feedbacks = $DB->get_records('feedback', ['course' => $courseid]);
+        if (empty($feedbacks)) {
+            return ['rating' => 0.0, 'count' => 0];
+        }
+
+        $total_rating = 0;
+        $total_count = 0;
+
+        foreach ($feedbacks as $feedback) {
+            // 2. Get multichoice items (usually used for ratings)
+            $items = $DB->get_records('feedback_item', ['feedback' => $feedback->id, 'typ' => 'multichoice']);
+            if (empty($items)) continue;
+
+            $itemids = array_keys($items);
+            list($insql, $inparams) = $DB->get_in_or_equal($itemids);
+
+            // 3. Get values linked to COMPLETED submissions for this feedback
+            // Join with feedback_completed to ensure we only get submitted values
+            $sql = "SELECT v.id, v.value 
+                    FROM {feedback_value} v
+                    JOIN {feedback_completed} c ON v.completed = c.id
+                    WHERE c.feedback = ? AND v.item $insql";
+            
+            $params = array_merge([$feedback->id], $inparams);
+            $values = $DB->get_records_sql($sql, $params);
+            
+            foreach ($values as $val) {
+                // Extract first character (e.g., "5 (Excelente)" -> 5 or just "5")
+                $clean_value = trim($val->value);
+                if (empty($clean_value)) continue;
+                
+                $num = (int)substr($clean_value, 0, 1);
+                if ($num >= 1 && $num <= 5) {
+                    $total_rating += $num;
+                    $total_count++;
+                }
+            }
+        }
+
+        $average = $total_count > 0 ? round($total_rating / $total_count, 1) : 0.0;
+
+        return [
+            'rating' => (float)$average,
+            'count' => (int)$total_count
+        ];
+    }
+
+    public static function get_course_rating_returns() {
+        return new external_single_structure([
+            'rating' => new external_value(PARAM_FLOAT, 'Average rating (0-5)'),
+            'count' => new external_value(PARAM_INT, 'Total number of ratings')
+        ]);
+    }
 }

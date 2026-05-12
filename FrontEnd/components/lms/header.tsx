@@ -15,17 +15,18 @@ export function Header() {
   return (
     <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
       <div className="flex items-center gap-4 flex-1 max-w-md">
-        <div className="relative flex-1">
+        <div className="relative flex-1 opacity-50 cursor-not-allowed">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Pesquisar cursos, colaboradores..." 
-            className="pl-10 bg-muted border-0"
+            disabled
+            placeholder="Pesquisa indisponível nesta versão" 
+            className="pl-10 bg-muted border-0 cursor-not-allowed"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative opacity-50 cursor-not-allowed" disabled>
           <Bell className="h-5 w-5" />
           <span className="absolute top-1 right-1 h-2 w-2 bg-primary rounded-full" />
         </Button>
@@ -44,8 +45,8 @@ export function Header() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>Perfil</DropdownMenuItem>
-            <DropdownMenuItem>Definições</DropdownMenuItem>
+            <DropdownMenuItem className="opacity-50 cursor-not-allowed" disabled>Perfil</DropdownMenuItem>
+            <DropdownMenuItem className="opacity-50 cursor-not-allowed" disabled>Definições</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Terminar Sessão</DropdownMenuItem>
           </DropdownMenuContent>

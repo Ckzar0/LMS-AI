@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  const moodleUrl = process.env.MOODLE_URL || "http://localhost:8080"
+  const moodleUrl = "http://webserver"
   const moodleToken = process.env.MOODLE_TOKEN
 
   if (!moodleToken) {
@@ -66,6 +66,19 @@ export async function GET(request: NextRequest) {
 
         const progress = Math.round((completedModules.length / modulesWithCompletion.length) * 100);
 
+        // Fetch Real Rating
+        let rating = 0;
+        try {
+          const ratingRes = await fetch(
+            `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=local_wsmanageactivities_get_course_rating&moodlewsrestformat=json&courseid=${course.id}`,
+            { method: 'POST', cache: 'no-store' }
+          );
+          const ratingData = await ratingRes.json();
+          rating = ratingData.rating || 0;
+        } catch (e) {
+          console.error(`Error fetching rating for course ${course.id}:`, e);
+        }
+
         return {
           id: course.id,
           name: course.fullname,
@@ -73,6 +86,7 @@ export async function GET(request: NextRequest) {
           timecreated: course.timecreated,
           enrolled: 0, // Placeholder
           progress: progress,
+          rating: rating,
           status: "published"
         };
       } catch (e) {
@@ -83,6 +97,7 @@ export async function GET(request: NextRequest) {
           timecreated: course.timecreated,
           enrolled: 0,
           progress: 0,
+          rating: 0,
           status: "published"
         };
       }
@@ -90,7 +105,12 @@ export async function GET(request: NextRequest) {
 
     // 4. Totals
     const totalCertifications = realCourses.length * 5 // Mock
-    const averageRating = 4.5 // Mock
+    
+    // Calculate global average rating
+    const coursesWithRatings = coursesWithProgress.filter(c => c.rating > 0);
+    const averageRating = coursesWithRatings.length > 0 
+      ? Number((coursesWithRatings.reduce((acc, curr) => acc + curr.rating, 0) / coursesWithRatings.length).toFixed(1))
+      : 0;
 
     return NextResponse.json({
       totalCourses: realCourses.length,
