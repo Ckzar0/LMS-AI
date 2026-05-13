@@ -58,8 +58,6 @@ export async function POST(req: Request) {
     }
 
     // 2. Create the course structure in Moodle
-    console.log(`[API] Sending course to Moodle: ${course.course_name} (Folder: ${course.image_folder || 'N/A'})`);
-    
     const formData = new FormData()
     formData.append("wstoken", moodleToken)
     formData.append("wsfunction", "local_wsmanageactivities_create_course_with_content")
@@ -78,7 +76,6 @@ export async function POST(req: Request) {
     }
 
     // Se o Moodle devolveu um ID, garantir que ele vai para o FrontEnd como courseId
-    // O Moodle WebService devolve 'courseid' segundo execute_returns()
     const finalCourseId = data.courseid || data.course_id || data.id || (typeof data === 'number' ? data : null);
 
     return NextResponse.json({ 
