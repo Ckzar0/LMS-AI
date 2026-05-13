@@ -28,10 +28,14 @@ interface CoursesViewProps {
 
 export function CoursesView({ onCourseSelect }: CoursesViewProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filter, setFilter] = useState<"all" | "published" | "generating">("all")
+  const [filter, setFilter] = useState<"all" | "published" | "evaluated">("all")
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     async function fetchCourses() {
@@ -54,9 +58,23 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
   const filteredCourses = courses.filter(course => {
     const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          course.shortname.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filter === "all" || course.status === filter
-    return matchesSearch && matchesFilter
+    
+    if (filter === "all") return matchesSearch;
+    if (filter === "published") return matchesSearch && course.status === "published";
+    if (filter === "evaluated") return matchesSearch && (course.rating || 0) > 0;
+    
+    return matchesSearch
   })
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const currentCourses = filteredCourses.slice(startIndex, startIndex + itemsPerPage)
+
+  // Reset to first page when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filter])
 
   if (loading) {
     return (
