@@ -1,86 +1,40 @@
-# 📦 Plugin wsmanageactivities
+# 📦 Plugin wsmanageactivities (LMS-AI Core)
 
-**Versão**: v8.1  
-**Moodle**: 5.0+  
-**Autor**: Sistema de importação automática de cursos
+**Versão**: v1.1.0 (Maio 2026)  
+**Moodle**: 5.1+  
+**Contexto**: Módulo de integração e criação de cursos via IA.
 
 ## 🎯 Funcionalidades
 
-- ✅ Criação automática de cursos via JSON
-- ✅ Bancos de questões
-- ✅ Páginas de conteúdo
-- ✅ Quizzes com questões aleatórias
-- ✅ **Navegação automática entre conteúdos** (v8.1)
+- ✅ **Criação Headless**: API para criação de cursos via JSON (Next.js).
+- ✅ **Ajuste de Imagens**: Ferramenta `fix_images.php` para polimento visual.
+- ✅ **Bancos de Questões**: Suporte total à nova estrutura do Moodle 5.1.
+- ✅ **Navegação**: Botões de navegação automática entre atividades.
 
-## 🚀 Como Usar
+## 🚀 Como Usar (Interface Web)
 
-1. Aceder: `http://192.168.64.2/moodle2/local/wsmanageactivities/upload.php`
-2. Fazer upload de ficheiro JSON
-3. Aguardar processamento
-4. Aceder ao curso criado
+1. Aceder: `http://localhost:8080/local/wsmanageactivities/upload.php`
+2. Carregar o ficheiro JSON estruturado.
+3. O curso será criado e o ID será devolvido.
 
-## 📝 Exemplo de JSON
+## 🖼️ Reparação de Imagens
 
-```json
-{
-  "course_name": "Meu Curso",
-  "course_shortname": "CURSO_001",
-  "question_banks": [...],
-  "activities": [
-    {"type": "page", "name": "Intro", "content": "..."},
-    {"type": "quiz", "name": "Teste", "questions_from_bank": {...}}
-  ]
-}
-```
+Se o curso gerado pela IA contiver placeholders ou imagens incorretas, utilize:
+`http://localhost:8080/local/wsmanageactivities/fix_images.php?courseid=ID`
 
-## 🧭 Navegação Automática
+## 📚 Documentação Relacionada
 
-Todas as **páginas** têm botões:
-- **← Anterior**: Vai para atividade anterior (página ou quiz)
-- **Próximo →**: Vai para próxima atividade (página ou quiz)
+- **KNOWLEDGE_BASE.md**: Detalhes técnicos e estrutura de BD.
+- **INSTALL_PROD.md** (Raiz): Instruções de deployment Docker.
+- **USER_MANUAL.md** (Raiz): Manual completo de utilização.
 
-## 📚 Documentação
+## 🛠️ Desenvolvimento e Testes
 
-- **KNOWLEDGE_BASE.md**: Informação completa do sistema
-- **CHANGELOG.md**: Histórico de versões
-- **QUIZ_QUESTIONS_EXAMPLES.md**: Exemplos de questões
-
-## 🔧 Acesso SSH
-
+Para testar as funções de WebService via terminal:
 ```bash
-ssh ubuntu@192.168.64.2
-cd /var/www/html/moodle2/public/local/wsmanageactivities
-```
-
-## 📊 Estrutura
-
-```
-wsmanageactivities/
-├── upload.php              # Interface web
-├── classes/
-│   ├── CourseManager.php
-│   ├── QuestionBankManager.php
-│   └── importer/
-│       ├── ActivityCreator.php
-│       └── QuestionCreator.php
-├── KNOWLEDGE_BASE.md       # 📖 Documentação completa
-├── CHANGELOG.md            # 📝 Histórico
-└── README.md               # 👈 Este ficheiro
-```
-
-## 🐛 Troubleshooting
-
-Ver logs:
-```bash
-sudo tail -f /var/log/php/error.log
-```
-
-Ver documentação completa:
-```bash
-cat KNOWLEDGE_BASE.md
+./scripts/plugin_test_script.sh
 ```
 
 ---
-
-**Última atualização**: 14-Feb-2026  
-**Versão atual**: v8.1
+**Última atualização**: Maio 2026  
+**Status**: Produção Estável
