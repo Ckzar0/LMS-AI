@@ -46,6 +46,7 @@ export interface MoodleCourse {
   course_name: string
   course_shortname: string
   source_file: string
+  image_folder?: string
   course_summary: string
   question_banks: QuestionBank[]
   activities: Activity[]

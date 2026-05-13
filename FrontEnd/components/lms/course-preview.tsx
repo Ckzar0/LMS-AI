@@ -115,7 +115,7 @@ function QuestionPreview({ question, index }: { question: Question; index: numbe
   )
 }
 
-function ActivityPreview({ activity, index, imageFolder }: { activity: Activity; index: number; imageFolder?: string }) {
+function ActivityPreview({ activity, index, imageFolder, sourceFile }: { activity: Activity; index: number; imageFolder?: string; sourceFile?: string }) {
   const [expanded, setExpanded] = useState(index === 0)
 
   // Função para transformar placeholders em imagens REAIS no preview
@@ -123,19 +123,26 @@ function ActivityPreview({ activity, index, imageFolder }: { activity: Activity;
     if (!html) return "";
     let processed = html;
 
+    // Determinar a pasta de imagens (fallback para source_file se imageFolder estiver vazio)
+    let finalFolder = imageFolder || "";
+    if (!finalFolder && sourceFile) {
+        // Sanitização básica (igual ao Moodle)
+        finalFolder = sourceFile.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+    }
+
     // 1. Processar Imagens [[IMG_Pxx_yy]]
     // Tenta pegar do env ou assume localhost:8080
     const moodleUrl = process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080";
     const imgRegex = /\[\[IMG_P?(\d+)_(\d+)(?:_([^\]]+))?\]\]/gi;
     
     processed = processed.replace(imgRegex, (match, p, s, suffix) => {
-      if (!imageFolder) return `<div class="p-4 border-2 border-dashed border-red-200 bg-red-50 text-red-500 rounded-lg text-center my-4 font-bold">⚠️ Extração Necessária: ${match}</div>`;
+      if (!finalFolder) return `<div class="p-4 border-2 border-dashed border-red-200 bg-red-50 text-red-500 rounded-lg text-center my-4 font-bold">⚠️ Extração Necessária: ${match}</div>`;
       
       const pPad = p.padStart(3, '0');
       const sPad = s.padStart(3, '0');
       
       // Usar o proxy get_image.php para evitar erros de CORS e Caminho
-      const imgPath = `${imageFolder}/img-${pPad}-${sPad}.jpg`;
+      const imgPath = `${finalFolder}/img-${pPad}-${sPad}.jpg`;
       const imgUrl = `${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imgPath}`;
       
       return `
@@ -144,8 +151,8 @@ function ActivityPreview({ activity, index, imageFolder }: { activity: Activity;
                crossorigin="anonymous"
                class="rounded-lg shadow-md mx-auto max-w-full h-auto border border-gray-100" 
                alt="${match}"
-               onerror="this.src='${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imageFolder}/img-${pPad}-000.jpg'; this.onerror=() => { this.parentElement.innerHTML='<div class=\\'p-4 border-2 border-dashed border-amber-200 bg-amber-50 text-amber-500 rounded-lg text-center my-4\\'>🖼️ Imagem não encontrada (Pág ${p}): ${match}</div>' }" />
-          <figcaption class="mt-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">Preview Extração: ${imageFolder}</figcaption>
+               onerror="this.src='${moodleUrl}/local/wsmanageactivities/get_image.php?path=${finalFolder}/img-${pPad}-000.jpg'; this.onerror=() => { this.parentElement.innerHTML='<div class=\\'p-4 border-2 border-dashed border-amber-200 bg-amber-50 text-amber-500 rounded-lg text-center my-4\\'>🖼️ Imagem não encontrada (Pág ${p}): ${match}</div>' }" />
+          <figcaption class="mt-3 text-[10px] uppercase tracking-widest text-gray-400 font-bold">Preview Extração: ${finalFolder}</figcaption>
         </figure>
       `;
     });
@@ -313,7 +320,13 @@ export function CoursePreview({
         
         <TabsContent value="activities" className="space-y-4 mt-4">
           {(course.activities || []).map((activity, index) => (
-            <ActivityPreview key={index} activity={activity} index={index} imageFolder={course.image_folder} />
+            <ActivityPreview 
+              key={index} 
+              activity={activity} 
+              index={index} 
+              imageFolder={course.image_folder} 
+              sourceFile={course.source_file}
+            />
           ))}
           {(course.activities || []).length === 0 && (
             <div className="text-center py-10 text-muted-foreground italic">Nenhuma atividade gerada.</div>

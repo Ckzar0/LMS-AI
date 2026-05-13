@@ -69,7 +69,13 @@ class ActivityCreator {
             $context = \context_module::instance($info->coursemodule);
             
             // Tentar descobrir a pasta de imagens do JSON (ou o nome do ficheiro)
-            $image_folder = $activity['image_folder'] ?? $activity['source_file'] ?? '';
+            $image_folder = !empty($activity['image_folder']) ? $activity['image_folder'] : 
+                            (!empty($activity['source_file']) ? $activity['source_file'] : '');
+
+            // FALLBACK ROBUSTO: Se a atividade não tem pasta, usar o shortname (removendo timestamp)
+            if (empty($image_folder) && !empty($course->shortname)) {
+                $image_folder = preg_replace('/_\d{10}$/', '', $course->shortname);
+            }
             
             // APLICAR A MESMA SANITIZAÇÃO QUE NO process_pdf.php
             $image_folder = preg_replace('/[^a-zA-Z0-9._-]/', '_', $image_folder);

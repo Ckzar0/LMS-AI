@@ -26,9 +26,9 @@ class process_pdf extends external_api {
     public static function execute($filename, $filecontent) {
         global $CFG;
         
-        // Impedir que Warnings/Notices sujem o JSON
-        @error_reporting(0);
-        @ini_set('display_errors', 0);
+        // Habilitar erros para debug temporário
+        @error_reporting(E_ALL);
+        @ini_set('display_errors', 1);
         @ini_set('memory_limit', '512M');
         @set_time_limit(300); // 5 minutos
         while (ob_get_level()) ob_end_clean();
@@ -61,8 +61,11 @@ class process_pdf extends external_api {
 
         // Procura Robusta no Servidor
         $possible_paths = [
+            "/var/www/html/Cursos/" . $params['filename'],
+            "/var/www/html/Cursos/" . $safe_filename,
             "/var/www/Cursos/" . $params['filename'],
             "/var/www/Cursos/" . $safe_filename,
+            $CFG->dirroot . "/Cursos/" . $params['filename'],
             $CFG->dirroot . "/../Cursos/" . $params['filename']
         ];
         
@@ -117,6 +120,11 @@ class process_pdf extends external_api {
         $all_output = [];
         $cmd = "pdfimages -p -all \"$pdf_path\" \"$target_dir/img\" 2>&1";
         exec($cmd, $all_output);
+        
+        file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ⏳ Executing: $cmd\n", FILE_APPEND);
+        if (!empty($all_output)) {
+            file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🗨️ Output: " . implode("\n", $all_output) . "\n", FILE_APPEND);
+        }
 
         // 4. Otimização Python (OBRIGATÓRIO para converter PPM para JPG)
         $py_script = $plugin_root . "/optimize_images.py";
@@ -124,6 +132,10 @@ class process_pdf extends external_api {
             $py_output = [];
             $py_cmd = "python3 \"$py_script\" \"$target_dir\" 2>&1";
             exec($py_cmd, $py_output);
+            file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ⏳ Executing Python: $py_cmd\n", FILE_APPEND);
+            if (!empty($py_output)) {
+                file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🗨️ Python Output: " . implode("\n", $py_output) . "\n", FILE_APPEND);
+            }
         }
         
         // Garantir permissões nos ficheiros extraídos

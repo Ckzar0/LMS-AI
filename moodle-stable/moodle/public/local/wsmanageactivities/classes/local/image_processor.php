@@ -97,7 +97,7 @@ class image_processor {
                     @chmod($dest_file, 0777);
                 } else {
                     $error = error_get_last();
-                    file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ❌ Failed to copy image $img_name: " . ($error['message'] ?? 'Unknown error') . "\n", FILE_APPEND);
+                    file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ❌ Failed to copy image $img_name to $dest_file: " . ($error['message'] ?? 'Unknown error') . "\n", FILE_APPEND);
                 }
                 
                 // Usar URL relativa para evitar problemas com 'http://webserver' vs 'http://localhost:8080'
@@ -108,6 +108,9 @@ class image_processor {
                        '<figcaption class="ailms-img-caption" style="margin-top:12px; font-style:italic; font-weight:600; color:#111; text-align:center;">' . $final_legend . '</figcaption>' .
                        '</figure>';
             } else {
+                $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+                file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ⚠️ Image not found for placeholder $full_placeholder in $base_path\n", FILE_APPEND);
+                
                 return '<div class="ailms-figure ailms-error-block" data-placeholder="'.$clean_id.'" style="background:#fee2e2; border:2px dashed #ef4444; padding:20px; border-radius:10px; margin:20px auto; text-align:center; clear: both;">' .
                              '<strong style="color:#b91c1c;">⚠️ IMAGEM EM FALTA: [[' . $clean_id . ']]</strong>' .
                              '<div class="ailms-img-caption" style="margin-top:10px; font-weight:bold; text-align:center;">' . $final_legend . '</div>' .
@@ -115,19 +118,66 @@ class image_processor {
             }
         }, $content);
 
-        // 3. PROCESSAR TABELAS
+        // 3. PROCESSAR TABELAS ([[TABLE_PXX]])
         $pattern_tables = '/(?<!data-placeholder=")(\[\[TABLE_P?(\d+)(?:_([^\]]+))?\]\])(?:\s*<br[^>]*>|\s+)*(?:(?:Tabela|Figura)\s*\d+[:\-\s]*(.*?)(?:\(|$|<\/div>))?/is';
-        $content = preg_replace_callback($pattern_tables, function($match) {
+        
+        $content = preg_replace_callback($pattern_tables, function($match) use ($base_path, $mapping, $CFG, $course_id) {
             self::$global_count++;
-            $p_num = $match[2];
-            $suffix = !empty($match[3]) ? $match[3] : "";
-            $placeholder_id = "TABLE_P{$p_num}" . ($suffix ? "_{$suffix}" : "");
             
-            $final_legend = "Tabela " . self::$global_count;
-            return '<div class="ailms-figure ailms-error-block" data-placeholder="'.$placeholder_id.'" style="background:#f0f9ff; border:2px dashed #0284c7; padding:20px; border-radius:12px; margin:30px auto; text-align:center; clear: both;">' .
-                         '<strong style="color:#0369a1;">📊 TABELA EM FALTA (Pág. '.$p_num.')</strong>' .
-                         '<div class="ailms-img-caption" style="margin-top:10px; font-weight:bold; text-align:center;">' . $final_legend . '</div>' .
-                         '</div>';
+            $full_placeholder = $match[1];
+            $p_num = $match[2]; 
+            $suffix = !empty($match[3]) ? $match[3] : "";
+            $extracted_legend = !empty($match[4]) ? trim(strip_tags($match[4])) : "";
+            
+            $clean_id = "TABLE_P{$p_num}" . ($suffix ? "_{$suffix}" : "");
+            $final_legend = "Tabela " . self::$global_count . (!empty($extracted_legend) ? " - " . $extracted_legend : "");
+
+            // --- PROCURA DE IMAGEM PARA A TABELA ---
+            $p_pad = str_pad($p_num, 3, '0', STR_PAD_LEFT);
+            $final_source = "";
+
+            // Para tabelas, tentamos primeiro o índice 0 da página (geralmente tabelas são detectadas primeiro ou são grandes)
+            $extensions = ['jpg', 'png', 'jpeg'];
+            foreach ($extensions as $ext) {
+                $cname = "img-$p_pad-000.$ext"; // Tentar primeira imagem da página
+                if (file_exists($base_path . $cname)) { $final_source = $base_path . $cname; break; }
+                $cname = "img-$p_pad-001.$ext"; // Tentar segunda imagem da página
+                if (file_exists($base_path . $cname)) { $final_source = $base_path . $cname; break; }
+            }
+
+            // Fallback: Qualquer imagem daquela página
+            if (!$final_source) {
+                $page_files = glob($base_path . "img-$p_pad-*.*");
+                if ($page_files) $final_source = $page_files[0];
+            }
+
+            if ($final_source) {
+                $assets_sub = ($course_id > 0) ? $course_id . '/' : '';
+                $public_dir = $CFG->dirroot . '/course_assets/' . $assets_sub;
+                
+                if (!is_dir($public_dir)) {
+                    @mkdir($public_dir, 0777, true);
+                }
+                
+                $img_name = basename($final_source);
+                $dest_file = $public_dir . $img_name;
+                
+                if (@copy($final_source, $dest_file)) {
+                    @chmod($dest_file, 0777);
+                }
+                
+                $img_url = '/course_assets/' . $assets_sub . $img_name;
+
+                return '<figure class="ailms-figure ailms-table-container" data-placeholder="'.$clean_id.'" style="margin: 30px auto; text-align: center; display: block; clear: both;">' .
+                       '<img src="' . $img_url . '" data-legend="'.htmlspecialchars($final_legend).'" class="img-fluid" style="border-radius: 4px; max-width: 100%; height: auto; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">' .
+                       '<figcaption class="ailms-img-caption" style="margin-top:12px; font-style:normal; font-weight:700; color:#0369a1; text-align:center; font-family: sans-serif;">' . $final_legend . '</figcaption>' .
+                       '</figure>';
+            } else {
+                return '<div class="ailms-figure ailms-error-block" data-placeholder="'.$clean_id.'" style="background:#f0f9ff; border:2px dashed #0284c7; padding:20px; border-radius:12px; margin:30px auto; text-align:center; clear: both;">' .
+                             '<strong style="color:#0369a1;">📊 TABELA EM FALTA (Pág. '.$p_num.')</strong>' .
+                             '<div class="ailms-img-caption" style="margin-top:10px; font-weight:bold; text-align:center;">' . $final_legend . '</div>' .
+                             '</div>';
+            }
         }, $content);
 
         return $content;

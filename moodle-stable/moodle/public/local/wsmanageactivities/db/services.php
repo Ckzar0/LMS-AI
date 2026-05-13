@@ -334,10 +334,18 @@ $services = [
             'local_wsmanageactivities_create_page_with_files',
             'local_wsmanageactivities_upload_and_attach_files',
             
-            // Função de workflow sequencial (existente)
+            // Funções de workflow sequencial (existente)
             'local_wsmanageactivities_configure_sequential_workflow',
 
             'local_wsmanageactivities_create_course_with_content',
+            'local_wsmanageactivities_process_pdf',
+            'local_wsmanageactivities_get_certificate_pdf',
+            'local_wsmanageactivities_mark_activity_viewed',
+            'local_wsmanageactivities_get_activity_content',
+            'local_wsmanageactivities_get_quiz_data',
+            'local_wsmanageactivities_enrol_user',
+            'local_wsmanageactivities_submit_quiz_grade',
+            'local_wsmanageactivities_create_qbank_module',
 
             // Funções de gestão de secções
             'local_wsmanageactivities_update_course_section',

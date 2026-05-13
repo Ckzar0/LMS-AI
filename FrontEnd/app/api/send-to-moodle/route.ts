@@ -59,6 +59,8 @@ export async function POST(req: Request) {
     }
 
     // 2. Create the course structure in Moodle
+    console.log(`[API] Sending course to Moodle: ${course.course_name} (Folder: ${course.image_folder || 'N/A'})`);
+    
     const formData = new FormData()
     formData.append("wstoken", moodleToken)
     formData.append("wsfunction", "local_wsmanageactivities_create_course_with_content")

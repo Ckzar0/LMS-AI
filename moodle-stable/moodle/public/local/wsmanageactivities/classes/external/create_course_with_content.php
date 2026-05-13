@@ -99,7 +99,10 @@ class create_course_with_content extends external_api {
 
         // 3. Process Activities
         $importer = new ActivityCreator($courseid);
-        $global_folder = $data['image_folder'] ?? $data['source_file'] ?? '';
+        
+        // Robust way to get global folder
+        $global_folder = !empty($data['image_folder']) ? $data['image_folder'] : 
+                         (!empty($data['source_file']) ? $data['source_file'] : '');
         
         $current_prerequisites = []; // IDs das páginas antes do quiz
         $after_quiz_prerequisites = []; // IDs para atividades depois do quiz (apenas o quiz cmid)
@@ -107,7 +110,7 @@ class create_course_with_content extends external_api {
         $created_activities = [];
 
         foreach ($data['activities'] as $index => $activity) {
-            // Injetar pasta global se a atividade não tiver uma local
+            // Injetar pasta global se a atividade não tiver uma local (handling empty strings)
             if (empty($activity['image_folder']) && empty($activity['source_file'])) {
                 $activity['image_folder'] = $global_folder;
             }
