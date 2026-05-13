@@ -24,13 +24,17 @@ class get_dashboard_stats extends external_api {
         // 1. Total Courses (excluding site course)
         $total_courses = $DB->count_records_select('course', 'id > 1');
 
-        // 2. Total Users
-        $total_users = $DB->count_records('user', ['deleted' => 0, 'suspended' => 0]);
+        // 2. Total Users (excluding guest)
+        $total_users = $DB->count_records_select('user', "deleted = 0 AND suspended = 0 AND username != 'guest'");
 
-        // 3. Total Certificates (count from customcert or unique completions of certificate activities)
-        // Here we'll count entries in feedback_completed as a proxy for 'courses rated/completed' 
-        // OR if customcert exists, we count that. For now, let's count completed feedback as 'certificates'
-        $total_certificates = $DB->count_records('feedback_completed');
+        // 3. Total Certificates (Unique courses with certificate activity completed)
+        $cert_sql = "SELECT COUNT(DISTINCT f.course)
+                     FROM {feedback_completed} fc
+                     JOIN {feedback} f ON fc.feedback = f.id
+                     JOIN {course_modules} cm ON cm.course = f.course
+                     JOIN {modules} m ON cm.module = m.id
+                     WHERE m.name = 'customcert'";
+        $total_certificates = $DB->count_records_sql($cert_sql);
 
         // 4. Weekly Activity (last 7 days)
         $weekly_activity = [];

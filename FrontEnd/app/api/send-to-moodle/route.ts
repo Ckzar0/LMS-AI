@@ -27,7 +27,6 @@ export async function POST(req: Request) {
         pdfFormData.append("filecontent", pdfFile.content);
       } else {
         pdfFormData.append("filecontent", "");
-        console.log(`[API] Ficheiro ${pdfFile.name} é grande. Enviando vazio e confiando na pasta /Cursos/ do servidor.`);
       }
 
       try {
@@ -131,4 +130,6 @@ export async function GET() {
       { status: 500 }
     )
   }
+}
+
 }

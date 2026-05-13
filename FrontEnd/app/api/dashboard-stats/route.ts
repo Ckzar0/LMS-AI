@@ -48,9 +48,8 @@ export async function GET(request: NextRequest) {
     const realCourses = Array.isArray(courses) ? courses.filter((c: any) => c.id !== 1) : []
     realCourses.sort((a, b) => (b.timecreated || 0) - (a.timecreated || 0))
 
-    // 3. Calculate Real Progress for top courses
-    const topCourses = realCourses.slice(0, 10);
-    const coursesWithProgress = await Promise.all(topCourses.map(async (course: any) => {
+    // 3. Calculate Real Progress for all courses (removed slice limit to show all in catalog)
+    const coursesWithProgress = await Promise.all(realCourses.map(async (course: any) => {
       try {
         const contentsRes = await fetch(
           `${moodleUrl}/webservice/rest/server.php?wstoken=${moodleToken}&wsfunction=core_course_get_contents&moodlewsrestformat=json&courseid=${course.id}`,

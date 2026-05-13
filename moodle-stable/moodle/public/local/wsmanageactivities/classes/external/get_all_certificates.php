@@ -24,17 +24,17 @@ class get_all_certificates extends external_api {
         self::validate_context($context);
         require_capability('moodle/course:view', $context);
 
-        // Query to find issued certificates based on feedback completions
-        // Note: feedback_completed uses 'timemodified' instead of 'timecreated'
-        $sql = "SELECT c.id as courseid, c.fullname as coursename, u.id as userid, u.firstname, u.lastname, 
-                       fc.timemodified as timeissued, cc.id as cmid
+        // Query to find unique issued certificates per course
+        $sql = "SELECT MIN(fc.id) as id, c.id as courseid, c.fullname as coursename, u.id as userid, u.firstname, u.lastname, 
+                       MAX(fc.timemodified) as timeissued, cc.id as cmid
                 FROM {feedback_completed} fc
                 JOIN {feedback} f ON fc.feedback = f.id
                 JOIN {course} c ON f.course = c.id
                 JOIN {user} u ON fc.userid = u.id
-                LEFT JOIN {course_modules} cc ON cc.course = c.id 
+                JOIN {course_modules} cc ON cc.course = c.id 
                      AND cc.module = (SELECT id FROM {modules} WHERE name = 'customcert')
-                ORDER BY fc.timemodified DESC";
+                GROUP BY c.id, c.fullname, u.id, u.firstname, u.lastname, cc.id
+                ORDER BY timeissued DESC";
         
         $records = $DB->get_records_sql($sql);
         $certificates = [];

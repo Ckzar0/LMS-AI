@@ -57,8 +57,11 @@ export function CertificationsView() {
       const response = await fetch(`/api/course/certificate/${cmid}`)
       const data = await response.json()
 
-      if (data.pdf) {
-        const linkSource = `data:application/pdf;base64,${data.pdf}`
+      // O Moodle devolve 'filecontent', mas vamos aceitar ambos para resiliência
+      const pdfBase64 = data.filecontent || data.pdf;
+
+      if (pdfBase64) {
+        const linkSource = `data:application/pdf;base64,${pdfBase64}`
         const downloadLink = document.createElement("a")
         const fileName = `Certificado_${courseName.replace(/\s+/g, '_')}_${userName.replace(/\s+/g, '_')}.pdf`
 
@@ -67,7 +70,7 @@ export function CertificationsView() {
         downloadLink.click()
         toast.success("Certificado descarregado com sucesso!")
       } else {
-        throw new Error("PDF not found")
+        throw new Error("PDF not found in response")
       }
     } catch (err) {
       console.error("Download error:", err)
