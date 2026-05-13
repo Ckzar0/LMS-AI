@@ -113,72 +113,106 @@ export function CoursesView({ onCourseSelect }: CoursesViewProps) {
           >
             Publicados
           </Button>
+          <Button 
+            variant={filter === "evaluated" ? "default" : "outline"} 
+            size="sm"
+            onClick={() => setFilter("evaluated")}
+          >
+            Avaliados
+          </Button>
         </div>
       </div>
 
       {/* Courses Grid */}
-      {filteredCourses.length === 0 ? (
+      {currentCourses.length === 0 ? (
         <div className="p-12 text-center border-2 border-dashed border-border rounded-xl">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
           <h3 className="text-lg font-medium">Nenhum curso encontrado</h3>
           <p className="text-muted-foreground mt-2">Tente ajustar os seus filtros ou termos de pesquisa.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
-            <Card 
-              key={course.id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group flex flex-col"
-              onClick={() => onCourseSelect(course.id.toString())}
-            >
-              <div className="relative h-40 bg-muted flex items-center justify-center overflow-hidden">
-                <img 
-                  src={`https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop&q=80`} 
-                  alt={course.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                />
-                <div className="absolute inset-0 bg-primary/20 group-hover:bg-primary/30 transition-colors" />
-                <Badge 
-                  className={`absolute top-3 right-3 z-10 bg-green-500 hover:bg-green-600`}
-                >
-                  Publicado
-                </Badge>
-              </div>
-              <CardContent className="p-4 flex-1 flex flex-col">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                   <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0">{course.shortname}</Badge>
-                   <div className="flex items-center gap-1">
-                      <StarRating rating={course.rating || 0} size="sm" readonly />
-                      <span className="text-[10px] font-bold text-muted-foreground">{(course.rating || 0).toFixed(1)}</span>
-                   </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentCourses.map((course) => (
+              <Card 
+                key={course.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group flex flex-col"
+                onClick={() => onCourseSelect(course.id.toString())}
+              >
+                <div className="relative h-40 bg-muted flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={`https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop&q=80`} 
+                    alt={course.name}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                  />
+                  <div className="absolute inset-0 bg-primary/20 group-hover:bg-primary/30 transition-colors" />
+                  <Badge 
+                    className={`absolute top-3 right-3 z-10 bg-green-500 hover:bg-green-600`}
+                  >
+                    Publicado
+                  </Badge>
                 </div>
-                <h3 className="font-semibold text-foreground line-clamp-2 mb-2 h-10 leading-tight">{course.name}</h3>
-                
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 mt-auto pt-2">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Completo
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="h-3 w-3" />
-                    ID: {course.id}
-                  </span>
-                </div>
+                <CardContent className="p-4 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                     <Badge variant="secondary" className="text-[10px] font-mono px-1.5 py-0">{course.shortname}</Badge>
+                     <div className="flex items-center gap-1">
+                        <StarRating rating={course.rating || 0} size="sm" readonly />
+                        <span className="text-[10px] font-bold text-muted-foreground">{(course.rating || 0).toFixed(1)}</span>
+                     </div>
+                  </div>
+                  <h3 className="font-semibold text-foreground line-clamp-2 mb-2 h-10 leading-tight">{course.name}</h3>
+                  
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4 mt-auto pt-2">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Completo
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="h-3 w-3" />
+                      ID: {course.id}
+                    </span>
+                  </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Users className="h-3 w-3" />
-                    <span>0 inscritos</span>
+                  <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Users className="h-3 w-3" />
+                      <span>0 inscritos</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <FileText className="h-3 w-3" />
+                      <span className="truncate max-w-[80px]">manual.pdf</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <FileText className="h-3 w-3" />
-                    <span className="truncate max-w-[80px]">manual.pdf</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Próxima
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
