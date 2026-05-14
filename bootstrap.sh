@@ -14,8 +14,8 @@ command -v docker >/dev/null 2>&1 || { echo >&2 "❌ Erro: Docker não está ins
 
 # 2. Verificar Moodle Core
 if [ ! -f "moodle-stable/moodle/index.php" ]; then
-    echo "📥 Moodle Core não encontrado. A clonar do repositório oficial (Moodle 4.5)..."
-    git clone --depth 1 --branch v4.5.0 https://github.com/moodle/moodle.git moodle-temp
+    echo "📥 Moodle Core não encontrado. A clonar a versão de desenvolvimento (Moodle 5.1.3+)..."
+    git clone --depth 1 --branch master https://github.com/moodle/moodle.git moodle-temp
     cp -rv moodle-temp/* moodle-stable/moodle/
     rm -rf moodle-temp
 fi
@@ -34,11 +34,13 @@ chmod -R 777 moodle-stable/moodle/course_assets
 echo "📝 Sincronizando Prompt de Geração..."
 cp Prompts/PROMPT_GERACAO_CURSO.md moodle-stable/moodle/public/local/wsmanageactivities/master_prompt.md || echo "⚠️ Aviso: Ficheiro de prompt não encontrado."
 
-# 4. Iniciar Contentores
-echo "🐳 A subir contentores (Build & Up)..."
+# 4. Limpar ambiente anterior e Iniciar Contentores
+echo "🐳 Limpando ambiente e subindo contentores (Build & Up)..."
 if docker compose version >/dev/null 2>&1; then
+    docker compose down --remove-orphans
     docker compose up -d --build
 else
+    docker-compose down --remove-orphans
     docker-compose up -d --build
 fi
 
@@ -53,14 +55,11 @@ until docker exec $DB_CONTAINER mariadb -u moodle -pm@0dl3ing -e "select 1" >/de
 done
 echo "✅ Base de Dados pronta!"
 
-# 6. Instalar Ferramentas de Extração (Extração de PDF e Imagens)
-echo "🛠️ Instalando ferramentas de sistema no contentor (poppler, python)..."
-docker exec -u root $WEBSERVER_CONTAINER apt-get update
-docker exec -u root $WEBSERVER_CONTAINER apt-get install -y poppler-utils python3
-
-# Garantir permissões internas (Docker Side)
+# 6. Garantir permissões internas (Docker Side)
+echo "📂 Configurando permissões internas no contentor..."
 docker exec -u root $WEBSERVER_CONTAINER chown -R www-data:www-data /var/www/html/public/local/wsmanageactivities/extracted_images
 docker exec -u root $WEBSERVER_CONTAINER chown -R www-data:www-data /var/www/html/public/local/wsmanageactivities/temp_pdfs
+docker exec -u root $WEBSERVER_CONTAINER chown -R www-data:www-data /var/www/html/course_assets
 
 # 7. Instalação / Configuração do Moodle
 TABLE_COUNT=$(docker exec $DB_CONTAINER mariadb -u moodle -pm@0dl3ing moodle -e "show tables" | wc -l)

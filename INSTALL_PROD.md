@@ -44,9 +44,10 @@ sudo ./bootstrap.sh
 ```
 
 ### O que o script faz:
-1.  **Estrutura de Pastas:** Cria e dá permissões `777` às pastas de imagens e PDFs (essencial para Linux).
-2.  **Moodle Core:** Faz o download do Moodle 5.1.3 se não estiver presente.
-3.  **Docker Up:** Sobe os contentores em modo `detached`.
+1.  **Limpeza de Ambiente:** Executa `docker compose down --remove-orphans` para eliminar redes e contentores residuais que possam causar conflitos de IP.
+2.  **Estrutura de Pastas:** Cria e dá permissões `777` às pastas de imagens e PDFs (essencial para Linux).
+3.  **Moodle Core:** Faz o download do Moodle 5.1.3+ se não estiver presente.
+4.  **Docker Up:** Sobe os contentores em modo `detached`.
 4.  **Base de Dados:** Restaura a base de dados pré-configurada (`moodle_base_setup.sql`).
 5.  **Configuração de Sistema:** Ativa WebServices, REST e configura o Token de acesso (`14c68ff...`).
 
@@ -63,7 +64,16 @@ Após o script terminar (pode demorar 2-5 minutos dependendo da rede), verifica:
 
 ---
 
-## 🔍 Resolução de Problemas Comuns
+---
+
+## 📂 Estrutura de Pastas Críticas
+*   `bootstrap.sh`: Orquestrador de setup inicial.
+*   `moodle_base_setup.sql`: Baseline da BD (limpa e configurada).
+*   `FrontEnd/`: Código fonte Next.js.
+*   `moodle-stable/moodle/public/local/wsmanageactivities/`: Plugin customizado da API.
+*   `Cursos/`: Pasta para colocação manual de PDFs grandes para bypass de upload.
+
+## 🔍 Resolução de Problemas (Troubleshooting)
 
 ### 1. "O FrontEnd não consegue comunicar com o Moodle"
 *   Verifica se o `NEXT_PUBLIC_MOODLE_URL` no `.env` aponta para o IP que vês no teu browser.
@@ -74,7 +84,17 @@ Após o script terminar (pode demorar 2-5 minutos dependendo da rede), verifica:
     `docker exec frontend ls /app/public/extracted_images`
 *   Garante que no Host as permissões estão abertas: `chmod -R 777 moodle-stable/moodle/public/local/wsmanageactivities/extracted_images`.
 
-### 3. Ver Logs em Tempo Real
+### 3. "Database connection failed"
+*   Verifica se o contentor da DB (`db`) está ativo: `docker ps`.
+*   O Moodle demora cerca de 30-60 segundos a aceitar ligações após o primeiro arranque.
+
+### 4. Resetar a Password do Admin via CLI
+Se precisar de resetar a password via terminal:
+```bash
+docker exec [NOME_CONTENTOR_WEBSERVER] php admin/cli/reset_password.php --username=admin --password=SUA_NOVA_PASS --ignore-password-policy
+```
+
+### 5. Ver Logs em Tempo Real
 Se algo falhar, usa estes comandos:
 ```bash
 # Ver logs de todos os serviços
@@ -87,7 +107,7 @@ docker compose logs -f webserver
 docker compose logs -f frontend
 ```
 
-### 4. Limpeza Total (Reset)
+### 6. Limpeza Total (Reset)
 Se precisares de começar do zero:
 ```bash
 docker compose down -v

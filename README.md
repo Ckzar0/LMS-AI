@@ -58,7 +58,6 @@ Para garantir um teste ou deployment sem falhas, consulte os novos manuais:
 
 - 🛠️ **[Guia de Instalação (Produção)](./INSTALL_PROD.md):** Essencial para configurar em servidores remotos ou máquinas de contentores.
 - 📖 **[Manual do Utilizador](./USER_MANUAL.md):** Guia detalhado sobre como gerar cursos, configurar a profundidade da IA e usar as ferramentas de reparação de imagens.
-- ⚙️ **[Guia de Setup Manual](./SETUP.md):** Para resolução de problemas e configuração detalhada.
 
 ---
 
