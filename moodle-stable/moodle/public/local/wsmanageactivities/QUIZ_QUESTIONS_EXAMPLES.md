@@ -1,67 +1,111 @@
-# Exemplos de Criação de Questões - Plugin wsmanageactivities
+# 🧠 Exemplos de Questões de Quiz - API wsmanageactivities
 
-## 1. Questão Múltipla Escolha Simples
+Este guia contém os formatos JSON suportados pelo motor de importação (`QuestionCreator.php`) para o Moodle 5.1+.
+
+---
+
+## 📋 Regras de Design (v1.1.0)
+1.  **Feedback Unificado:** O sistema prioriza o `generalfeedback` (explicado abaixo da questão). Feedbacks individuais por opção são ignorados para manter a interface limpa e evitar duplicação de ícones de correção.
+2.  **Fallback Automático:** Qualquer tipo de questão não reconhecido será automaticamente convertido para `multichoice` (Escolha Múltipla).
+3.  **Moodle 5.1 Ready:** As questões são criadas diretamente no Banco de Questões com status `ready`.
+
+---
+
+## 1. Múltipla Escolha (multichoice)
+O tipo padrão. Suporta uma ou várias respostas corretas (através da `fraction`).
+
+```json
+{
+  "name": "Q01 - Redes de Computadores",
+  "questiontext": "Qual destes protocolos opera na camada de transporte?",
+  "qtype": "multichoice",
+  "mark": 2.0,
+  "generalfeedback": "TCP e UDP são os protocolos principais da camada de transporte.",
+  "config": {
+    "answers": [
+      {"text": "TCP", "fraction": 1.0},
+      {"text": "HTTP", "fraction": 0.0},
+      {"text": "IP", "fraction": 0.0},
+      {"text": "Ethernet", "fraction": 0.0}
+    ]
+  }
+}
+```
+
+---
+
+## 2. Verdadeiro / Falso (truefalse)
+Simples e direto para verificação de conceitos.
+
+```json
+{
+  "name": "Q02 - Hardware",
+  "questiontext": "A memória RAM é um tipo de armazenamento volátil.",
+  "qtype": "truefalse",
+  "generalfeedback": "A RAM perde os dados quando a energia é cortada, por isso é volátil.",
+  "config": {
+    "correctanswer": true
+  }
+}
+```
+
+---
+
+## 3. Correspondência (match)
+Ideal para associar termos, definições ou componentes.
+
+```json
+{
+  "name": "Q03 - Componentes PC",
+  "questiontext": "Associe cada componente à sua função principal:",
+  "qtype": "match",
+  "generalfeedback": "A CPU processa, a RAM armazena temporariamente e o SSD permanentemente.",
+  "config": {
+    "subquestions": [
+      {"text": "Processador (CPU)", "answer": "Processamento de dados"},
+      {"text": "Memória RAM", "answer": "Armazenamento volátil"},
+      {"text": "Disco SSD", "answer": "Armazenamento persistente"}
+    ]
+  }
+}
+```
+
+---
+
+## 4. Resposta Curta (shortanswer)
+Requer que o aluno escreva a resposta exata.
+
+```json
+{
+  "name": "Q04 - Siglas",
+  "questiontext": "O que significa a sigla HTML?",
+  "qtype": "shortanswer",
+  "generalfeedback": "HTML significa HyperText Markup Language.",
+  "config": {
+    "answers": [
+      {"text": "HyperText Markup Language", "fraction": 1.0}
+    ]
+  }
+}
+```
+
+---
+
+## 🛠️ Testar via CURL (Exemplo Granular)
+
+Para adicionar uma questão diretamente a um quiz existente:
 
 ```bash
-curl "${MOODLE_URL}/webservice/rest/server.php" \
-  -d "wstoken=${TOKEN}" \
+curl -s "http://localhost:8080/webservice/rest/server.php" \
+  -d "wstoken=14c68ff68a1a57cdc4cf4d72f443b87d" \
   -d "wsfunction=local_wsmanageactivities_add_quiz_questions" \
-  -d "quizid=${QUIZ_ID}" \
-  -d "questions[0][type]=multichoice" \
-  -d "questions[0][name]=Python Básico" \
-  -d "questions[0][questiontext]=Qual é a sintaxe correta?" \
-  -d "questions[0][mark]=2.0" \
-  -d "questions[0][config]={\"single\":true,\"answers\":[{\"text\":\"Opção A\",\"fraction\":1.0,\"feedback\":\"Correto!\"},{\"text\":\"Opção B\",\"fraction\":0.0,\"feedback\":\"Incorreto\"}]}"
+  -d "quizid=15" \
+  -d "questions[0][qtype]=truefalse" \
+  -d "questions[0][name]=Questão de Teste" \
+  -d "questions[0][questiontext]=O Moodle 5.1 é estável?" \
+  -d "questions[0][config][correctanswer]=true" \
+  -d "moodlewsrestformat=json"
 ```
 
-## 2. Questão Múltiplas Respostas Corretas
-
-```bash
--d "questions[0][config]={\"single\":false,\"answers\":[{\"text\":\"Python\",\"fraction\":0.5},{\"text\":\"Java\",\"fraction\":0.5},{\"text\":\"HTML\",\"fraction\":0.0}]}"
-```
-
-## 3. Questão Resposta Curta
-
-```bash
--d "questions[0][type]=shortanswer"
--d "questions[0][config]={\"case_sensitive\":false,\"answers\":[{\"text\":\"Lisboa\",\"fraction\":1.0},{\"text\":\"Lisbon\",\"fraction\":1.0}]}"
-```
-
-## 4. Questão Verdadeiro/Falso
-
-```bash
--d "questions[0][type]=truefalse"
--d "questions[0][config]={\"correct_answer\":true,\"true_feedback\":\"Correto!\",\"false_feedback\":\"Incorreto\"}"
-```
-
-## 5. Questão Numérica
-
-```bash
--d "questions[0][type]=numerical"
--d "questions[0][config]={\"answer\":78.54,\"tolerance\":0.5,\"answer_feedback\":\"π × r² = 78.54\"}"
-```
-
-## 6. Questão Essay
-
-```bash
--d "questions[0][type]=essay"
--d "questions[0][config]={\"min_words\":50,\"max_words\":200}"
-```
-
-## 7. Quiz Completo com Questões
-
-```bash
-curl "${MOODLE_URL}/webservice/rest/server.php" \
-  -d "wstoken=${TOKEN}" \
-  -d "wsfunction=local_wsmanageactivities_create_quiz" \
-  -d "courseid=${COURSE_ID}" \
-  -d "sectionnum=1" \
-  -d "name=Quiz Completo" \
-  -d "questions[0][type]=multichoice" \
-  -d "questions[0][name]=Questão 1" \
-  -d "questions[0][questiontext]=Primeira questão" \
-  -d "questions[0][config]={...}" \
-  -d "questions[1][type]=shortanswer" \
-  -d "questions[1][name]=Questão 2" \
-  -d "questions[1][questiontext]=Segunda questão"
-```
+---
+**Actualizado em: 14/05/2026**
