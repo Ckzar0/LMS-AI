@@ -7,6 +7,81 @@ import path from "path"
 export const runtime = "nodejs"
 export const maxDuration = 300 // 5 minutos
 
+// --- HELPERS ---
+async function callAI(prompt: string, model: string, maxTokens: number): Promise<string> {
+  const USE_PORTKEY = true; // Hardcoded para consistência
+  
+  if (USE_PORTKEY) {
+    const portkeyKey = process.env.PORTKEY_API_KEY;
+    if (!portkeyKey) throw new Error("PORTKEY_API_KEY not configured");
+
+    const { default: Portkey } = await import("portkey-ai");
+    const portkeyConfig: any = { apiKey: portkeyKey };
+    let finalModel = model;
+
+    if (model.startsWith("@")) {
+      const slug = model.substring(1);
+      if (slug.includes("/")) {
+        const [vKey, mName] = slug.split("/");
+        portkeyConfig.virtualKey = vKey;
+        finalModel = mName;
+      } else {
+        portkeyConfig.config = slug;
+        finalModel = undefined; 
+      }
+    } else {
+      const virtualKey = process.env.PORTKEY_VIRTUAL_KEY;
+      if (virtualKey) portkeyConfig.virtualKey = virtualKey;
+      else portkeyConfig.provider = "google";
+    }
+
+    const portkey = new Portkey(portkeyConfig);
+    const chatCompletion = await portkey.chat.completions.create({
+      model: finalModel,
+      messages: [
+        { role: "system", content: "És um Especialista em Desenho de Cursos Moodle." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: maxTokens,
+    });
+    
+    return chatCompletion.choices?.[0]?.message?.content || "";
+  } else {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) throw new Error("GEMINI_API_KEY not configured");
+
+    const cleanModel = model.startsWith("@") ? model.split("/").slice(1).join("/") : model;
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${geminiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: maxTokens,
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    const responseData = await response.json();
+    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+    return responseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  }
+}
+
+function cleanJsonString(content: string): string {
+  let jsonStr = content.trim();
+  if (jsonStr.includes("```")) {
+    const matches = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (matches && matches[1]) {
+      jsonStr = matches[1].trim();
+    }
+  }
+  return jsonStr;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Importação dinâmica robusta
@@ -52,6 +127,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "O PDF parece estar vazio ou não contém texto legível." }, { status: 400 });
     }
 
+    const isLargeCourse = combinedText.length > 25000 || config.divideInModules;
     const fileName = files[0]?.name || "documento.pdf";
     
     // CENTRALIZAÇÃO: Ler o Master Prompt diretamente do ficheiro no Root
@@ -68,11 +144,6 @@ export async function POST(request: NextRequest) {
       console.error("Error reading master prompt file:", fsError);
     }
 
-    // Gerar o prompt final usando o ficheiro mestre (ou o customPrompt se vier da Fábrica)
-    const prompt = customPrompt 
-      ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
-      : generatePrompt(basePrompt, config, combinedText, fileName)
-    
     // --- ESCOLHA DO MODELO BASEADA NA PROFUNDIDADE ---
     const envModelPro = process.env.PORTKEY_MODEL_PRO;
     const envModelFlash = process.env.PORTKEY_MODEL_FLASH;
@@ -84,109 +155,69 @@ export async function POST(request: NextRequest) {
     const maxTokensLimit = parseInt(envMaxTokens || "32768");
 
     // =========================================================================
+    // FASE DE PLANEAMENTO (Se for curso grande)
+    // =========================================================================
+    let courseModules = [];
+    if (isLargeCourse) {
+      console.log(`[PLANNER] Curso detetado como GRANDE (${combinedText.length} chars). A iniciar fase de planeamento...`);
+      
+      const plannerPrompt = `
+        Analisa o seguinte texto extraído de um PDF e cria um plano de formação estruturado em módulos ou dias.
+        O objetivo é dividir o conteúdo para que cada parte possa ser gerada individualmente com alta densidade.
+
+        REGRAS:
+        1. Devolve APENAS um JSON válido.
+        2. Divide o curso em 3 a 7 módulos lógicos.
+        3. Para cada módulo, indica o título e um resumo dos tópicos a cobrir.
+
+        ESTRUTURA JSON ESPERADA:
+        {
+          "plan": [
+            { "id": 1, "title": "Módulo 1: Título", "summary": "Descrição dos tópicos..." },
+            ...
+          ]
+        }
+
+        CONTEÚDO DO DOCUMENTO:
+        ${combinedText.substring(0, 50000)} // Limite para o planner não estoirar
+      `;
+
+      // Chamada rápida ao modelo Flash para o plano
+      const plannerResponse = await callAI(plannerPrompt, modelFlash, maxTokensLimit);
+      try {
+        const planData = JSON.parse(cleanJsonString(plannerResponse));
+        courseModules = planData.plan || [];
+        console.log(`[PLANNER] Plano gerado com ${courseModules.length} módulos.`);
+      } catch (e) {
+        console.error("[PLANNER] Erro ao processar plano da IA. Usando fallback single-shot.", e);
+        courseModules = [];
+      }
+    }
+
+    // Gerar o prompt final usando o ficheiro mestre (ou o customPrompt se vier da Fábrica)
+    const prompt = customPrompt 
+      ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
+      : generatePrompt(basePrompt, config, combinedText, fileName)
+    
+    // =========================================================================
     // CONFIGURAÇÃO DE IA: Mudar USE_PORTKEY para false para usar Gemini Direto
     // =========================================================================
-    const USE_PORTKEY = true; 
     let content = "";
 
-    if (USE_PORTKEY) {
-      // -----------------------------------------------------------------------
-      // OPÇÃO A: PORTKEY AI GATEWAY (Recomendado para Logs e Hot-Swap)
-      // -----------------------------------------------------------------------
-      const portkeyKey = process.env.PORTKEY_API_KEY;
-      if (!portkeyKey) {
-        return NextResponse.json({ error: "PORTKEY_API_KEY not configured" }, { status: 500 });
-      }
-
-      const { default: Portkey } = await import("portkey-ai");
-      const portkeyConfig: any = { apiKey: portkeyKey };
-      let finalModel = selectedModel;
-
-      // Se o modelo começar por @, tratamos como configuração Portkey
-      if (selectedModel.startsWith("@")) {
-        const slug = selectedModel.substring(1);
-        
-        if (slug.includes("/")) {
-          // Formato: @virtual-key-slug/model-name
-          const [vKey, modelName] = slug.split("/");
-          portkeyConfig.virtualKey = vKey;
-          finalModel = modelName;
-        } else {
-          // Formato: @config-id-ou-slug
-          portkeyConfig.config = slug;
-          finalModel = undefined; 
-        }
-      } else {
-        const virtualKey = process.env.PORTKEY_VIRTUAL_KEY;
-        if (virtualKey) {
-          portkeyConfig.virtualKey = virtualKey;
-        } else {
-          portkeyConfig.provider = "google";
-        }
-      }
-
-      const portkey = new Portkey(portkeyConfig);
-      const chatCompletion = await portkey.chat.completions.create({
-        model: finalModel, // Será undefined se estivermos a usar um Config ID
-        messages: [
-          { role: "system", content: "És um Especialista em Desenho de Cursos Moodle." },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: maxTokensLimit,
-      });
-      
-      content = chatCompletion.choices?.[0]?.message?.content || "";
-
-    } else {
-      // -----------------------------------------------------------------------
-      // OPÇÃO B: GOOGLE GEMINI DIRETO (Simples e sem intermediários)
-      // -----------------------------------------------------------------------
-      const geminiKey = process.env.GEMINI_API_KEY;
-      if (!geminiKey) {
-        return NextResponse.json({ error: "GEMINI_API_KEY not configured" }, { status: 500 });
-      }
-
-      // Limpar o nome do modelo (remover @slug se existir para chamada direta)
-      const cleanModel = selectedModel.startsWith("@") 
-        ? selectedModel.split("/").slice(1).join("/") 
-        : selectedModel;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${geminiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: maxTokensLimit,
-            responseMimeType: "application/json"
-          }
-        })
-      });
-
-      const responseData = await response.json();
-      if (!response.ok) {
-        console.error("--- GEMINI API ERROR ---", JSON.stringify(responseData, null, 2));
-        return NextResponse.json({ error: `Gemini API error: ${response.status}`, details: responseData }, { status: response.status });
-      }
-
-      content = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (courseModules.length > 0) {
+      // TODO: Implementar o Loop da Fase 3 (Modular Orchestrator)
+      // Por agora, vamos apenas gerar o primeiro módulo para teste ou manter o fluxo
+      console.log("[ORCHESTRATOR] Modo Modular detetado. (A aguardar implementação da Fase 3)");
     }
+
+    content = await callAI(prompt, selectedModel, maxTokensLimit);
     
     if (!content) {
       return NextResponse.json({ error: "No content received from AI provider" }, { status: 500 });
     }
 
-
     // Limpeza robusta do JSON
-    let jsonStr = content.trim();
-    if (jsonStr.includes("```")) {
-      const matches = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (matches && matches[1]) {
-        jsonStr = matches[1].trim();
-      }
-    }
+    const jsonStr = cleanJsonString(content);
 
     try {
       const course: MoodleCourse = JSON.parse(jsonStr)
