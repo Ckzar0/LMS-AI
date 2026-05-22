@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Upload, FileText, X, CheckCircle2, Loader2, Video, FileQuestion, Award, BookOpen, AlertCircle, Eye, Copy, ClipboardCopy, Factory, Sparkles, ExternalLink} from "lucide-react"
+import { Upload, FileText, X, CheckCircle2, Loader2, Video, FileQuestion, Award, BookOpen, AlertCircle, Eye, Copy, ClipboardCopy, Factory, Sparkles, ExternalLink, Layers} from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,7 +34,7 @@ interface UploadedFile {
 }
 
 const generationOptions = [
-  { id: "videos", label: "Gerar Vídeos Explicativos", icon: Video, description: "Cria vídeos com narração AI a partir do conteúdo" },
+  { id: "modules", label: "Geração Modular (Map-Reduce)", icon: Layers, description: "Divide o PDF em blocos para máxima densidade pedagógica" },
   { id: "quizzes", label: "Gerar Exames e Quizzes", icon: FileQuestion, description: "Cria perguntas de avaliação automáticas" },
   { id: "evaluation", label: "Avaliação da Formação", icon: ClipboardCopy, description: "Questionário final sobre a satisfação do curso" },
   { id: "certificate", label: "Certificação Automática", icon: Award, description: "Emite certificado ao completar o curso" },
@@ -197,7 +197,7 @@ export function UploadView() {
         depth,
         quizDuration,
         numberOfQuestions,
-        generateVideos: selectedOptions.includes("videos"),
+        generateVideos: selectedOptions.includes("modules"), // Alterado para mapear para modular
         generateQuizzes: selectedOptions.includes("quizzes"),
         generateCertificate: selectedOptions.includes("certificate"),
         divideInModules: selectedOptions.includes("modules")
@@ -337,7 +337,7 @@ export function UploadView() {
       depth,
       quizDuration,
       numberOfQuestions,
-      generateVideos: selectedOptions.includes("videos"),
+      generateVideos: selectedOptions.includes("modules"),
       generateQuizzes: selectedOptions.includes("quizzes"),
       generateCertificate: selectedOptions.includes("certificate"),
       divideInModules: selectedOptions.includes("modules")

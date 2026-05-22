@@ -194,39 +194,94 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Gerar o prompt final usando o ficheiro mestre (ou o customPrompt se vier da Fábrica)
-    const prompt = customPrompt 
-      ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
-      : generatePrompt(basePrompt, config, combinedText, fileName)
-    
     // =========================================================================
-    // CONFIGURAÇÃO DE IA: Mudar USE_PORTKEY para false para usar Gemini Direto
+    // CONFIGURAÇÃO DE IA E ORQUESTRAÇÃO
     // =========================================================================
-    let content = "";
+    let finalCourse: MoodleCourse | null = null;
 
     if (courseModules.length > 0) {
-      // TODO: Implementar o Loop da Fase 3 (Modular Orchestrator)
-      // Por agora, vamos apenas gerar o primeiro módulo para teste ou manter o fluxo
-      console.log("[ORCHESTRATOR] Modo Modular detetado. (A aguardar implementação da Fase 3)");
+      console.log(`[ORCHESTRATOR] Modo Modular ativo. A processar ${courseModules.length} módulos sequencialmente...`);
+      
+      const aggregatedActivities: any[] = [];
+      const aggregatedQuestionBanks: any[] = [];
+      let courseMetadata: any = null;
+
+      for (const [index, module] of courseModules.entries()) {
+        console.log(`[ORCHESTRATOR] A gerar Módulo ${index + 1}/${courseModules.length}: ${module.title}...`);
+        
+        const modularPrompt = `
+          ${basePrompt}
+          
+          ⚠️ MODO MODULAR ATIVADO: Estás a gerar APENAS uma parte de um curso maior.
+          
+          FOCO ATUAL: ${module.title}
+          RESUMO DO CONTEÚDO PARA ESTE MÓDULO: ${module.summary}
+          
+          REGRAS PARA ESTA CHAMADA:
+          1. Gera conteúdo denso (mínimo 400-600 palavras por página se Especialista Técnico).
+          2. Cria apenas as atividades (pages/quizzes) deste módulo específico.
+          3. Cria um banco de questões específico para este conteúdo.
+          4. NÃO geris páginas de "Introdução Global" ou "Conclusão Final" a menos que este seja o primeiro ou último módulo respetivamente.
+          
+          CONTEÚDO DO DOCUMENTO:
+          ${combinedText}
+        `;
+
+        const moduleResponse = await callAI(modularPrompt, selectedModel, maxTokensLimit);
+        try {
+          const moduleData: MoodleCourse = JSON.parse(cleanJsonString(moduleResponse));
+          
+          // Guardar metadados do curso no primeiro módulo
+          if (index === 0) {
+            courseMetadata = {
+              course_name: moduleData.course_name,
+              course_shortname: moduleData.course_shortname,
+              source_file: moduleData.source_file,
+              course_summary: moduleData.course_summary,
+              image_folder: moduleData.image_folder
+            };
+          }
+
+          // Acumular atividades e questões
+          aggregatedActivities.push(...moduleData.activities);
+          aggregatedQuestionBanks.push(...moduleData.question_banks);
+          
+          console.log(`[ORCHESTRATOR] Módulo ${index + 1} concluído com sucesso.`);
+        } catch (e) {
+          console.error(`[ORCHESTRATOR] Erro ao processar Módulo ${index + 1}. A saltar...`, e);
+        }
+      }
+
+      if (courseMetadata) {
+        finalCourse = {
+          ...courseMetadata,
+          activities: aggregatedActivities,
+          question_banks: aggregatedQuestionBanks
+        };
+      }
     }
 
-    content = await callAI(prompt, selectedModel, maxTokensLimit);
-    
-    if (!content) {
-      return NextResponse.json({ error: "No content received from AI provider" }, { status: 500 });
+    // --- FALLBACK SINGLE-SHOT (Se não for modular ou se falhou) ---
+    if (!finalCourse) {
+      console.log("[ORCHESTRATOR] A usar modo Single-Shot (Padrão)...");
+      const prompt = customPrompt 
+        ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
+        : generatePrompt(basePrompt, config, combinedText, fileName);
+
+      const content = await callAI(prompt, selectedModel, maxTokensLimit);
+      finalCourse = JSON.parse(cleanJsonString(content));
     }
 
-    // Limpeza robusta do JSON
-    const jsonStr = cleanJsonString(content);
+    if (!finalCourse) {
+      return NextResponse.json({ error: "Falha na geração do curso" }, { status: 500 });
+    }
 
     try {
-      const course: MoodleCourse = JSON.parse(jsonStr)
-      return NextResponse.json({ course })
+      return NextResponse.json({ course: finalCourse })
     } catch (parseError) {
-      console.error("Failed to parse JSON from AI. Raw content preview:", content.substring(0, 500));
+      console.error("Failed to parse JSON from AI.");
       return NextResponse.json({ 
         error: "A IA gerou um JSON inválido", 
-        raw: content,
         parseError: parseError instanceof Error ? parseError.message : "Unknown parse error"
       }, { status: 500 })
     }
