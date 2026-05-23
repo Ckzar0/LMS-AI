@@ -39,14 +39,17 @@ async function callAI(prompt: string, model: string, maxTokens: number): Promise
     const chatCompletion = await portkey.chat.completions.create({
       model: finalModel,
       messages: [
-        { role: "system", content: "És um Especialista em Desenho de Cursos Moodle." },
+        { role: "system", content: "És um Especialista em Desenho de Cursos Moodle. Responde apenas em JSON puro." },
         { role: "user", content: prompt }
       ],
-      temperature: 0.7,
+      temperature: 0.1, // Máximo rigor
       max_tokens: maxTokens,
+      response_format: { type: "json_object" } // FORÇAR MODO JSON
     });
     
-    return chatCompletion.choices?.[0]?.message?.content || "";
+    const resContent = chatCompletion.choices?.[0]?.message?.content || "";
+    console.log(`[AI] Resposta recebida (${resContent.length} chars). Preview: ${resContent.substring(0, 100)}...`);
+    return resContent;
   } else {
     const geminiKey = process.env.GEMINI_API_KEY;
     if (!geminiKey) throw new Error("GEMINI_API_KEY not configured");
@@ -58,27 +61,37 @@ async function callAI(prompt: string, model: string, maxTokens: number): Promise
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.1,
           maxOutputTokens: maxTokens,
-          responseMimeType: "application/json"
+          responseMimeType: "application/json" // FORÇAR MODO JSON
         }
       })
     });
 
     const responseData = await response.json();
     if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
-    return responseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const resContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log(`[AI-DIRECT] Resposta recebida (${resContent.length} chars). Preview: ${resContent.substring(0, 100)}...`);
+    return resContent;
   }
 }
 
 function cleanJsonString(content: string): string {
   let jsonStr = content.trim();
-  if (jsonStr.includes("```")) {
-    const matches = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (matches && matches[1]) {
-      jsonStr = matches[1].trim();
-    }
+  
+  // 1. Tentar extrair conteúdo entre blocos de código markdown
+  const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    return codeBlockMatch[1].trim();
   }
+  
+  // 2. Se não houver blocos de código, procurar o primeiro '{' e o último '}'
+  const firstBrace = jsonStr.indexOf('{');
+  const lastBrace = jsonStr.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return jsonStr.substring(firstBrace, lastBrace + 1);
+  }
+  
   return jsonStr;
 }
 
@@ -130,7 +143,7 @@ export async function POST(request: NextRequest) {
     const isLargeCourse = combinedText.length > 25000 || config.divideInModules;
     const fileName = files[0]?.name || "documento.pdf";
     
-    // CENTRALIZAÇÃO: Ler o Master Prompt diretamente do ficheiro no Root
+    // CENTRALIZAÇÃO: Ler o Master Prompt com caminho robusto
     const promptPath = path.join(process.cwd(), "..", "Prompts", "PROMPT_GERACAO_CURSO.md");
     let basePrompt = "";
     
@@ -138,7 +151,12 @@ export async function POST(request: NextRequest) {
       if (fs.existsSync(promptPath)) {
         basePrompt = fs.readFileSync(promptPath, "utf-8");
       } else {
-        console.warn("Master prompt not found at " + promptPath + ". Using fallback logic.");
+        const altPath = "/app/Prompts/PROMPT_GERACAO_CURSO.md";
+        if (fs.existsSync(altPath)) {
+          basePrompt = fs.readFileSync(altPath, "utf-8");
+        } else {
+          console.warn(`[API] Master prompt não encontrado em ${promptPath} nem ${altPath}.`);
+        }
       }
     } catch (fsError) {
       console.error("Error reading master prompt file:", fsError);
@@ -179,7 +197,7 @@ export async function POST(request: NextRequest) {
         }
 
         CONTEÚDO DO DOCUMENTO:
-        ${combinedText.substring(0, 50000)} // Limite para o planner não estoirar
+        ${combinedText.substring(0, 50000)}
       `;
 
       // Chamada rápida ao modelo Flash para o plano
@@ -206,22 +224,33 @@ export async function POST(request: NextRequest) {
       const aggregatedQuestionBanks: any[] = [];
       let courseMetadata: any = null;
 
+      // Calcular questões por módulo baseado no pedido do FE (Total + 10 extra)
+      const targetTotalQuestions = config.numberOfQuestions + 10;
+      const questionsPerModule = Math.max(2, Math.ceil(targetTotalQuestions / courseModules.length));
+      console.log(`[ORCHESTRATOR] Distribuição: ${questionsPerModule} questões por módulo para atingir ~${targetTotalQuestions} total.`);
+
+      let globalQuestionCounter = 1;
+
       for (const [index, module] of courseModules.entries()) {
-        console.log(`[ORCHESTRATOR] A gerar Módulo ${index + 1}/${courseModules.length}: ${module.title}...`);
+        const moduleNum = index + 1;
+        console.log(`[ORCHESTRATOR] A gerar Módulo ${moduleNum}/${courseModules.length}: ${module.title}...`);
         
         const modularPrompt = `
           ${basePrompt}
           
-          ⚠️ MODO MODULAR ATIVADO: Estás a gerar APENAS uma parte de um curso maior.
+          ⚠️ MODO MODULAR ATIVADO: Estás a gerar APENAS a PARTE ${moduleNum} de um curso de ${courseModules.length} módulos.
           
           FOCO ATUAL: ${module.title}
-          RESUMO DO CONTEÚDO PARA ESTE MÓDULO: ${module.summary}
+          RESUMO DO CONTEÚDO: ${module.summary}
           
-          REGRAS PARA ESTA CHAMADA:
-          1. Gera conteúdo denso (mínimo 400-600 palavras por página se Especialista Técnico).
-          2. Cria apenas as atividades (pages/quizzes) deste módulo específico.
-          3. Cria um banco de questões específico para este conteúdo.
-          4. NÃO geris páginas de "Introdução Global" ou "Conclusão Final" a menos que este seja o primeiro ou último módulo respetivamente.
+          REGRAS ESTRITAS PARA ESTA CHAMADA:
+          1. Responde APENAS com o objeto JSON.
+          2. NOMEAÇÃO: Todas as atividades (pages) DEVEM começar por "Módulo ${moduleNum}.X: [Título]".
+          3. QUIZ: Estás PROIBIDO de criar atividades do tipo "quiz" neste JSON.
+          4. QUESTÕES: Cria exatamente ${questionsPerModule} questões de avaliação.
+          5. NUMERAÇÃO DE QUESTÕES: O nome de cada questão deve seguir a sequência global. Começa na questão nº ${globalQuestionCounter} (Ex: "Pergunta ${globalQuestionCounter}", "Pergunta ${globalQuestionCounter + 1}", etc).
+          6. CONTEÚDO: Gera conteúdo denso (mínimo 500 palavras por página).
+          7. INTRO/OUTRO: Não geris introduções globais ou conclusões.
           
           CONTEÚDO DO DOCUMENTO:
           ${combinedText}
@@ -231,7 +260,6 @@ export async function POST(request: NextRequest) {
         try {
           const moduleData: MoodleCourse = JSON.parse(cleanJsonString(moduleResponse));
           
-          // Guardar metadados do curso no primeiro módulo
           if (index === 0) {
             courseMetadata = {
               course_name: moduleData.course_name,
@@ -242,26 +270,76 @@ export async function POST(request: NextRequest) {
             };
           }
 
-          // Acumular atividades e questões
-          aggregatedActivities.push(...moduleData.activities);
-          aggregatedQuestionBanks.push(...moduleData.question_banks);
+          if (moduleData.activities) {
+            // Apenas páginas (filtrar qualquer quiz que a IA tenha gerado por erro)
+            const modulePages = moduleData.activities.filter(act => act.type === 'page');
+            aggregatedActivities.push(...modulePages);
+          }
           
-          console.log(`[ORCHESTRATOR] Módulo ${index + 1} concluído com sucesso.`);
+          if (moduleData.question_banks) {
+            for (const bank of moduleData.question_banks) {
+              const bankName = "Banco Global de Questões"; // Unificar tudo num só banco
+              const existingBank = aggregatedQuestionBanks.find(b => b.name === bankName);
+              
+              // Re-numerar e limpar nomes das questões para garantir sequência perfeita
+              if (moduleData.question_banks[0]?.questions) {
+                moduleData.question_banks[0].questions.forEach((q: any) => {
+                  const qNumStr = globalQuestionCounter.toString().padStart(2, '0');
+                  q.name = `Pergunta ${qNumStr}: ${q.name.split(':').pop()?.trim() || ''}`;
+                  globalQuestionCounter++;
+                });
+              }
+
+              if (existingBank) {
+                existingBank.questions.push(...bank.questions);
+              } else {
+                bank.name = bankName;
+                aggregatedQuestionBanks.push(bank);
+              }
+            }
+          }
+          
+          console.log(`[ORCHESTRATOR] Módulo ${moduleNum} concluído.`);
         } catch (e) {
-          console.error(`[ORCHESTRATOR] Erro ao processar Módulo ${index + 1}. A saltar...`, e);
+          console.error(`[ORCHESTRATOR] Erro no Módulo ${moduleNum}.`, e);
         }
       }
 
       if (courseMetadata) {
+        // Criar a página de Introdução Real no início
+        const introPage = {
+          name: "Introdução ao Curso",
+          type: "page",
+          content: `<div class=\"ailms-page-container\"><h1>Bem-vindo ao curso ${courseMetadata.course_name}</h1><p>${courseMetadata.course_summary}</p></div>`
+        };
+
+        // Criar o Quiz Final Único
+        const finalQuiz = {
+          name: "Exame Final de Avaliação",
+          type: "quiz",
+          intro: `Responda a este exame de ${config.numberOfQuestions} questões para validar os seus conhecimentos e obter a certificação.`,
+          questions_per_page: 5,
+          time_limit: config.quizDuration * 60,
+          pass_grade: 8,
+          question_banks: ["Banco Global de Questões"],
+          random_questions: config.numberOfQuestions // Moodle vai buscar X questões aleatórias do banco total
+        };
+
+        // Criar a página de Conclusão no fim
+        const conclusionPage = {
+          name: "Encerramento e Próximos Passos",
+          type: "page",
+          content: "<div class=\"ailms-page-container\"><h1>Parabéns!</h1><p>Concluiu todos os módulos teóricos. Prossiga para o exame final.</p></div>"
+        };
+
         finalCourse = {
           ...courseMetadata,
-          activities: aggregatedActivities,
+          activities: [introPage, ...aggregatedActivities, conclusionPage, finalQuiz],
           question_banks: aggregatedQuestionBanks
         };
       }
     }
 
-    // --- FALLBACK SINGLE-SHOT (Se não for modular ou se falhou) ---
     if (!finalCourse) {
       console.log("[ORCHESTRATOR] A usar modo Single-Shot (Padrão)...");
       const prompt = customPrompt 
@@ -276,21 +354,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Falha na geração do curso" }, { status: 500 });
     }
 
-    try {
-      return NextResponse.json({ course: finalCourse })
-    } catch (parseError) {
-      console.error("Failed to parse JSON from AI.");
-      return NextResponse.json({ 
-        error: "A IA gerou um JSON inválido", 
-        parseError: parseError instanceof Error ? parseError.message : "Unknown parse error"
-      }, { status: 500 })
-    }
+    return NextResponse.json({ course: finalCourse });
 
   } catch (error) {
-    console.error("Critical error:", error)
+    console.error("Critical error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }
-    )
+    );
   }
 }

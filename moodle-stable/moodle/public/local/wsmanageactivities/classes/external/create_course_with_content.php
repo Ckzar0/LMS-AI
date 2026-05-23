@@ -81,18 +81,32 @@ class create_course_with_content extends external_api {
         $bank_mapping = [];
         if (!empty($data['question_banks'])) {
             foreach ($data['question_banks'] as $bank) {
-                // Create category
-                $cat = new \stdClass();
-                $cat->name = $bank['name'];
-                $cat->contextid = \context_course::instance($courseid)->id;
-                $cat->info = "Automated bank for " . $data['course_name'];
-                $catid = $DB->insert_record('question_categories', $cat);
+                $course_context = \context_course::instance($courseid);
+                
+                // Verificar se a categoria já existe neste contexto para evitar erros de duplicado
+                $existing = $DB->get_record('question_categories', [
+                    'contextid' => $course_context->id,
+                    'name' => $bank['name']
+                ]);
+
+                if ($existing) {
+                    $catid = $existing->id;
+                } else {
+                    // Create category with unique stamp (CRÍTICO para evitar Duplicate Entry)
+                    $cat = new \stdClass();
+                    $cat->name = $bank['name'];
+                    $cat->contextid = $course_context->id;
+                    $cat->info = "Automated bank for " . $data['course_name'];
+                    $cat->stamp = make_unique_id_code(); // Gera identidade única exigida pelo Moodle
+                    $cat->parent = 0;
+                    $catid = $DB->insert_record('question_categories', $cat);
+                }
                 
                 $bank_mapping[$bank['name']] = $catid;
 
                 // Add questions
                 foreach ($bank['questions'] as $q) {
-                    QuestionCreator::create_question($catid, $cat->contextid, $q);
+                    QuestionCreator::create_question($catid, $course_context->id, $q);
                 }
             }
         }
