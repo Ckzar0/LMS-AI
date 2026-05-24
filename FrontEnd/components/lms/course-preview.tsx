@@ -1,29 +1,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Send, BookOpen, FileQuestion, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
+import { ArrowLeft, Send, BookOpen, FileQuestion, CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronRight, ExternalLink, Pencil, Save, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import type { MoodleCourse, Question, Activity } from "@/lib/types"
 
 interface CoursePreviewProps {
   course: MoodleCourse
   onBack: () => void
-  onSendToMoodle: () => void
+  onSendToMoodle: (updatedCourse?: MoodleCourse) => void
   isSending: boolean
   moodleConnected: boolean
   createdCourseId?: number | string | null
   error?: string | null
-}
-
-function SafeRender({ value }: { value: any }) {
-  if (value === null || value === undefined) return "-";
-  if (typeof value === 'object') return JSON.stringify(value);
-  return value.toString();
 }
 
 function QuestionPreview({ question, index }: { question: Question; index: number }) {
@@ -115,23 +111,41 @@ function QuestionPreview({ question, index }: { question: Question; index: numbe
   )
 }
 
-function ActivityPreview({ activity, index, imageFolder, sourceFile }: { activity: Activity; index: number; imageFolder?: string; sourceFile?: string }) {
+function ActivityPreview({ 
+  activity, 
+  index, 
+  imageFolder, 
+  sourceFile,
+  onUpdate,
+  onRemove
+}: { 
+  activity: Activity; 
+  index: number; 
+  imageFolder?: string; 
+  sourceFile?: string;
+  onUpdate: (updated: Activity) => void;
+  onRemove: () => void;
+}) {
   const [expanded, setExpanded] = useState(index === 0)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editName, setEditName] = useState(activity.name)
+  const [editContent, setEditContent] = useState(activity.content || "")
+
+  const handleSave = () => {
+    onUpdate({ ...activity, name: editName, content: editContent });
+    setIsEditing(false);
+  }
 
   // Função para transformar placeholders em imagens REAIS no preview
   const processPreviewContent = (html: string) => {
     if (!html) return "";
     let processed = html;
 
-    // Determinar a pasta de imagens (fallback para source_file se imageFolder estiver vazio)
     let finalFolder = imageFolder || "";
     if (!finalFolder && sourceFile) {
-        // Sanitização básica (igual ao Moodle)
         finalFolder = sourceFile.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9._-]/g, '_');
     }
 
-    // 1. Processar Imagens [[IMG_Pxx_yy]]
-    // Tenta pegar do env ou assume localhost:8080
     const moodleUrl = process.env.NEXT_PUBLIC_MOODLE_URL || "http://localhost:8080";
     const imgRegex = /\[\[IMG_P?(\d+)_(\d+)(?:_([^\]]+))?\]\]/gi;
     
@@ -141,7 +155,6 @@ function ActivityPreview({ activity, index, imageFolder, sourceFile }: { activit
       const pPad = p.padStart(3, '0');
       const sPad = s.padStart(3, '0');
       
-      // Usar o proxy get_image.php para evitar erros de CORS e Caminho
       const imgPath = `${finalFolder}/img-${pPad}-${sPad}.jpg`;
       const imgUrl = `${moodleUrl}/local/wsmanageactivities/get_image.php?path=${imgPath}`;
       
@@ -157,7 +170,6 @@ function ActivityPreview({ activity, index, imageFolder, sourceFile }: { activit
       `;
     });
 
-    // 2. Processar Tabelas [[TABLE_Pxx]]
     const tableRegex = /\[\[TABLE_P?(\d+)(?:_([^\]]+))?\]\]/gi;
     processed = processed.replace(tableRegex, (match, p) => {
       return `<div class="p-6 border-2 border-dashed border-blue-200 bg-blue-50 text-blue-600 rounded-xl text-center my-6">
@@ -171,11 +183,11 @@ function ActivityPreview({ activity, index, imageFolder, sourceFile }: { activit
 
   return (
     <div className="border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/70 transition-colors"
-      >
-        <div className="flex items-center gap-3">
+      <div className="w-full flex items-center justify-between p-4 bg-muted/30">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex-1 flex items-center gap-3 text-left"
+        >
           <span className="text-sm font-bold text-muted-foreground/60 w-6">{index + 1}.</span>
           <div className="flex items-center gap-2">
             {activity.type === "page" && <BookOpen className="h-4 w-4 text-primary" />}
@@ -186,50 +198,94 @@ function ActivityPreview({ activity, index, imageFolder, sourceFile }: { activit
             {activity.type === "page" && "Pagina"}
             {activity.type === "quiz" && "Quiz"}
           </Badge>
+        </button>
+
+        <div className="flex items-center gap-2">
+          {activity.type === "page" && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsEditing(!isEditing)}
+              className={cn(isEditing && "text-primary bg-primary/10")}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:bg-destructive/10">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <button onClick={() => setExpanded(!expanded)}>
+            {expanded ? (
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            )}
+          </button>
         </div>
-        {expanded ? (
-          <ChevronDown className="h-5 w-5 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-        )}
-      </button>
+      </div>
       
       {expanded && (
         <div className="p-6 border-t border-border bg-white">
-          {activity.type === "page" && activity.content && (
-            <div 
-              className="prose prose-sm max-w-none prose-headings:text-primary prose-strong:text-foreground"
-              dangerouslySetInnerHTML={{ __html: processPreviewContent(activity.content) }}
-            />
-          )}
-          {activity.type === "quiz" && (
-            <div className="space-y-3">
-              {activity.intro && <p className="text-sm text-muted-foreground border-l-4 border-primary/20 pl-4 py-1 italic">{activity.intro}</p>}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Duracao</p>
-                  <p className="font-bold">{activity.timelimit ? `${activity.timelimit / 60} min` : "Sem limite"}</p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Tentativas</p>
-                  <p className="font-bold">{activity.attempts || "Ilimitadas"}</p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Nota Minima</p>
-                  <p className="font-bold">
-                    {activity.gradepass ? `${activity.gradepass}/20 (${(activity.gradepass/20*100).toFixed(0)}%)` : "0%"}
-                  </p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-xl border border-muted">
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Banco</p>
-                  <p className="font-bold truncate">
-                    {typeof activity.questions_from_bank === 'object' 
-                      ? activity.questions_from_bank.bank_name 
-                      : "Geral"}
-                  </p>
-                </div>
+          {isEditing ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Titulo da Pagina</label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Conteudo HTML / Placeholders</label>
+                <Textarea 
+                  value={editContent} 
+                  onChange={(e) => setEditContent(e.target.value)} 
+                  rows={15}
+                  className="font-mono text-sm"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancelar</Button>
+                <Button size="sm" onClick={handleSave} className="gap-2">
+                  <Save className="h-4 w-4" /> Guardar Alteracoes
+                </Button>
               </div>
             </div>
+          ) : (
+            <>
+              {activity.type === "page" && activity.content && (
+                <div 
+                  className="prose prose-sm max-w-none prose-headings:text-primary prose-strong:text-foreground"
+                  dangerouslySetInnerHTML={{ __html: processPreviewContent(activity.content) }}
+                />
+              )}
+              {activity.type === "quiz" && (
+                <div className="space-y-3">
+                  {activity.intro && <p className="text-sm text-muted-foreground border-l-4 border-primary/20 pl-4 py-1 italic">{activity.intro}</p>}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Duracao</p>
+                      <p className="font-bold">{activity.timelimit ? `${activity.timelimit / 60} min` : "Sem limite"}</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Tentativas</p>
+                      <p className="font-bold">{activity.attempts || "Ilimitadas"}</p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Nota Minima</p>
+                      <p className="font-bold">
+                        {activity.gradepass ? `${activity.gradepass}/20 (${(activity.gradepass/20*100).toFixed(0)}%)` : "0%"}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-xl border border-muted">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Banco</p>
+                      <p className="font-bold truncate">
+                        {typeof activity.questions_from_bank === 'object' 
+                          ? activity.questions_from_bank.bank_name 
+                          : "Geral"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -248,10 +304,27 @@ export function CoursePreview({
 }: CoursePreviewProps) {
   const [success, setSuccess] = useState(false)
   const [courseId, setCourseId] = useState<string | number | null>(null)
+  const [activities, setActivities] = useState<Activity[]>(course.activities || [])
 
-  // Debug para detetar se a pasta está a chegar
   useEffect(() => {
-  }, [course.image_folder]);
+    setActivities(course.activities || [])
+  }, [course.activities])
+
+  const handleUpdateActivity = (idx: number, updated: Activity) => {
+    const newActs = [...activities];
+    newActs[idx] = updated;
+    setActivities(newActs);
+  }
+
+  const handleRemoveActivity = (idx: number) => {
+    if (confirm("Tem a certeza que deseja remover esta pagina?")) {
+      setActivities(activities.filter((_, i) => i !== idx));
+    }
+  }
+
+  const handleFinalSend = () => {
+    onSendToMoodle({ ...course, activities });
+  }
 
   useEffect(() => {
     if (createdCourseId) {
@@ -310,7 +383,7 @@ export function CoursePreview({
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="activities" className="gap-2">
             <BookOpen className="h-4 w-4" />
-            Estrutura de Paginas ({(course.activities || []).length})
+            Estrutura de Paginas ({activities.length})
           </TabsTrigger>
           <TabsTrigger value="questions" className="gap-2">
             <FileQuestion className="h-4 w-4" />
@@ -319,16 +392,18 @@ export function CoursePreview({
         </TabsList>
         
         <TabsContent value="activities" className="space-y-4 mt-4">
-          {(course.activities || []).map((activity, index) => (
+          {activities.map((activity, index) => (
             <ActivityPreview 
               key={index} 
               activity={activity} 
               index={index} 
               imageFolder={course.image_folder} 
               sourceFile={course.source_file}
+              onUpdate={(updated) => handleUpdateActivity(index, updated)}
+              onRemove={() => handleRemoveActivity(index)}
             />
           ))}
-          {(course.activities || []).length === 0 && (
+          {activities.length === 0 && (
             <div className="text-center py-10 text-muted-foreground italic">Nenhuma atividade gerada.</div>
           )}
         </TabsContent>
@@ -364,7 +439,7 @@ export function CoursePreview({
                 <div className="flex-1">
                   <h3 className="text-sm font-bold text-green-800">Curso Criado com Sucesso!</h3>
                   <p className="text-green-700 text-xs">
-                    Importado com {course.activities.length} atividades e {totalQuestions} questões. 
+                    Importado com {activities.length} atividades e {totalQuestions} questões. 
                     <span className="font-bold ml-1">(ID: {courseId || createdCourseId})</span>
                   </p>
                 </div>
@@ -390,7 +465,7 @@ export function CoursePreview({
           </Button>
           <Button 
             size="lg" 
-            onClick={onSendToMoodle}
+            onClick={handleFinalSend}
             disabled={isSending || !moodleConnected}
             className={cn("gap-2", isSuccess && "bg-green-600 hover:bg-green-700")}
           >

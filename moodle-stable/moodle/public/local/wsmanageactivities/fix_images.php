@@ -14,6 +14,7 @@ $courseid = optional_param('courseid', 0, PARAM_INT);
 $pageid = optional_param('pageid', 0, PARAM_INT);
 $placeholder_id = optional_param('placeholder_id', '', PARAM_RAW); 
 $newimg = optional_param('newimg', '', PARAM_RAW);
+$new_legend = optional_param('new_legend', '', PARAM_RAW);
 $deleteimg = optional_param('deleteimg', 0, PARAM_INT);
 
 $PAGE->set_url(new moodle_url('/local/wsmanageactivities/fix_images.php', ['courseid' => $courseid]));
@@ -93,23 +94,35 @@ if ($pageid && confirm_sesskey() && $placeholder_id) {
         
         if ($deleteimg) {
             $new_block = "";
-        } elseif ($final_url) {
-            $legend = "";
-            if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\/(?:figcaption|div)>/is', $old_block, $lm)) {
-                $legend = trim(strip_tags($lm[1]));
-                // Limpeza agressiva: remove variações de "Figura X" ou "Tabela X"
-                $clean_regex = '/^\s*(?:Figura|Figure|Fig\.?|Tabela|Table|Tab\.?)\s*[:\-\d\s\.]*/i';
-                $legend = preg_replace($clean_regex, '', $legend);
-                $legend = preg_replace($clean_regex, '', $legend);
-            }
-            $new_block = '<figure class="ailms-figure" data-placeholder="'.$placeholder_id.'" style="text-align: center; margin: 30px auto; max-width: 90%; border: 1px solid #ddd; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">' .
-                           '<img src="' . $final_url . '" data-legend="'.htmlspecialchars($legend).'" class="img-fluid" style="border-radius: 8px; max-width: 100%; height: auto;">' .
-                           '<figcaption class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#111; text-align:center;">' . trim($legend) . '</figcaption>' .
-                           '</figure>';
         } else {
-            // Se clicar em atualizar sem nova imagem, apenas avisamos e continuamos para renderizar o layout
-            echo $OUTPUT->notification("Nenhuma nova imagem selecionada. Mantendo original.", 'notifyproblem');
-            $new_block = $old_block;
+            // Extrair URL da imagem atual caso não haja nova
+            $current_img_url = "";
+            if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $old_block, $im)) {
+                $current_img_url = $im[1];
+            }
+            
+            $legend = $new_legend;
+            if (empty($legend)) {
+                if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\/(?:figcaption|div)>/is', $old_block, $lm)) {
+                    $legend = trim(strip_tags($lm[1]));
+                }
+            }
+
+            // Limpeza agressiva da legenda (remove prefixos de Figura X)
+            $clean_regex = '/^\s*(?:Figura|Figure|Fig\.?|Tabela|Table|Tab\.?)\s*[:\-\d\s\.]*/i';
+            $legend = preg_replace($clean_regex, '', $legend);
+            $legend = preg_replace($clean_regex, '', $legend);
+            
+            $target_url = $final_url ? $final_url : $current_img_url;
+
+            if ($target_url) {
+                $new_block = '<figure class="ailms-figure" data-placeholder="'.$placeholder_id.'" style="text-align: center; margin: 30px auto; max-width: 90%; border: 1px solid #ddd; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">' .
+                               '<img src="' . $target_url . '" data-legend="'.htmlspecialchars($legend).'" class="img-fluid" style="border-radius: 8px; max-width: 100%; height: auto;">' .
+                               '<figcaption class="ailms-img-caption" style="margin-top:15px; font-style:italic; font-weight:bold; color:#111; text-align:center;">' . trim($legend) . '</figcaption>' .
+                               '</figure>';
+            } else {
+                $new_block = $old_block;
+            }
         }
 
         if ($new_block !== $old_block || $deleteimg) {
@@ -188,12 +201,14 @@ if (!$courseid) {
             
             $legend = "";
             if (preg_match('/class="ailms-img-caption"[^>]*>(.*?)<\//is', $block_html, $lm)) $legend = trim(strip_tags($lm[1]));
-            echo '<div style="background:#fffde7; padding:12px; border:1px solid #fff59d; border-radius:8px; margin-bottom:15px; font-size:13px; color:#5d4037; line-height:1.4;">';
-            echo '💡 <strong>Legenda do Sistema:</strong><br>' . ($legend ? s($legend) : 'Sem legenda');
-            echo '</div>';
-
+            
             echo '<form method="POST" enctype="multipart/form-data" style="margin:0;">';
             echo '<input type="hidden" name="sesskey" value="'.sesskey().'"><input type="hidden" name="pageid" value="'.$page->id.'"><input type="hidden" name="placeholder_id" value="'.s($placeholder).'">';
+
+            echo '<div style="background:#fffde7; padding:12px; border:1px solid #fff59d; border-radius:8px; margin-bottom:15px;">';
+            echo '<strong>✍️ Editar Legenda:</strong><br>';
+            echo '<textarea name="new_legend" style="width:100%; margin-top:5px; padding:8px; border-radius:4px; border:1px solid #ffeb3b; font-size:13px; font-family:sans-serif;" rows="2">'.s($legend).'</textarea>';
+            echo '</div>';
             
             echo '<div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #eceff1;"><strong>📤 Upload Local:</strong><br><input type="file" name="uploadimg" style="margin-top:5px; font-size:12px;"></div>';
             echo '<div style="background:#f8f9fa; padding:12px; border-radius:8px; margin-bottom:10px; border:1px solid #eceff1;"><strong>🖼️ Galeria Extração:</strong><br><select name="newimg" style="width:100%; margin-top:5px; padding:5px; border-radius:4px; border:1px solid #cfd8dc;" onchange="previewNew(this, \''.$unique_id.'\')"><option value="">-- Selecionar --</option>';

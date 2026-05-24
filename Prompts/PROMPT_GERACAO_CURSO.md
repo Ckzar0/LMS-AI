@@ -128,16 +128,20 @@ Escreve com autoridade científica. Cada parágrafo deve ser denso em informaç�
 - ✅ **CAMPO source_file:** No topo do JSON, deves obrigatoriamente incluir o campo `"source_file": "[NOME_DO_FICHEIRO_PDF_ORIGINAL].pdf"`.
 - ✅ **EXEMPLO:** Se o documento se chama "Manual_Redes_v2.pdf", o JSON deve começar com `"source_file": "Manual_Redes_v2.pdf"`.
 
-### **REGRA 3: PROTOCOLO DE IMAGENS E TABELAS (v9.2 STABLE)**
+### **REGRA 3: PROTOCOLO DE IMAGENS REAIS (STRICT EVIDENCE)**
 
-#### **A) IMAGENS REAIS (Comando de Injeção de Sistema)**
-- **MANDATÓRIO:** Nunca omitas um placeholder de imagem.
-- **Formato:** `[[IMG_Pxx_yy_desc]]` onde:
-  - `xx` = número da página (com zero à esquerda: P05, P12)
-  - `yy` = sequência na página (começa em 00)
-  - `desc` = 1-3 palavras simples que identifiquem o recurso (ex: `topologia_mesh`)
-- **Legenda:** Imediatamente após: `<div class="ailms-img-caption">Figura: Descrição da imagem</div>`
-- **Contexto:** Coloca o placeholder imediatamente após o parágrafo que descreve a imagem
+#### **A) DIRETRIZ DE VERIFICAÇÃO VISUAL**
+- 🚫 **PROIBIDO INVENTAR ILUSTRAÇÕES:** Estás expressamente proibido de criar placeholders `[[IMG_...]]` ou legendas para diagramas, fluxogramas, esquemas lógicos ou conceitos que sejam explicados de forma puramente textual no manual.
+- 🎯 **VERIFICAÇÃO DE EXISTÊNCIA:** Só podes gerar o código `[[IMG_Pxx_yy_desc]]` se a página correspondente no documento original contiver uma imagem física, foto, captura de ecrã ou desenho impresso. Consulta o marcador `[SISTEMA: ...]` no topo do documento para saber quais páginas têm imagens.
+- 📄 **PÁGINAS TEXTUAIS = ZERO IMAGENS:** Se a página do PDF contiver apenas texto e tabelas (ou se a página não estiver na lista de imagens reais), o código HTML final dessa página deve ter **ZERO** placeholders de imagem e **ZERO** blocos de legenda (`class="ailms-img-caption"`).
+
+#### **Formato de Injeção (Apenas para Imagens Existentes):**
+```html
+<p>[Texto do manual...]</p>
+
+[[IMG_Pxx_00_nome_do_recurso]]
+<div class="ailms-img-caption">Figura X - [Transcreve a legenda real ou descreve o elemento gráfico físico presente no PDF]</div>
+```
 
 **Exemplo correto:**
 ```html

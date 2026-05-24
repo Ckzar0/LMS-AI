@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     const wsUrl = `${moodleUrl}/webservice/rest/server.php`
 
     let extractedFolder = "";
+    let pagesWithImages: number[] = [];
 
     // 1. If PDF is provided, send it first to extract images
     if (pdfFile && pdfFile.name) {
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
         
         if (pdfData.status === 'success') {
           extractedFolder = pdfData.image_folder;
+          pagesWithImages = pdfData.pages_with_images || [];
           // Inject the image folder into the course data so ActivityCreator knows where to look
           course.image_folder = extractedFolder;
         } else {
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         success: true, 
         image_folder: extractedFolder,
+        pages_with_images: pagesWithImages,
         message: "Imagens extraídas com sucesso" 
       })
     }

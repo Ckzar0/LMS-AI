@@ -63,6 +63,7 @@ export function UploadView() {
     progress: 0,
     message: ""
   })
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
   const [createdCourseId, setCreatedCourseId] = useState<number | null>(null)
   const [generatedCourse, setGeneratedCourse] = useState<MoodleCourse | null>(null)
   const [showPreview, setShowPreview] = useState(false)
@@ -318,19 +319,24 @@ export function UploadView() {
       }
     }
 
-    const courseWithImages = {
-      ...generatedCourse,
-      image_folder: finalImageFolder
-    };
-
-    setGeneratedCourse(courseWithImages);
     setGenerationState({ status: "idle", progress: 0, message: "" });
     setShowPreview(true);
   };
 
+  const handleCancelGeneration = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setGenerationState({ status: "idle", progress: 0, message: "Geração interrompida pelo utilizador." });
+    }
+  }
+
   const handleGenerate = async () => {
     if (files.length === 0 || !courseName) return
     
+    const controller = new AbortController();
+    setAbortController(controller);
+
     const config: GenerationConfig = {
       courseName,
       difficulty,
@@ -348,6 +354,7 @@ export function UploadView() {
     try {
       // 1. Extrair Imagens no Moodle primeiro para garantir que o Preview as mostra
       let imageFolder = "";
+      let pagesWithImages: number[] = [];
       try {
         const file = files[0].file;
         const base64Content = await fileToBase64(file);
@@ -365,6 +372,7 @@ export function UploadView() {
         });
         const imgData = await imgResponse.json();
         imageFolder = imgData.image_folder;
+        pagesWithImages = imgData.pages_with_images || [];
       } catch (imgErr) {
         console.warn("Falha na extração de imagens prévia:", imgErr);
       }
@@ -375,13 +383,16 @@ export function UploadView() {
       const formData = new FormData()
       files.forEach(f => formData.append("files", f.file))
       formData.append("config", JSON.stringify(config))
+      formData.append("pagesWithImages", JSON.stringify(pagesWithImages)) // Injetar lista de páginas reais
+      formData.append("imageFolder", imageFolder) // Injetar nome real da pasta
       if (dynamicPrompt) {
         formData.append("customPrompt", dynamicPrompt)
       }
 
       const response = await fetch("/api/generate-course", {
         method: "POST",
-        body: formData
+        body: formData,
+        signal: controller.signal
       })
 
       if (!response.ok) {
@@ -400,17 +411,37 @@ export function UploadView() {
       setGeneratedCourse(finalCourse)
       setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse })
       setShowPreview(true)
-    } catch (error) {
-      setGenerationState({ status: "error", progress: 0, message: "Erro ao gerar curso", error: error instanceof Error ? error.message : "Unknown error" })
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log("Geração cancelada pelo utilizador.");
+        return;
+      }
+      console.error("Erro na geração:", error)
+      const isNetworkError = error instanceof TypeError && error.message.includes("fetch");
+      
+      setGenerationState({ 
+        status: "error", 
+        progress: 0, 
+        message: isNetworkError 
+          ? "Ocorreu um Timeout. O curso é muito grande e o browser parou de esperar, mas o servidor pode ainda estar a processar. Verifique os logs com: docker logs -f lms-ai-frontend-1" 
+          : "Erro ao gerar curso",
+        error: error instanceof Error ? error.message : "Unknown error" 
+      })
     }
   }
 
-  const handleSendToMoodle = async () => {
-    if (!generatedCourse || !courseName) return
+  const handleSendToMoodle = async (updatedCourse?: MoodleCourse) => {
+    // Criar uma cópia limpa para evitar erro de "cyclic object value"
+    const rawCourse = updatedCourse || generatedCourse;
+    if (!rawCourse || !courseName) return;
+
+    // Deep copy simples para garantir serialização limpa
+    const targetCourse = JSON.parse(JSON.stringify(rawCourse));
+    
     setGenerationState({ status: "sending", progress: 90, message: "A criar estrutura do curso no Moodle..." })
     try {
       const courseWithFinalName = {
-        ...generatedCourse,
+        ...targetCourse,
         course_name: courseName,
         generate_evaluation: selectedOptions.includes("evaluation"),
         generate_certificate: selectedOptions.includes("certificate")
@@ -719,9 +750,19 @@ export function UploadView() {
                   </div>
                 </div>
                 {isGenerating && (
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4 space-y-3">
                     <Progress value={generationState.progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground text-right font-mono">{generationState.progress}%</p>
+                    <div className="flex items-center justify-between">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleCancelGeneration}
+                        className="text-xs text-destructive hover:bg-destructive/10 h-7"
+                      >
+                        <X className="h-3 w-3 mr-1" /> Cancelar Geração
+                      </Button>
+                      <p className="text-xs text-muted-foreground font-mono">{generationState.progress}%</p>
+                    </div>
                   </div>
                 )}
               </CardContent>

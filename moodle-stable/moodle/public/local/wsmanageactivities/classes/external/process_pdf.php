@@ -9,6 +9,7 @@ use external_api;
 use external_function_parameters;
 use external_value;
 use external_single_structure;
+use external_multiple_structure;
 use Exception;
 
 /**
@@ -133,11 +134,38 @@ class process_pdf extends external_api {
             $py_cmd = "python3 \"$py_script\" \"$target_dir\" 2>&1";
             exec($py_cmd, $py_output);
             file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ⏳ Executing Python: $py_cmd\n", FILE_APPEND);
-            if (!empty($py_output)) {
-                file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🗨️ Python Output: " . implode("\n", $py_output) . "\n", FILE_APPEND);
-            }
         }
         
+        // --- NOVO: FILTRO DE RUÍDO (Pancada Final nas imagens pretas/laranjas) ---
+        $all_images = glob("$target_dir/*.{jpg,png}", GLOB_BRACE);
+        foreach ($all_images as $img) {
+            // A) Filtro por Peso
+            if (filesize($img) < 10240) {
+                unlink($img);
+                continue;
+            }
+            
+            // B) Filtro por Dimensões
+            $size = @getimagesize($img);
+            if ($size) {
+                $w = $size[0];
+                $h = $size[1];
+                if ($w < 50 || $h < 50 || ($w / $h > 10) || ($h / $w > 10)) {
+                    unlink($img);
+                    continue;
+                }
+            }
+
+            // C) DETEÇÃO DE COR SÓLIDA (Mata os quadrados pretos/laranjas)
+            // Usamos ImageMagick para ver o desvio padrão das cores
+            $std_dev_cmd = "identify -format \"%[standard-deviation]\" \"$img\" 2>&1";
+            $std_dev = (float)exec($std_dev_cmd);
+            if ($std_dev < 10) { // Se o desvio for muito baixo, a imagem é quase toda de uma cor só
+                unlink($img);
+                continue;
+            }
+        }
+
         // Garantir permissões nos ficheiros extraídos
         exec("chmod -R 777 \"$target_dir\"");
 
@@ -146,11 +174,22 @@ class process_pdf extends external_api {
             unlink($pdf_path);
         }
 
-        // Contar todos os formatos que o browser entende agora (JPG e PNG)
-        $final_count = count(glob("$target_dir/*.{jpg,png}", GLOB_BRACE));
+        // Recalcular lista de imagens reais após a limpeza do lixo
+        $image_files = glob("$target_dir/*.{jpg,png}", GLOB_BRACE);
+        $final_count = count($image_files);
+
+        // Extrair lista de páginas únicas que têm imagens ÚTEIS
+        $pages_with_images = [];
+        foreach ($image_files as $file) {
+            if (preg_match('/img-(\d+)-/', basename($file), $matches)) {
+                $pages_with_images[] = (int)$matches[1];
+            }
+        }
+        $pages_with_images = array_values(array_unique($pages_with_images));
+        sort($pages_with_images);
 
         // Log de atividade
-        $log_msg = "[" . date('Y-m-d H:i:s') . "] Processed: $pdf_name | Found: $final_count images.\n";
+        $log_msg = "[" . date('Y-m-d H:i:s') . "] Processed: $pdf_name | Found: $final_count images on " . count($pages_with_images) . " pages.\n";
         if ($final_count === 0 && !empty($all_output)) {
             $log_msg .= "   ⚠️ Cmd Output: " . implode(" ", $all_output) . "\n";
         }
@@ -160,6 +199,7 @@ class process_pdf extends external_api {
             'status' => 'success',
             'image_folder' => $pdf_name,
             'count' => $final_count,
+            'pages_with_images' => $pages_with_images,
             'message' => "Extracted $final_count images into $pdf_name."
         ];
     }
@@ -169,6 +209,7 @@ class process_pdf extends external_api {
             'status' => new external_value(PARAM_ALPHA, 'Status (success/error)'),
             'image_folder' => new external_value(PARAM_TEXT, 'The folder where images were extracted'),
             'count' => new external_value(PARAM_INT, 'Number of images extracted'),
+            'pages_with_images' => new external_multiple_structure(new external_value(PARAM_INT, 'Page number')),
             'message' => new external_value(PARAM_TEXT, 'Success or error message')
         ]);
     }
