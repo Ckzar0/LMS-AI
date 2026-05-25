@@ -49,9 +49,7 @@ async function callAI(prompt: string, model: string, maxTokens: number, retries:
           response_format: { type: "json_object" }
         });
         
-        const resContent = chatCompletion.choices?.[0]?.message?.content || "";
-        console.log(`[AI] Resposta recebida (${resContent.length} chars). Preview: ${resContent.substring(0, 100)}...`);
-        return resContent;
+        return chatCompletion.choices?.[0]?.message?.content || "";
       } else {
         const geminiKey = process.env.GEMINI_API_KEY;
         if (!geminiKey) throw new Error("GEMINI_API_KEY not configured");
@@ -72,51 +70,72 @@ async function callAI(prompt: string, model: string, maxTokens: number, retries:
 
         const responseData = await response.json();
         if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
-        const resContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        console.log(`[AI-DIRECT] Resposta recebida (${resContent.length} chars). Preview: ${resContent.substring(0, 100)}...`);
-        return resContent;
+        return responseData.candidates?.[0]?.content?.parts?.[0]?.text || "";
       }
-    } catch (error) {
+    } catch (error: any) {
        if (i === retries - 1) throw error;
-       console.warn(`[AI] Falha na tentativa ${i + 1}/${retries}. A tentar novamente em 3s...`, error instanceof Error ? error.message : error);
-       await new Promise(resolve => setTimeout(resolve, 3000));
+       const delay = Math.pow(2, i) * 5000;
+       console.warn(`[AI] Tentativa ${i + 1} falhou. Retrying in ${delay/1000}s...`);
+       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   return ""; 
 }
 
 function cleanJsonString(content: string): string {
-  let jsonStr = content.trim();
-  const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (!content || typeof content !== 'string') return "";
+  const trimmed = content.trim();
+  
+  // 1. Tentar parse direto
+  try { JSON.parse(trimmed); return trimmed; } catch (e) {}
+
+  // 2. Extrair blocos de markdown
+  const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (codeBlockMatch && codeBlockMatch[1]) {
-    return codeBlockMatch[1].trim();
+    try { JSON.parse(codeBlockMatch[1].trim()); return codeBlockMatch[1].trim(); } catch (e) {}
   }
-  const firstBrace = jsonStr.indexOf('{');
-  const lastBrace = jsonStr.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    return jsonStr.substring(firstBrace, lastBrace + 1);
+
+  // 3. Brute force: encontrar o objeto JSON mais longo válido (Objeto ou Array)
+  const firstBrace = trimmed.indexOf('{');
+  const firstBracket = trimmed.indexOf('[');
+  
+  let startIndex = -1;
+  if (firstBrace !== -1 && firstBracket !== -1) {
+      startIndex = Math.min(firstBrace, firstBracket);
+  } else {
+      startIndex = Math.max(firstBrace, firstBracket);
   }
-  return jsonStr;
+
+  if (startIndex !== -1) {
+    const isArray = trimmed[startIndex] === '[';
+    const endChar = isArray ? ']' : '}';
+    const lastIndex = trimmed.lastIndexOf(endChar);
+    
+    for (let i = lastIndex; i > startIndex; i--) {
+      if (trimmed[i] === endChar) {
+        const candidate = trimmed.substring(startIndex, i + 1);
+        try { JSON.parse(candidate); return candidate; } catch (e) {}
+      }
+    }
+  }
+  return trimmed;
 }
 
 function sliceContext(fullText: string, currentTitle: string, nextTitle?: string): string {
-  const cleanKeyword = (t: string) => t.split(':').pop()?.trim() || t;
+  const cleanKeyword = (t: string) => {
+    if (!t) return "";
+    return t.split(':').pop()?.trim() || t;
+  };
   const startKeyword = cleanKeyword(currentTitle);
-  
   let startIndex = fullText.indexOf(startKeyword);
   if (startIndex === -1) startIndex = 0;
   else startIndex = Math.max(0, startIndex - 800);
-
   let endIndex = fullText.length;
   if (nextTitle) {
     const endKeyword = cleanKeyword(nextTitle);
     const foundEnd = fullText.indexOf(endKeyword, startIndex + 1000);
-    if (foundEnd !== -1) {
-      endIndex = foundEnd + 800;
-    }
+    if (foundEnd !== -1) endIndex = foundEnd + 800;
   }
-
-  console.log(`[SLICER] Otimização: Segmento de ${endIndex - startIndex} chars enviado (Módulo: ${currentTitle})`);
   return fullText.substring(startIndex, endIndex);
 }
 
@@ -124,29 +143,24 @@ function scrubHallucinations(content: string, validPages: number[]): string {
   if (!content) return content;
   const imgRegex = /\[\[IMG_P?(\d+)_(\d+)(?:_[^\]]+)?\]\]/gi;
   let scrubbed = content;
-  
   if (validPages && validPages.length > 0) {
     const matches = [...content.matchAll(imgRegex)];
     for (const match of matches) {
       const pageNum = parseInt(match[1]);
       if (!validPages.includes(pageNum)) {
-        console.log(`[SCRUBBER] Alucinação de página removida: ${match[0]}`);
         scrubbed = removeImageBlock(scrubbed, match[0]);
       }
     }
   }
-  
   const conceptualKeywords = ["conceptual", "ilustrativo", "diagrama conceptual", "esquema ilustrativo", "comparativo conceptual", "esquema comparativo", "representação conceptual"];
   conceptualKeywords.forEach(word => {
     const keywordRegex = new RegExp(`<figure[^>]*>.*?${word}.*?<\/figure>`, 'gis');
     const divKeywordRegex = new RegExp(`<div[^>]*class="ailms-figure"[^>]*>.*?${word}.*?<\/div>`, 'gis');
     if (keywordRegex.test(scrubbed) || divKeywordRegex.test(scrubbed)) {
-        console.log(`[SCRUBBER] Alucinação conceptual removida (Keyword: ${word})`);
         scrubbed = scrubbed.replace(keywordRegex, "");
         scrubbed = scrubbed.replace(divKeywordRegex, "");
     }
   });
-
   return scrubbed;
 }
 
@@ -160,280 +174,251 @@ function removeImageBlock(html: string, placeholder: string): string {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const pdfModule = await import("pdf-parse");
-    const { PDFParse } = pdfModule as any;
-    
-    if (!PDFParse) {
-      return NextResponse.json({ error: "Erro interno: Classe PDFParse não encontrada." }, { status: 500 });
-    }
-    
-    const formData = await request.formData()
-    const files = formData.getAll("files") as File[]
-    const configStr = formData.get("config") as string
-    const pagesWithImagesStr = formData.get("pagesWithImages") as string
-    const pagesWithImages = pagesWithImagesStr ? JSON.parse(pagesWithImagesStr) : []
-    const realImageFolder = (formData.get("imageFolder") as string) || "";
-    
-    if (files.length === 0 || !configStr) {
-      return NextResponse.json({ error: "Missing files or config" }, { status: 400 })
-    }
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const sendUpdate = (status: string, progress: number, message: string, data?: any) => {
+        try { controller.enqueue(encoder.encode(JSON.stringify({ status, progress, message, ...data }) + "\n")); } catch (e) {}
+      };
 
-    const config: GenerationConfig = JSON.parse(configStr)
-    const customPrompt = formData.get("customPrompt") as string
-    
-    let combinedText = ""
-    for (const file of files) {
-      const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
-      
       try {
-        const parser = new PDFParse({ data: buffer });
-        const result = await parser.getText();
+        const pdfModule = await import("pdf-parse");
+        const { PDFParse } = pdfModule as any;
+        const formData = await request.formData();
+        const files = formData.getAll("files") as File[];
+        const configStr = formData.get("config") as string;
+        const pagesWithImagesStr = formData.get("pagesWithImages") as string;
+        const pagesWithImages = pagesWithImagesStr ? JSON.parse(pagesWithImagesStr) : [];
+        const realImageFolder = (formData.get("imageFolder") as string) || "";
         
-        const metadataHeader = pagesWithImages.length > 0
-          ? `[SISTEMA: ESTE DOCUMENTO CONTÉM IMAGENS REAIS NAS PÁGINAS: ${pagesWithImages.join(", ")}]\n[REGRA: PROIBIDO GERAR IMAGENS FORA DESTA LISTA]\n\n`
-          : `[SISTEMA: ESTE DOCUMENTO É PURO TEXTO - NÃO CONTÉM IMAGENS]\n\n`;
-
-        combinedText += `\n--- INÍCIO DO DOCUMENTO: ${file.name} ---\n${metadataHeader}${result.text}\n`;
-        await parser.destroy();
-      } catch (pdfError) {
-        combinedText += `\n[Erro ao extrair texto de ${file.name}]\n`
-      }
-    }
-
-    if (!combinedText || combinedText.trim().length < 10) {
-      return NextResponse.json({ error: "O PDF parece estar vazio ou não contém texto legível." }, { status: 400 });
-    }
-
-    const isLargeCourse = combinedText.length > 25000 || config.divideInModules;
-    const fileName = files[0]?.name || "documento.pdf";
-    
-    const promptPath = path.join(process.cwd(), "..", "Prompts", "PROMPT_GERACAO_CURSO.md");
-    let basePrompt = "";
-    try {
-      if (fs.existsSync(promptPath)) {
-        basePrompt = fs.readFileSync(promptPath, "utf-8");
-      } else {
-        const altPath = "/app/Prompts/PROMPT_GERACAO_CURSO.md";
-        if (fs.existsSync(altPath)) {
-          basePrompt = fs.readFileSync(altPath, "utf-8");
-        }
-      }
-    } catch (fsError) {
-      console.error("Error reading master prompt file:", fsError);
-    }
-
-    const envModelPro = process.env.PORTKEY_MODEL_PRO;
-    const envModelFlash = process.env.PORTKEY_MODEL_FLASH;
-    const envMaxTokens = process.env.PORTKEY_MAX_TOKENS;
-
-    const modelPro = envModelPro || "gemini-1.5-pro";
-    const modelFlash = envModelFlash || "gemini-1.5-flash";
-    const selectedModel = config.depth === "Especialista Técnico" ? modelPro : modelFlash;
-    const maxTokensLimit = parseInt(envMaxTokens || "32768");
-
-    let courseModules = [];
-    if (isLargeCourse) {
-      console.log(`[PLANNER] Curso detetado como GRANDE (${combinedText.length} chars). A iniciar fase de planeamento...`);
-      
-      const plannerPrompt = `
-        Analisa o seguinte texto extraído de um PDF e cria um plano de formação estruturado.
-        
-        REGRAS CRÍTICAS:
-        1. Identifica se o documento já possui uma divisão clara (ex: "Dia 1", "Módulo 1", "Capítulo 1").
-        2. Se existir uma divisão original, DEVES segui-la exatamente. Se o manual tem 5 dias, gera exatamente 5 módulos.
-        3. Se NÃO existir divisão, divide o conteúdo em 3 a 5 módulos lógicos, sem nunca repetir temas.
-        4. É PROIBIDO criar módulos de "revisão" ou "resumo" para preencher espaço. Se o conteúdo acabar, o plano acaba.
-        5. Devolve APENAS um JSON válido.
-
-        ESTRUTURA JSON ESPERADA:
-        {
-          "plan": [
-            { "id": 1, "title": "Módulo 1: Título Original", "summary": "Resumo fiel ao que está no manual para esta parte..." },
-            ...
-          ]
+        if (files.length === 0 || !configStr) {
+          sendUpdate("error", 0, "Missing files or config");
+          return;
         }
 
-        CONTEÚDO DO DOCUMENTO (Amostra para planeamento):
-        ${combinedText.substring(0, 60000)}
-      `;
+        const config: GenerationConfig = JSON.parse(configStr);
+        const customPrompt = formData.get("customPrompt") as string;
 
-      const plannerResponse = await callAI(plannerPrompt, modelFlash, maxTokensLimit);
-      try {
-        const planData = JSON.parse(cleanJsonString(plannerResponse));
-        courseModules = planData.plan || [];
-        console.log(`[PLANNER] Plano gerado com ${courseModules.length} módulos.`);
-      } catch (e) {
-        console.error("[PLANNER] Erro ao processar plano da IA. Usando fallback single-shot.", e);
-        courseModules = [];
-      }
-    }
+        // --- ESTADO GLOBAL ---
+        let combinedText = "";
+        let courseModules = [];
+        const aggregatedActivities: any[] = [];
+        const aggregatedQuestionBanks: any[] = [];
+        let courseMetadata: any = null;
+        let globalQuestionCounter = 1;
+        let finalCourse: MoodleCourse | null = null;
 
-    let finalCourse: MoodleCourse | null = null;
-
-    if (courseModules.length > 0) {
-      console.log(`[ORCHESTRATOR] Modo Modular ativo. A processar ${courseModules.length} módulos sequencialmente...`);
-      
-      const aggregatedActivities: any[] = [];
-      const aggregatedQuestionBanks: any[] = [];
-      let courseMetadata: any = null;
-
-      const targetTotalQuestions = config.numberOfQuestions + 10;
-      const questionsPerModule = Math.max(2, Math.ceil(targetTotalQuestions / courseModules.length));
-      console.log(`[ORCHESTRATOR] Distribuição: ${questionsPerModule} questões por módulo para atingir ~${targetTotalQuestions} total.`);
-
-      let globalQuestionCounter = 1;
-
-      for (const [index, module] of courseModules.entries()) {
-        // VERIFICAÇÃO DE CANCELAMENTO (AbortController)
-        if (request.signal.aborted) {
-          console.log("[ORCHESTRATOR] Geração interrompida pelo utilizador. A parar loop...");
-          break;
+        sendUpdate("generating", 10, "A ler documentos PDF...");
+        
+        for (const file of files) {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          try {
+            const parser = new PDFParse({ data: buffer });
+            const result = await parser.getText();
+            const metadataHeader = pagesWithImages.length > 0
+              ? `[SISTEMA: ESTE DOCUMENTO CONTÉM IMAGENS REAIS NAS PÁGINAS: ${pagesWithImages.join(", ")}]\n[REGRA: PROIBIDO GERAR IMAGENS FORA DESTA LISTA]\n\n`
+              : `[SISTEMA: ESTE DOCUMENTO É PURO TEXTO - NÃO CONTÉM IMAGENS]\n\n`;
+            combinedText += `\n--- INÍCIO DO DOCUMENTO: ${file.name} ---\n${metadataHeader}${result.text}\n`;
+            await parser.destroy();
+          } catch (e) {}
         }
 
-        const moduleNum = index + 1;
-        console.log(`[ORCHESTRATOR] A gerar Módulo ${moduleNum}/${courseModules.length}: ${module.title}...`);
-        
-        const nextModule = courseModules[index + 1];
-        const relevantText = sliceContext(combinedText, module.title, nextModule?.title);
+        const isLargeCourse = combinedText.length > 25000 || config.divideInModules;
+        const fileName = files[0]?.name || "documento.pdf";
+        const promptPath = path.join(process.cwd(), "..", "Prompts", "PROMPT_GERACAO_CURSO.md");
+        let basePrompt = "";
+        if (fs.existsSync(promptPath)) basePrompt = fs.readFileSync(promptPath, "utf-8");
 
-        const modularPrompt = `
-          ${basePrompt}
-          
-          ⚠️ MODO MODULAR ATIVADO: Estás a gerar APENAS a PARTE ${moduleNum} de um curso de ${courseModules.length} módulos.
-          
-          FOCO ATUAL: ${module.title}
-          RESUMO DO CONTEÚDO: ${module.summary}
-          
-          REGRAS ESTRITAS PARA ESTA CHAMADA:
-          1. Responde APENAS com o objeto JSON.
-          2. NOMEAÇÃO: Todas as atividades (pages) DEVEM começar por "Módulo ${moduleNum}.X: [Título]".
-          3. QUIZ: Estás PROIBIDO de criar atividades do tipo "quiz" neste JSON.
-          4. QUESTÕES: Cria exatamente ${questionsPerModule} questões de avaliação.
-          5. NUMERAÇÃO DE QUESTÕES: O nome de cada questão deve seguir a sequência global. Começa na questão nº ${globalQuestionCounter}.
-          6. CONTEÚDO: Gera conteúdo denso (mínimo 500 palavras por página).
-          7. INTRO/OUTRO: Não geris introduções globais ou conclusões.
-          8. IMAGENS (GROUND TRUTH): Estás PROIBIDO de inventar imagens. Só podes usar placeholders [[IMG_Pxx_yy]] para as seguintes páginas que REALMENTE têm imagens: [${pagesWithImages.join(", ")}].
-          
-          CONTEÚDO DO DOCUMENTO (PARTE RELEVANTE):
-          ${relevantText}
-        `;
+        const envModelPro = process.env.PORTKEY_MODEL_PRO || "@gemini-3-prod/gemini-3-pro-preview";
+        const envModelFlash = process.env.PORTKEY_MODEL_FLASH || "@gemini-3-prod/gemini-3-flash-preview";
+        const selectedModel = config.depth === "Especialista Técnico" ? envModelPro : envModelFlash;
+        const maxTokensLimit = parseInt(process.env.PORTKEY_MAX_TOKENS || "32768");
 
-        const moduleResponse = await callAI(modularPrompt, selectedModel, maxTokensLimit);
-        try {
-          const moduleData: MoodleCourse = JSON.parse(cleanJsonString(moduleResponse));
-          
-          if (moduleData.activities) {
-            moduleData.activities.forEach(act => {
-              if (act.content) {
-                act.content = scrubHallucinations(act.content, pagesWithImages);
-              }
-            });
+        if (isLargeCourse) {
+          sendUpdate("generating", 45, "A planear estrutura modular...");
+          const plannerPrompt = `
+            Analisa o conteúdo e cria um plano de formação estruturado em módulos.
+            Respeita a divisão original do manual (ex: Dia 1, Módulo 1).
+            Responde APENAS com um JSON no formato: { "plan": [{ "title": "...", "summary": "..." }] }
+            No máximo 5 módulos.
+            CONTEÚDO: ${combinedText.substring(0, 60000)}
+          `;
+
+          const plannerResponse = await callAI(plannerPrompt, envModelFlash, maxTokensLimit);
+          try {
+            const planData = JSON.parse(cleanJsonString(plannerResponse));
+            const rawPlan = planData.plan || planData.modules || [];
+            courseModules = rawPlan.map((m: any) => ({
+              title: m.title || m.titulo || m.name || m.nome || "Módulo",
+              summary: m.summary || m.resumo || ""
+            }));
+          } catch (e) { 
+            courseModules = []; 
           }
+        }
 
-          if (index === 0) {
-            const finalImageFolder = realImageFolder || moduleData.image_folder?.replace(/[^\w-]/g, '_') || "";
-            courseMetadata = {
-              course_name: moduleData.course_name,
-              course_shortname: moduleData.course_shortname,
-              source_file: moduleData.source_file,
-              course_summary: moduleData.course_summary,
-              image_folder: finalImageFolder 
-            };
-          }
+        if (courseModules.length > 0) {
+          const questionsPerModule = Math.max(2, Math.ceil((config.numberOfQuestions + 10) / courseModules.length));
 
-          if (moduleData.activities) {
-            const modulePages = moduleData.activities.filter(act => act.type === 'page');
-            modulePages.forEach((page, pIndex) => {
-              const prefix = `Módulo ${moduleNum}.${pIndex + 1}:`;
-              if (!page.name.includes(prefix)) {
-                const cleanName = page.name.replace(/^[^:]+:/, "").trim();
-                page.name = `${prefix} ${cleanName}`;
-              }
-            });
-            aggregatedActivities.push(...modulePages);
-          }
-          
-          if (moduleData.question_banks) {
-            for (const bank of moduleData.question_banks) {
-              const bankName = "Banco Global de Questões";
-              const existingBank = aggregatedQuestionBanks.find(b => b.name === bankName);
+          for (const [index, module] of courseModules.entries()) {
+            if (request.signal.aborted) break;
+            const moduleNum = index + 1;
+            const progress = 50 + Math.floor((index / courseModules.length) * 45);
+            sendUpdate("generating", progress, `A gerar Módulo ${moduleNum} de ${courseModules.length}: ${module.title}...`);
+            
+            const nextModule = courseModules[index + 1];
+            const relevantText = sliceContext(combinedText, module.title, nextModule?.title);
+            
+            const modularPrompt = `
+              ${basePrompt}
               
-              if (bank.questions) {
-                bank.questions.forEach((q: any) => {
-                  const qNumStr = globalQuestionCounter.toString().padStart(2, '0');
-                  q.name = `Pergunta ${qNumStr}: ${q.name.split(':').pop()?.trim() || ''}`;
-                  globalQuestionCounter++;
-                });
+              ⚠️ ESTÁS EM MODO MODULAR (PARTE ${moduleNum}/${courseModules.length}).
+              FOCA-TE APENAS NO CONTEÚDO ABAIXO.
+              
+              REGRAS ESTRITAS PARA ESTA CHAMADA:
+              1. ESTRUTURA HTML (CRÍTICO): Deves embrulhar o conteúdo em <div class="ailms-page-container">. Usa OBRIGATORIAMENTE os seguintes elementos CSS definidos no teu Master Prompt:
+                 - <div class="ailms-info-box"> para Conceitos-Chave.
+                 - <div class="ailms-dica"> para Dicas Práticas.
+                 - <div class="ailms-atencao"> para Pontos Críticos.
+                 - <div class="ailms-quick-check"> para Verificações Rápidas.
+              2. NOMEAÇÃO: Todas as atividades (pages) DEVEM começar por "Módulo ${moduleNum}.X: [Título]".
+              3. QUIZ: Estás PROIBIDO de criar atividades do tipo "quiz" neste JSON.
+              4. QUESTÕES: Cria exatamente ${questionsPerModule} questões de avaliação.
+              5. NUMERAÇÃO DE QUESTÕES: O nome de cada questão deve seguir a sequência global. Começa na questão nº ${globalQuestionCounter}.
+              6. CONTEÚDO: Gera conteúdo denso (mínimo 500 palavras por página) e explica os conceitos como um Especialista Sénior (não faças apenas resumo).
+              7. INTRO/OUTRO: Não geris introduções globais ou conclusões.
+              8. IMAGENS E LEGENDAS: Estás PROIBIDO de inventar imagens. Só podes usar imagens das páginas reais: [${pagesWithImages.join(", ")}]. Usa OBRIGATORIAMENTE o formato com legenda exigido no Master: [[IMG_Pxx_yy_nome]] seguido da <div class="ailms-img-caption">Descrição</div>.
+              9. Responde APENAS com o objeto JSON.
+              
+              CONTEÚDO DO DOCUMENTO (PARTE RELEVANTE):
+              ${relevantText}
+            `;
+
+            const moduleResponse = await callAI(modularPrompt, selectedModel, maxTokensLimit);
+            try {
+              const cleaned = cleanJsonString(moduleResponse);
+              let moduleData: any = JSON.parse(cleaned);
+              
+              // Lidar com IA que aninha os dados em chaves como "modulo" ou "course"
+              if (moduleData && !moduleData.activities && moduleData.modulo) moduleData = moduleData.modulo;
+              if (moduleData && !moduleData.activities && moduleData.course) moduleData = moduleData.course;
+
+              // Lidar com IA que devolve um Array diretamente
+              if (Array.isArray(moduleData)) {
+                 const activities = moduleData.filter(item => item.type === 'page' || (item.name && item.content));
+                 // Garantir que todos os itens identificados como atividades têm o type 'page'
+                 activities.forEach(item => item.type = 'page');
+                 
+                 const questions = moduleData.filter(item => item.qtype || item.questiontext || (item.name && item.name.includes("Pergunta")));
+                 
+                 moduleData = {
+                   activities: activities.length > 0 ? activities : undefined,
+                   question_banks: questions.length > 0 ? [{ name: "Banco Global de Questões", questions: questions }] : undefined,
+                   course_name: moduleData.find(item => item.course_name)?.course_name,
+                   course_shortname: moduleData.find(item => item.course_shortname)?.course_shortname,
+                   course_summary: moduleData.find(item => item.course_summary)?.course_summary,
+                   image_folder: moduleData.find(item => item.image_folder)?.image_folder,
+                 };
               }
 
-              if (existingBank) {
-                existingBank.questions.push(...bank.questions);
+              if (moduleData && moduleData.activities) {
+                const modulePages = moduleData.activities.filter((act: any) => act.type === 'page');
+                modulePages.forEach((page: any, pIndex: number) => {
+                  if (page.content) page.content = scrubHallucinations(page.content, pagesWithImages);
+                  const prefix = `Módulo ${moduleNum}.${pIndex + 1}:`;
+                  if (!String(page.name || "").includes(prefix)) {
+                    page.name = `${prefix} ${String(page.name || "Página").replace(/^[^:]+:/, "").trim()}`;
+                  }
+                });
+                aggregatedActivities.push(...modulePages);
+                sendUpdate("generating", progress, `Módulo ${moduleNum} processado.`);
+              }
+
+              if (moduleData.question_banks) {
+                for (const bank of moduleData.question_banks) {
+                  const bankName = "Banco Global de Questões";
+                  const existingBank = aggregatedQuestionBanks.find(b => b.name === bankName);
+                  if (bank.questions) {
+                    bank.questions.forEach((q: any) => {
+                      const qNumStr = globalQuestionCounter.toString().padStart(2, '0');
+                      const rawQName = String(q.name || "");
+                      q.name = `Pergunta ${qNumStr}: ${rawQName.split(':').pop()?.trim() || ''}`;
+                      globalQuestionCounter++;
+                    });
+                  }
+                  if (existingBank) existingBank.questions.push(...(bank.questions || []));
+                  else { bank.name = bankName; aggregatedQuestionBanks.push(bank); }
+                }
+              }
+
+              if (!courseMetadata && moduleData.course_name) {
+                courseMetadata = { 
+                  course_name: moduleData.course_name, 
+                  course_shortname: moduleData.course_shortname || "CURSO", 
+                  source_file: fileName, 
+                  course_summary: moduleData.course_summary || "", 
+                  image_folder: realImageFolder || moduleData.image_folder?.replace(/[^\w-]/g, '_') || "" 
+                };
+              }
+            } catch (e) { 
+              console.error(`Erro parse Módulo ${moduleNum}:`, e);
+              // Fallback de Sobrevivência: Se a IA não der JSON nenhum, mas der HTML/Texto, aproveitamos!
+              if (moduleResponse.length > 200 && !moduleResponse.startsWith("```json")) {
+                  const safeContent = scrubHallucinations(moduleResponse, pagesWithImages);
+                  aggregatedActivities.push({
+                      type: "page",
+                      name: `Módulo ${moduleNum}.1: Conteúdo de Emergência`,
+                      content: `<div class="ailms-page-container"><h2>Módulo ${moduleNum}</h2>${safeContent}</div>`
+                  });
+                  sendUpdate("generating", progress, `Módulo ${moduleNum} processado (Modo de Recuperação).`);
               } else {
-                bank.name = bankName;
-                aggregatedQuestionBanks.push(bank);
+                  sendUpdate("generating", progress, `Aviso: Falha ao ler Módulo ${moduleNum}.`);
               }
             }
           }
-          console.log(`[ORCHESTRATOR] Módulo ${moduleNum} concluído.`);
-        } catch (e) {
-          console.error(`[ORCHESTRATOR] Erro no Módulo ${moduleNum}.`, e);
+          
+          if (aggregatedActivities.length > 0) {
+            const finalMetadata = courseMetadata || {
+                course_name: "Curso Gerado Modular",
+                course_shortname: "MOD-GEN",
+                source_file: fileName,
+                course_summary: "Curso modular gerado com IA.",
+                image_folder: realImageFolder || ""
+            };
+            const activities = [
+              { name: "Introdução ao Curso", type: "page", content: `<div class=\"ailms-page-container\"><h1>${finalMetadata.course_name}</h1><p>${finalMetadata.course_summary}</p></div>` },
+              ...aggregatedActivities,
+              { name: "Encerramento", type: "page", content: "<div class=\"ailms-page-container\"><h1>Parabéns!</h1><p>Concluiu a parte teórica.</p></div>" },
+              { name: "Exame Final", type: "quiz", intro: "Avaliação final.", questions_per_page: 5, time_limit: config.quizDuration * 60, pass_grade: 8, question_banks: ["Banco Global de Questões"], random_questions: config.numberOfQuestions }
+            ];
+            finalCourse = { ...finalMetadata, image_folder: realImageFolder || finalMetadata.image_folder, activities, question_banks: aggregatedQuestionBanks };
+            sendUpdate("generating", 95, `Finalizando curso com ${aggregatedActivities.length} atividades...`);
+          }
         }
-      }
 
-      if (courseMetadata) {
-        const introPage = {
-          name: "Introdução ao Curso",
-          type: "page",
-          content: `<div class=\"ailms-page-container\"><h1>Bem-vindo ao curso ${courseMetadata.course_name}</h1><p>${courseMetadata.course_summary}</p></div>`
-        };
-        const finalQuiz = {
-          name: "Exame Final de Avaliação",
-          type: "quiz",
-          intro: `Responda a este exame de ${config.numberOfQuestions} questões para validar os seus conhecimentos e obter a certificação.`,
-          questions_per_page: 5,
-          time_limit: config.quizDuration * 60,
-          pass_grade: 8,
-          question_banks: ["Banco Global de Questões"],
-          random_questions: config.numberOfQuestions
-        };
-        const conclusionPage = {
-          name: "Encerramento e Próximos Passos",
-          type: "page",
-          content: "<div class=\"ailms-page-container\"><h1>Parabéns!</h1><p>Concluiu todos os módulos teóricos. Prossiga para o exame final.</p></div>"
-        };
-        finalCourse = {
-          ...courseMetadata,
-          image_folder: realImageFolder || courseMetadata.image_folder,
-          activities: [introPage, ...aggregatedActivities, conclusionPage, finalQuiz],
-          question_banks: aggregatedQuestionBanks
-        };
+        if (!finalCourse && !request.signal.aborted && aggregatedActivities.length === 0) {
+          sendUpdate("generating", 50, "A usar modo Single-Shot (Fallback)...");
+          const prompt = customPrompt ? `${customPrompt}\n\nCONTEÚDO:\n${combinedText}` : generatePrompt(basePrompt, config, combinedText, fileName);
+          const content = await callAI(prompt, selectedModel, maxTokensLimit);
+          finalCourse = JSON.parse(cleanJsonString(content));
+          if (finalCourse) {
+            if (finalCourse.activities) finalCourse.activities.forEach(a => { if (a.content) a.content = scrubHallucinations(a.content, pagesWithImages); });
+            finalCourse.image_folder = realImageFolder || finalCourse.image_folder;
+          }
+        }
+
+        if (finalCourse) sendUpdate("complete", 100, "Geração concluída!", { course: finalCourse });
+        else sendUpdate("error", 0, "Falha na geração do curso.");
+      } catch (error: any) {
+        sendUpdate("error", 0, error instanceof Error ? error.message : "Erro desconhecido");
+      } finally {
+        try { controller.close(); } catch (e) {}
       }
     }
+  });
 
-    if (!finalCourse) {
-      if (request.signal.aborted) {
-        return NextResponse.json({ error: "Geração cancelada pelo utilizador" }, { status: 499 });
-      }
-      console.log("[ORCHESTRATOR] A usar modo Single-Shot (Padrão)...");
-      const prompt = customPrompt 
-        ? `${customPrompt}\n\nCONTEÚDO DO DOCUMENTO EXTRAÍDO:\n${combinedText}\n\nResponde APENAS com o JSON integral.`
-        : generatePrompt(basePrompt, config, combinedText, fileName);
-      const content = await callAI(prompt, selectedModel, maxTokensLimit);
-      finalCourse = JSON.parse(cleanJsonString(content));
-      if (finalCourse && finalCourse.activities && pagesWithImages.length > 0) {
-        finalCourse.activities.forEach(act => {
-          if (act.content) act.content = scrubHallucinations(act.content, pagesWithImages);
-        });
-      }
-      if (realImageFolder && finalCourse) finalCourse.image_folder = realImageFolder;
-    }
-
-    if (!finalCourse) throw new Error("Falha na geração");
-    return NextResponse.json({ course: finalCourse });
-  } catch (error) {
-    console.error("Critical error:", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 });
-  }
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+  });
 }

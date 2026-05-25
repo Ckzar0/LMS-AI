@@ -520,11 +520,41 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         /* Case Study - Green Theme */
         .ailms-case-study {
           background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-          border-color: #dcfce7;
-          border-left: 8px solid #16a34a;
+          border-color: #a7f3d0;
+          border-left: 8px solid #059669;
         }
-        .ailms-case-study h3 { color: #166534; }
-        .ailms-case-study h3::before { content: "📂"; font-size: 1.5rem; }
+        .ailms-case-study h3 { color: #065f46; }
+        .ailms-case-study h3::before { content: "📋"; font-size: 1.5rem; }
+
+        /* Dicas Práticas - Emerald Theme */
+        .ailms-dica {
+          background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+          border-color: #a7f3d0;
+          border-left: 8px solid #10b981;
+          margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+        .ailms-dica strong { color: #047857; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
+
+        /* Atenção/Pontos Críticos - Rose/Red Theme */
+        .ailms-atencao {
+          background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+          border-color: #fecdd3;
+          border-left: 8px solid #e11d48;
+          margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+        .ailms-atencao strong { color: #be123c; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
+
+        /* Quick Check - Yellow Theme */
+        .ailms-quick-check {
+          background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+          border-color: #fde68a;
+          border-left: 8px solid #f59e0b;
+          margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+        .ailms-quick-check strong { color: #b45309; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
 
         /* Further Reading - Purple Theme */
         .ailms-further-reading {

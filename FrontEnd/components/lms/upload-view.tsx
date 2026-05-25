@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, FileText, X, CheckCircle2, Loader2, Video, FileQuestion, Award, BookOpen, AlertCircle, Eye, Copy, ClipboardCopy, Factory, Sparkles, ExternalLink, Layers} from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -67,6 +67,15 @@ export function UploadView() {
   const [createdCourseId, setCreatedCourseId] = useState<number | null>(null)
   const [generatedCourse, setGeneratedCourse] = useState<MoodleCourse | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll para o progresso quando o estado muda
+  useEffect(() => {
+    if (generationState.status !== "idle" && generationState.status !== "complete" && progressRef.current) {
+      progressRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [generationState.status]);
+
   const [moodleStatus, setMoodleStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking")
   const [moodleInfo, setMoodleInfo] = useState<{ siteName?: string; username?: string } | null>(null)
 
@@ -400,17 +409,48 @@ export function UploadView() {
         throw new Error(error.error || "Failed to generate course")
       }
 
-      const data = await response.json()
-      
-      // Criar o objeto do curso final com a pasta de imagens injetada
-      const finalCourse = {
-        ...data.course,
-        image_folder: imageFolder || data.course?.image_folder || ""
-      };
+      // --- CONSUMO DE STREAM (SSE) ---
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let streamBuffer = "";
 
-      setGeneratedCourse(finalCourse)
-      setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse })
-      setShowPreview(true)
+      if (!reader) throw new Error("Falha ao iniciar leitura do stream.");
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        streamBuffer += decoder.decode(value, { stream: true });
+        const lines = streamBuffer.split("\n");
+        streamBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+            
+            if (data.status === "error") throw new Error(data.message);
+            
+            if (data.status === "complete" && data.course) {
+              const finalCourse = {
+                ...data.course,
+                image_folder: imageFolder || data.course?.image_folder || ""
+              };
+              setGeneratedCourse(finalCourse);
+              setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
+              setShowPreview(true);
+            } else {
+              setGenerationState({
+                status: data.status,
+                progress: data.progress,
+                message: data.message
+              });
+            }
+          } catch (e) {
+            console.error("Erro ao processar chunk do stream:", e);
+          }
+        }
+      }
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log("Geração cancelada pelo utilizador.");
@@ -690,7 +730,7 @@ export function UploadView() {
 
           {/* Status da Geração / Sucesso */}
           {(isGenerating || generationState.status === "error" || generationState.status === "complete") && (
-            <Card className={cn(
+            <Card ref={progressRef} className={cn(
               "mt-6 border-2",
               generationState.status === "error" && "border-red-500 bg-red-50",
               generationState.status === "complete" && "border-green-500 bg-green-50"
