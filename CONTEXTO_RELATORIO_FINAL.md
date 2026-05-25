@@ -76,11 +76,12 @@ graph TD
 *   **`process_pdf.php` (Ground Truth Engine):** Implementação de um filtro de ruído físico que elimina automaticamente artefatos decorativos (pequenos ficheiros <10KB ou cores sólidas) e devolve uma lista de "Verdade Absoluta" (Ground Truth) de páginas com imagens para a IA.
 *   **`get_image.php` (Proxy Inteligente):** Entrega de imagens segura para o FrontEnd com suporte a pesquisas aproximadas.
 
-### 4.3 Inovação: Geração Modular (Map-Reduce Pipeline)
-Para superar o limite de tokens de saída das LLMs e permitir cursos massivos (>80 slides) com alta densidade (>500 palavras/página), foi implementado um pipeline de orquestração modular:
+### 4.3 Inovação: Geração Modular (Map-Reduce Pipeline) e Streaming (SSE)
+Para superar o limite de tokens de saída das LLMs e permitir cursos massivos (>80 slides) com alta densidade (>500 palavras/página), foi implementado um pipeline de orquestração modular altamente eficiente:
 1.  **Planner:** A IA analisa o PDF e gera um plano estruturado de 3 a 7 módulos.
-2.  **Orchestrator:** Um loop assíncrono no Backend invoca a IA para cada módulo individualmente, injetando metadados de "Ground Truth" para evitar alucinações.
-3.  **Aggregator & Scrubber:** Sistema de fusão inteligente que unifica atividades, re-numera questões sequencialmente e remove fisicamente placeholders de imagens inválidas através de uma lógica de "Scrubbing" baseada em palavras-chave e metadados de página.
+2.  **Context Slicing:** Otimização técnica que recorta o documento original e envia apenas a secção de texto relevante para a geração de cada módulo individual. Isto traduz-se numa redução de ~70% no consumo de tokens e num aumento tremendo da precisão da IA.
+3.  **Orchestrator com Streaming (SSE):** O Backend invoca a IA sequencialmente, processando e emitindo o progresso de cada módulo em tempo real para o FrontEnd através de *Server-Sent Events* (`ReadableStream`), eliminando "telas congeladas" em gerações longas.
+4.  **Aggregator & Scrubber:** Sistema de fusão que unifica atividades, re-numera questões sequencialmente e remove imagens inválidas. Inclui um parser JSON "brute-force" imune a ruído, capaz de extrair dados limpos perante as inconsistências estruturais típicas dos modelos Gemini 3.
 
 ---
 
@@ -88,7 +89,9 @@ Para superar o limite de tokens de saída das LLMs e permitir cursos massivos (>
 
 ### 5.1 Desafios Técnicos Resolvidos (Baseado em LOGS.md)
 *   **Gestão de Transações (Bug MDL-83705):** Resolução do erro de "Nested Transactions" no Moodle 5.x via `clear_pending_transactions()`.
-*   **Asfixia de IA (Token Bottleneck):** Transição de geração Single-Shot para Modular (Map-Reduce), permitindo expansão conceptual técnica sem perda de contexto.
+*   **Asfixia de IA e Custos (Token Bottleneck):** Transição de geração Single-Shot para Modular (Map-Reduce) combinada com a técnica de *Context Slicing*. Esta combinação reduziu o consumo de contexto em ~70% e garantiu profundidade técnica sem atingir os limites do modelo.
+*   **Feedback em Tempo Real (Timeout e UX):** A adoção de SSE (Server-Sent Events) no envio do JSON mitigou perdas de conexão com o Gateway Portkey e permitiu criar uma UI dinâmica no Next.js com *auto-scroll* e progresso contínuo ("A gerar Módulo 2 de 5...").
+*   **Resiliência a Anomalias Estruturais (Gemini 3):** Os modelos mais potentes revelaram tendência para adicionar explicações fora do bloco JSON ou aninhar arrays incorretamente. Foi desenvolvido um algoritmo agressivo de *parsing* e recuperação de metadados capaz de inferir a estrutura da IA, mapear arrays automaticamente e usar HTML de resgate se o formato JSON colapsar completamente.
 *   **Erradicação de Alucinação Visual:** Implementação de um pipeline determinístico onde o Moodle dita à IA quais as imagens reais disponíveis, eliminando o erro "Imagem não encontrada".
 *   **Integridade de Dados no Envio:** Resolução de erros de serialização ("cyclic object value") através de mecanismos de *Deep Copy* e sanitização de objetos JSON complexos.
 *   **Refinamento Manual (Human-in-the-loop):** Introdução de ferramentas de edição direta no Preview (FrontEnd) e no `fix_images.php` (Moodle), permitindo o ajuste fino de legendas e conteúdo antes da publicação final.
