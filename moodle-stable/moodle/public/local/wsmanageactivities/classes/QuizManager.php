@@ -126,12 +126,6 @@ class QuizManager {
             $result = (object)$result;
         }
 
-        // Removed: As a safeguard, if it's still not an object after casting, it's an unexpected type.
-        // if (!is_object($result)) {
-        //     error_log("Unexpected WS result type for function $function. Full result: " . var_export($result, true));
-        //     throw new \Exception("WS Error: Unexpected result format for function $function. Check server logs for details.");
-        // }
-
         // Now, all subsequent checks assume $result is an object (or will throw an error if not).
         if (isset($result->error) && $result->error) {
             if (property_exists($result, 'message')) {

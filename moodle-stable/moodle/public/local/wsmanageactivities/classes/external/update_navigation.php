@@ -222,7 +222,7 @@ class update_navigation extends external_api {
             try {
                 M.core_completion.toggle_completion();
             } catch(e) {
-                console.log(\'Completion tracking não disponível\');
+                // Tracking not available
             }
         }
         

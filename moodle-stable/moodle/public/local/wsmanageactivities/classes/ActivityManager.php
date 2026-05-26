@@ -24,11 +24,6 @@ class ActivityManager {
         $this->temp_upload_dir = $temp_upload_dir;
         $this->navigation_enabled = $navigation_enabled;
         $this->output_callback = $output_callback ?? function($msg, $type = 'info') {};
-        // $this->public_images_path = $CFG->dirroot . '/public_images'; // No longer needed
-        
-        // if (!file_exists($this->public_images_path)) {
-        //     mkdir($this->public_images_path, 0755, true);
-        // }
     }
     
     private function log($message, $type = 'info') {
@@ -170,12 +165,6 @@ class ActivityManager {
             $result = (object)$result;
         }
 
-        // Removed: As a safeguard, if it's still not an object after casting, it's an unexpected type.
-        // if (!is_object($result)) {
-        //     error_log("Unexpected WS result type for function $function. Full result: " . var_export($result, true));
-        //     throw new \Exception("WS Error: Unexpected result format for function $function. Check server logs for details.");
-        // }
-
         // Now, all subsequent checks assume $result is an object (or will throw an error if not).
         if (isset($result->error) && $result->error) {
             if (property_exists($result, 'message')) {
@@ -192,6 +181,13 @@ class ActivityManager {
             } else {
                 error_log("Unknown WS Error for function $function. Full result: " . var_export($result, true));
                 throw new \Exception("WS Error: An unknown error occurred with function $function. Check server logs for details.");
+            }
+        }
+        
+        return $result;
+    }
+}
+\Exception("WS Error: An unknown error occurred with function $function. Check server logs for details.");
             }
         }
         

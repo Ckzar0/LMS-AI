@@ -453,7 +453,6 @@ export function UploadView() {
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        console.log("Geração cancelada pelo utilizador.");
         return;
       }
       console.error("Erro na geração:", error)

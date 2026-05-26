@@ -26,8 +26,9 @@ Antes de iniciar qualquer geração, deve definir os parâmetros pedagógicos na
 Ideal para criar cursos novos a partir de manuais existentes.
 1.  Faça o upload do manual em PDF.
 2.  Clique em **"Gerar Curso com IA"**.
-3.  O sistema irá extrair o texto e imagens, enviar para a Portkey (IA) e criar uma proposta de curso.
-4.  Visualize o curso no **Preview** antes de enviar para o Moodle.
+3.  O sistema utiliza a tecnologia **Streaming SSE**, permitindo visualizar o progresso real (ex: "A gerar Módulo 2 de 5...") em tempo real.
+4.  A geração é modular (**Context Slicing**), garantindo que nenhum conteúdo é omitido mesmo em manuais grandes.
+5.  Visualize o curso no **Preview** antes de enviar para o Moodle.
 
 ### B. Modo Fábrica (Via JSON + PDF)
 Ideal para importar cursos já estruturados ou sessões guardadas.

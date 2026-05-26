@@ -278,7 +278,6 @@ class ActivityCreator {
                 $DB->insert_record('course_completion_aggr_methd', $aggr);
             }
         } catch (\Throwable $e) {
-            // echo "      ⚠️ Erro ao configurar conclusão de curso: " . $e->getMessage() . "\n";
         }
     }
 
@@ -318,7 +317,6 @@ class ActivityCreator {
             
             return $info->coursemodule;
         } catch (\Throwable $e) {
-            // echo "      ⚠️ Erro ao criar atividade de Feedback: " . $e->getMessage() . "\n";
             return null;
         }
     }
@@ -460,4 +458,10 @@ class ActivityCreator {
             return null;
         }
     }
+}
+
+}
+    }
+}
+
 }

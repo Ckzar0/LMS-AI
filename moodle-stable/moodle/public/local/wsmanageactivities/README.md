@@ -1,6 +1,6 @@
 # 📦 Plugin wsmanageactivities (LMS-AI Core)
 
-**Versão**: v1.1.0 (Maio 2026)  
+**Versão**: v1.2.0 (Maio 2026)  
 **Moodle**: 5.1.3+  
 **Status**: Produção Estável (Docker)
 
@@ -10,8 +10,9 @@ Este plugin é o motor de integração do ecossistema **LMS-AI**, permitindo a c
 
 ## 🚀 Funcionalidades Principais
 
-- 🤖 **Integração IA Unificada**: Serviço REST para criação de cursos completos em segundos.
+- 🤖 **Integração IA Unificada (v10.5)**: Serviço REST para criação de cursos completos em segundos com suporte a SSE.
 - 🖼️ **Ajuste de Media**: Ferramenta `fix_images.php` para polimento visual e legendas automáticas.
+- 🔄 **Auto-Refresh**: Atualização automática do Banco de Questões e limpeza de cache após geração.
 - 🧩 **Moodle 5.1 Ready**: Suporte nativo ao novo sistema de versionamento de questões.
 - 📑 **Navegação Dinâmica**: Injeção automática de botões "Anterior/Próximo" em todas as atividades.
 

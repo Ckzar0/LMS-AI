@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data)
 
   } catch (error) {
-    console.error("Auto enrolment error:", error)
     return NextResponse.json({ error: "Failed to enrol user automatically" }, { status: 500 })
   }
 }

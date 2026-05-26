@@ -88,7 +88,6 @@ export async function POST(req: Request) {
       activities: data.activities || []
     })
   } catch (error) {
-    console.error("Error in send-to-moodle:", error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to connect to Moodle" },
       { status: 500 }

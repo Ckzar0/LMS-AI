@@ -75,7 +75,6 @@ async function callAI(prompt: string, model: string, maxTokens: number, retries:
     } catch (error: any) {
        if (i === retries - 1) throw error;
        const delay = Math.pow(2, i) * 5000;
-       console.warn(`[AI] Tentativa ${i + 1} falhou. Retrying in ${delay/1000}s...`);
        await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -420,5 +419,7 @@ export async function POST(request: NextRequest) {
 
   return new Response(stream, {
     headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+  });
+}-alive' },
   });
 }

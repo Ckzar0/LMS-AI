@@ -1,4 +1,4 @@
-# Prompt Master: Geração de Cursos Moodle (v10.0 - ESTÁVEL)
+# Prompt Master: Geração de Cursos Moodle (v10.5 - ESTÁVEL)
 
 ## 📋 RESUMO EXECUTIVO
 Transforma o conteúdo integral de um documento (PDF/PPT) num curso Moodle profissional, denso e exaustivo. O objetivo é a máxima fidelidade ao documento original, garantindo uma estrutura pedagógica rica e um sistema de avaliação robusto.

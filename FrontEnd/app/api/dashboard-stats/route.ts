@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         aggregateStats = statsData;
       }
     } catch (e) {
-      console.error("Error fetching aggregate stats:", e);
+      // Aggregate stats fetch failed
     }
 
     // 2. Get Courses list

@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data)
 
   } catch (error) {
-    console.error("Certifications API error:", error)
     return NextResponse.json({ error: "Failed to fetch certifications" }, { status: 500 })
   }
 }

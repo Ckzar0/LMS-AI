@@ -9,8 +9,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_wsmanageactivities';
-$plugin->version = 2026051305;
-$plugin->release = 'v1.1.0 - Production Stable (Questions Association Fix)';
+$plugin->version = 2026052601;
+$plugin->release = 'v1.2.0 - Production Stable (SSE, Navigation & Question Bank Refresh)';
 $plugin->requires = 2024100700;          // Moodle 5.1 (Outubro 2024)
 $plugin->maturity = MATURITY_STABLE;
 $plugin->dependencies = array();

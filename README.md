@@ -6,7 +6,9 @@ Este projeto é um ecossistema completo que utiliza Inteligência Artificial par
 
 ## 🌟 Funcionalidades Principais
 
-- **Geração Inteligente via IA:** Extração de texto e imagens de PDFs para criação de módulos, páginas e quizzes.
+- **Geração Inteligente via IA (v10.5):** Extração de texto e imagens com protocolo "Strict Evidence" para zero alucinação.
+- **Streaming SSE:** Acompanhamento do progresso da geração em tempo real através de uma interface reativa.
+- **Context Slicing:** Otimização agressiva de tokens (redução de 70%) permitindo cursos densos e exaustivos.
 - **Portkey Gateway:** Integração resiliente com IA (Gemini/Claude) via Portkey.
 - **Modo Fábrica (JSON):** Importação direta de cursos via ficheiros JSON estruturados.
 - **Ajuste Fino de Imagens:** Ferramenta dedicada (`fix_images.php`) para substituir placeholders e renumerar figuras automaticamente.

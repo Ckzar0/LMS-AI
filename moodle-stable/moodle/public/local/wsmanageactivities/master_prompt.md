@@ -127,7 +127,7 @@ Escreve com autoridade científica. Cada parágrafo deve ser denso em informaç�
 - ✅ **CAMPO source_file:** No topo do JSON, deves obrigatoriamente incluir o campo `"source_file": "[NOME_DO_FICHEIRO_PDF_ORIGINAL].pdf"`.
 - ✅ **EXEMPLO:** Se o documento se chama "Manual_Redes_v2.pdf", o JSON deve começar com `"source_file": "Manual_Redes_v2.pdf"`.
 
-### **REGRA 3: PROTOCOLO DE IMAGENS E TABELAS (v9.2 STABLE)**
+### REGRA 3: PROTOCOLO DE IMAGENS E TABELAS (v10.5 STABLE)
 
 #### **A) IMAGENS REAIS (Comando de Injeção de Sistema)**
 - **MANDATÓRIO:** Nunca omitas um placeholder de imagem.
@@ -418,3 +418,4 @@ Seguindo RIGOROSAMENTE todas as regras acima.
 5. **MÍNIMO de páginas respeitado** (10-15 para 30 slides em standard)
 
 **Se todas as validações passarem, devolve o JSON completo pronto para importação no Moodle.**
+**
