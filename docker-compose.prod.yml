@@ -1,0 +1,29 @@
+# 🐳 PRODUCTION OVERRIDE - AI LMS MOODLE
+# Este ficheiro ativa as otimizações de runtime para produção.
+
+services:
+  # --- MOODLE (WEBSERVER) ---
+  webserver:
+    environment:
+      - MOODLE_DOCKER_WWWROOT=${PROD_MOODLE_URL:-http://localhost:8080}
+      - NODE_ENV=production
+    volumes:
+      # Manter as pastas de media geradas em runtime para persistência
+      - ./moodle-stable/moodle/public/local/wsmanageactivities/extracted_images:/var/www/html/public/local/wsmanageactivities/extracted_images
+      - ./moodle-stable/moodle/course_assets:/var/www/html/course_assets
+
+  # --- FRONTEND (NEXT.JS) ---
+  frontend:
+    build:
+      target: runner # Alvo do multi-stage build para produção
+    command: ["node", "server.js"]
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_MOODLE_URL=${PROD_MOODLE_URL:-http://localhost:8080}
+      - MOODLE_URL=http://webserver
+    volumes:
+      # Apenas recursos partilhados que a imagem Runner precisa (Imagens Extraídas)
+      - ./moodle-stable/moodle/public/local/wsmanageactivities/extracted_images:/app/public/extracted_images:ro
+      - ./Prompts:/app/Prompts:ro

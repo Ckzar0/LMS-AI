@@ -12,3 +12,14 @@ RUN apt-get update && apt-get install -y \
 
 # Configurar permissões para o ImageMagick (necessário para alguns PDFs)
 RUN sed -i 's/domain="coder" rights="none" pattern="PDF"/domain="coder" rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml || true
+
+# Copiar código do Moodle e Plugin (Modo Produção)
+# Nota: Em desenvolvimento, estes são sobrepostos por bind mounts no docker-compose
+COPY ./moodle-stable/moodle /var/www/html
+COPY ./Cursos /var/www/Cursos
+COPY ./Certificado /var/www/Certificado
+COPY ./Prompts /var/www/Prompts
+
+# Garantir permissões de escrita em pastas críticas
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
