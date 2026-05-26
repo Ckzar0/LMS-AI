@@ -61,6 +61,7 @@ export interface GenerationConfig {
   generateVideos: boolean
   generateQuizzes: boolean
   generateCertificate: boolean
+  generateEvaluation: boolean
   divideInModules: boolean
 }
 

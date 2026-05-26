@@ -1,4 +1,4 @@
-# Prompt Master: Geração de Cursos Moodle (v10.0 - ESTÁVEL)
+# Prompt Master: Geração de Cursos Moodle (v10.5 - ESTÁVEL)
 
 ## 📋 RESUMO EXECUTIVO
 Transforma o conteúdo integral de um documento (PDF/PPT) num curso Moodle profissional, denso e exaustivo. O objetivo é a máxima fidelidade ao documento original, garantindo uma estrutura pedagógica rica e um sistema de avaliação robusto.
@@ -128,7 +128,7 @@ Escreve com autoridade científica. Cada parágrafo deve ser denso em informaç�
 - ✅ **CAMPO source_file:** No topo do JSON, deves obrigatoriamente incluir o campo `"source_file": "[NOME_DO_FICHEIRO_PDF_ORIGINAL].pdf"`.
 - ✅ **EXEMPLO:** Se o documento se chama "Manual_Redes_v2.pdf", o JSON deve começar com `"source_file": "Manual_Redes_v2.pdf"`.
 
-### **REGRA 3: PROTOCOLO DE IMAGENS REAIS (STRICT EVIDENCE)**
+### **REGRA 3: PROTOCOLO DE IMAGENS E TABELAS (v10.5 STABLE)**
 
 #### **A) DIRETRIZ DE VERIFICAÇÃO VISUAL**
 - 🚫 **PROIBIDO INVENTAR ILUSTRAÇÕES:** Estás expressamente proibido de criar placeholders `[[IMG_...]]` ou legendas para diagramas, fluxogramas, esquemas lógicos ou conceitos que sejam explicados de forma puramente textual no manual.

@@ -352,9 +352,10 @@ export function UploadView() {
       depth,
       quizDuration,
       numberOfQuestions,
-      generateVideos: selectedOptions.includes("modules"),
+      generateVideos: selectedOptions.includes("videos"),
       generateQuizzes: selectedOptions.includes("quizzes"),
       generateCertificate: selectedOptions.includes("certificate"),
+      generateEvaluation: selectedOptions.includes("evaluation"),
       divideInModules: selectedOptions.includes("modules")
     }
 
@@ -409,47 +410,17 @@ export function UploadView() {
         throw new Error(error.error || "Failed to generate course")
       }
 
-      // --- CONSUMO DE STREAM (SSE) ---
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let streamBuffer = "";
-
-      if (!reader) throw new Error("Falha ao iniciar leitura do stream.");
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        streamBuffer += decoder.decode(value, { stream: true });
-        const lines = streamBuffer.split("\n");
-        streamBuffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const data = JSON.parse(line);
-            
-            if (data.status === "error") throw new Error(data.message);
-            
-            if (data.status === "complete" && data.course) {
-              const finalCourse = {
-                ...data.course,
-                image_folder: imageFolder || data.course?.image_folder || ""
-              };
-              setGeneratedCourse(finalCourse);
-              setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
-              setShowPreview(true);
-            } else {
-              setGenerationState({
-                status: data.status,
-                progress: data.progress,
-                message: data.message
-              });
-            }
-          } catch (e) {
-            console.error("Erro ao processar chunk do stream:", e);
-          }
-        }
+      const data = await response.json();
+      if (data.course) {
+        const finalCourse = {
+          ...data.course,
+          image_folder: imageFolder || data.course?.image_folder || ""
+        };
+        setGeneratedCourse(finalCourse);
+        setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
+        setShowPreview(true);
+      } else {
+        throw new Error("Resposta da IA não contém dados do curso.");
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
