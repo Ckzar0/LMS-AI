@@ -1,0 +1,30 @@
+# 🛠️ DEVELOPMENT OVERRIDE - AI LMS MOODLE
+# Este ficheiro é carregado automaticamente em desenvolvimento.
+# Usa montagens granulares para evitar conflitos com a node_modules do contentor.
+
+services:
+  # --- MOODLE (WEBSERVER) ---
+  webserver:
+    volumes:
+      - ./moodle-stable/moodle:/var/www/html
+      - ./Cursos:/var/www/Cursos:ro
+      - ./Certificado:/var/www/Certificado:ro
+      - ./Prompts:/var/www/Prompts:ro
+
+  # --- FRONTEND (NEXT.JS) ---
+  frontend:
+    volumes:
+      # Montar apenas as pastas de código fonte (evita conflitos de node_modules)
+      - ./FrontEnd/app:/app/app
+      - ./FrontEnd/components:/app/components
+      - ./FrontEnd/lib:/app/lib
+      - ./FrontEnd/hooks:/app/hooks
+      - ./FrontEnd/styles:/app/styles
+      - ./FrontEnd/public:/app/public
+      - ./FrontEnd/next.config.mjs:/app/next.config.mjs
+      - ./FrontEnd/tsconfig.json:/app/tsconfig.json
+      - ./FrontEnd/components.json:/app/components.json
+      - ./FrontEnd/package.json:/app/package.json
+      # Recursos globais
+      - ./moodle-stable/moodle/public/local/wsmanageactivities/extracted_images:/app/public/extracted_images:ro
+      - ./Prompts:/app/Prompts:ro

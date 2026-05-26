@@ -28,10 +28,6 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./moodle-stable/moodle:/var/www/html
-      - ./Cursos:/var/www/Cursos:ro
-      - ./Certificado:/var/www/Certificado:ro
-      - ./Prompts:/var/www/Prompts:ro
       - moodledata:/var/www/moodledata
     environment:
       - MOODLE_DOCKER_RUNNING=1
@@ -48,16 +44,12 @@ services:
     build:
       context: ./FrontEnd
       dockerfile: Dockerfile
+      target: development
+    command: ["npm", "run", "dev"]
     depends_on:
       - webserver
     ports:
       - "3000:3000"
-    volumes:
-      - ./FrontEnd:/app
-      - /app/node_modules
-      - /app/.next
-      - ./moodle-stable/moodle/public/local/wsmanageactivities/extracted_images:/app/public/extracted_images:ro
-      - ./Prompts:/app/Prompts:ro
     environment:
       - NEXT_PUBLIC_MOODLE_URL=http://localhost:8080
       - MOODLE_URL=http://webserver
