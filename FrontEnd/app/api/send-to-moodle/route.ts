@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
-// Aumentar o limite para suportar PDFs grandes
-export const maxDuration = 300; // 5 minutos
+// Increase the maximum execution duration to support large PDF processing.
+export const maxDuration = 300; // 5 minutes
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
@@ -14,7 +14,9 @@ export async function POST(req: Request) {
     let extractedFolder = "";
     let pagesWithImages: number[] = [];
 
-    // 1. If PDF is provided, send it first to extract images
+    // Phase 1: PDF Image Extraction
+    // If a PDF is provided, we send it to Moodle first to trigger the physical extraction 
+    // of images using pdfimages and ImageMagick via the custom WebService.
     if (pdfFile && pdfFile.name) {
       const pdfFormData = new FormData();
       pdfFormData.append("wstoken", moodleToken);
@@ -22,8 +24,9 @@ export async function POST(req: Request) {
       pdfFormData.append("moodlewsrestformat", "json");
       pdfFormData.append("filename", pdfFile.name);
       
-      // Se o ficheiro for grande (>15MB), enviamos conteúdo vazio.
-      // O Moodle vai procurá-lo na pasta /Cursos/ do servidor pelo nome.
+      // Handle large files: If the file exceeds ~15MB in base64, we do not send the content over HTTP.
+      // Instead, we pass an empty string, signaling Moodle to look for the file directly
+      // in the server's local /Cursos/ directory using the filename.
       if (pdfFile.content && pdfFile.content.length < 20000000) {
         pdfFormData.append("filecontent", pdfFile.content);
       } else {
@@ -40,7 +43,8 @@ export async function POST(req: Request) {
         if (pdfData.status === 'success') {
           extractedFolder = pdfData.image_folder;
           pagesWithImages = pdfData.pages_with_images || [];
-          // Inject the image folder into the course data so ActivityCreator knows where to look
+          // Inject the returned image folder name into the course JSON.
+          // This allows Moodle's ActivityCreator to locate the extracted images during HTML generation.
           course.image_folder = extractedFolder;
         } else {
           console.warn("PDF extraction warning:", pdfData.message);
@@ -50,17 +54,20 @@ export async function POST(req: Request) {
       }
     }
 
-    // Se o pedido for apenas para extrair imagens, paramos aqui
+    // Early Return for Image Pre-Extraction
+    // Used by the FrontEnd to obtain image metadata before starting the AI generation process.
     if (onlyExtract) {
       return NextResponse.json({ 
         success: true, 
         image_folder: extractedFolder,
         pages_with_images: pagesWithImages,
-        message: "Imagens extraídas com sucesso" 
+        message: "Images extracted successfully." 
       })
     }
 
-    // 2. Create the course structure in Moodle
+    // Phase 2: Course Structure Creation
+    // Send the complete generated JSON structure (modules, activities, questions, config flags)
+    // to Moodle to construct the physical course and its components.
     const formData = new FormData()
     formData.append("wstoken", moodleToken)
     formData.append("wsfunction", "local_wsmanageactivities_create_course_with_content")
@@ -78,7 +85,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: data.message }, { status: 400 })
     }
 
-    // Se o Moodle devolveu um ID, garantir que ele vai para o FrontEnd como courseId
+    // Normalize the returned course ID from Moodle's WebService response.
     const finalCourseId = data.courseid || data.course_id || data.id || (typeof data === 'number' ? data : null);
 
     return NextResponse.json({ 
@@ -97,6 +104,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  // Health Check Endpoint
+  // Validates the connection and the REST API token by fetching basic site information.
   try {
     const moodleUrl = process.env.MOODLE_URL || "http://localhost:8080"
     const moodleToken = process.env.MOODLE_TOKEN || "14c68ff68a1a57cdc4cf4d72f443b87d"
@@ -131,3 +140,4 @@ export async function GET() {
     )
   }
 }
+

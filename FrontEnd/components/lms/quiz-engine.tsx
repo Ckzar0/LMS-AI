@@ -27,8 +27,13 @@ interface QuizEngineProps {
 }
 
 export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEngineProps) {
+  // Quiz State Machine
+  // Controls the flow of the evaluation: intro -> answering -> result calculation -> review mode.
   const [currentStep, setCurrentStep] = useState<"intro" | "questions" | "result" | "review">("intro")
   const [currentQuestionIndex, setCurrentStepIndex] = useState(0)
+  
+  // Stores user responses mapped by question ID.
+  // For matching questions, it stores a nested object of sub-question IDs to answers.
   const [answers, setAnswers] = useState<Record<number, any>>({})
   const [score, setScore] = useState(0)
 
@@ -63,6 +68,9 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
     }
   }
 
+  // Scoring Engine
+  // Iterates through all answered questions, comparing user inputs with the correct options
+  // defined in the Moodle JSON payload. Normalizes the final score to a 0-20 scale.
   const calculateResult = () => {
     let totalScore = 0
     questions.forEach((q: any) => {
@@ -86,10 +94,12 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
       }
     })
 
+    // Normalizing the score to a standard Portuguese 20-point scale.
     const finalScore = (totalScore / questions.length) * 20 
     setScore(finalScore)
     setCurrentStep("result")
     
+    // Passing criteria hardcoded to 75% (15/20) based on Moodle constraints.
     const passed = finalScore >= 15
     onComplete(passed, finalScore)
   }
@@ -105,7 +115,8 @@ export function QuizEngine({ quizData, onComplete, onReview, onFinish }: QuizEng
     setCurrentStep("review")
   }
 
-  // Check if current question is fully answered
+  // Validation
+  // Ensures the user has selected an option (or all matching sub-options) before proceeding.
   const isQuestionAnswered = () => {
     if (currentStep === "review") return true
     

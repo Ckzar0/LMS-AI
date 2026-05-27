@@ -40,6 +40,9 @@ interface FeedbackEngineProps {
 }
 
 export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: FeedbackEngineProps) {
+  // Feedback State Machine
+  // Manages the user journey through the evaluation survey:
+  // intro -> sequential questions -> success/thank you screen.
   const [currentStep, setCurrentStep] = useState<"intro" | "questions" | "success">("intro")
   const [currentIndex, setCurrentIndex] = useState(0)
   const [responses, setResponses] = useState<Record<number, any>>({})
@@ -55,6 +58,9 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: Fee
     setResponses(prev => ({ ...prev, [itemId]: value }))
   }
 
+  // Statistical Evaluation Logic
+  // Calculates the average rating from all 'multichoice' items to determine overall course satisfaction.
+  // Assumes options are formatted with a leading number (e.g., "5 (Excelente)").
   const calculateAverage = () => {
     const mcItems = items.filter(i => i.type === 'multichoice')
     if (mcItems.length === 0) return 0
@@ -65,7 +71,7 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: Fee
     mcItems.forEach(item => {
       const val = responses[item.id]
       if (val) {
-        // Extract number from option (e.g., "5 (Excelente)" -> 5)
+        // Extract numeric rating from option string
         const num = parseInt(val.toString().charAt(0))
         if (!isNaN(num)) {
           total += num
@@ -77,11 +83,14 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: Fee
     return count > 0 ? total / count : 0
   }
 
+  // Form Submission
+  // Compiles the user's responses into the format expected by the Moodle Feedback WebService
+  // and dispatches them via the intermediate Next.js API route.
   const handleSubmit = async () => {
     setIsSubmitting(true)
     const average = calculateAverage()
     
-    // Format responses for API
+    // Format responses for Moodle API consumption
     const formattedResponses = Object.entries(responses).map(([itemId, value]) => ({
       itemid: parseInt(itemId),
       value: value.toString()
@@ -102,7 +111,7 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: Fee
       setCurrentStep("success")
       onComplete(average, responses)
 
-      // Se existir onFinish, aguardar um pouco e avançar automaticamente
+      // Automatic progression to next activity/certificate download
       if (onFinish) {
         setTimeout(onFinish, 2500)
       }
@@ -113,6 +122,8 @@ export function FeedbackEngine({ cmid, feedbackData, onComplete, onFinish }: Fee
     }
   }
 
+  // Validation Logic
+  // Enforces mandatory fields before allowing progression to the next survey item.
   const canGoNext = () => {
     if (!currentItem) return false
     if (!currentItem.required) return true

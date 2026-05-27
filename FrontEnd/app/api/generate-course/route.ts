@@ -163,6 +163,9 @@ export async function POST(request: NextRequest) {
 
     const encoder = new TextEncoder();
     
+    // Server-Sent Events (SSE) Stream initialization
+    // This allows the server to push progress updates to the client in real-time
+    // preventing browser timeouts during long AI generation processes.
     const stream = new ReadableStream({
       async start(controller) {
         const sendEvent = (event: any) => {
@@ -192,6 +195,9 @@ export async function POST(request: NextRequest) {
             throw new Error("O PDF não contém texto legível ou a extração falhou.");
           }
 
+          // Injecting Ground Truth image metadata
+          // This strict directive prevents the AI from hallucinating image placeholders
+          // by forcing it to only use pages where physical images were extracted by Moodle.
           const systemImageInfo = `\n[SISTEMA: As seguintes páginas do PDF contêm imagens reais extraídas: ${pagesWithImages.length > 0 ? pagesWithImages.join(", ") : "Nenhuma"}]\n`;
           combinedText = systemImageInfo + combinedText;
 
@@ -210,6 +216,8 @@ export async function POST(request: NextRequest) {
           let courseModules = [];
 
           if (isLargeCourse) {
+            // Map-Reduce Phase 1: Planning
+            // For large documents, we first ask a faster/cheaper model (Flash) to create a structural outline.
             sendEvent({ status: "progress", message: "A planear a estrutura pedagógica...", progress: 40 });
             const plannerPrompt = `Cria um plano de formação (3 a 5 módulos) para este conteúdo. Responde APENAS JSON: { "plan": [{ "title": "...", "summary": "..." }] }. CONTEÚDO: ${combinedText.substring(0, 80000)}`;
             const plannerRes = await callAI(plannerPrompt, envModelFlash, 4096);
@@ -227,6 +235,9 @@ export async function POST(request: NextRequest) {
           }
 
           if (courseModules.length > 0) {
+            // Map-Reduce Phase 2: Execution Loop
+            // The document is sliced proportionally and each slice is sent to the heavy model (Pro)
+            // along with the specific module title. This prevents token limits and guarantees depth.
             const aggregatedActivities: any[] = [];
             const aggregatedQuestionBanks: any[] = [];
             const globalUsedImages = new Set<string>();
@@ -246,6 +257,7 @@ export async function POST(request: NextRequest) {
                 progress: baseProgress 
               });
 
+              // Context Slicing: Extracting only the relevant text for the current module
               const relevantText = sliceContext(combinedText, module.title, nextModule?.title, index, courseModules.length);
               
               const modularPrompt = `
@@ -298,11 +310,16 @@ export async function POST(request: NextRequest) {
               try {
                 moduleResponse = await callAI(modularPrompt, selectedModel, maxTokensLimit);
                 
+                // Error Recovery / Fallback
+                // If the model fails or returns a truncated response, we retry with the Flash model
+                // to guarantee the module is not skipped.
                 if (moduleResponse.length < 500) {
                   sendEvent({ status: "progress", message: `Atenção: A recriar Módulo ${moduleNum} (falha da IA)...`, progress: baseProgress + 2 });
                   moduleResponse = await callAI(modularPrompt, envModelFlash, 4096);
                 }
 
+                // Data Extraction Engine
+                // Attempts to salvage valid JSON or arrays even if the AI wraps them in markdown blocks or text.
                 const cleaned = cleanJsonString(moduleResponse);
                 let moduleData = JSON.parse(cleaned);
                 

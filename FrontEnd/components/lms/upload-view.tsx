@@ -69,7 +69,9 @@ export function UploadView() {
   const [showPreview, setShowPreview] = useState(false)
   const progressRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll para o progresso quando o estado muda
+  // UI Auto-Scrolling Mechanism
+  // Automatically scrolls the user's viewport to the progress indicator
+  // whenever the generation state transitions out of idle or completion phases.
   useEffect(() => {
     if (generationState.status !== "idle" && generationState.status !== "complete" && progressRef.current) {
       progressRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -79,6 +81,9 @@ export function UploadView() {
   const [moodleStatus, setMoodleStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking")
   const [moodleInfo, setMoodleInfo] = useState<{ siteName?: string; username?: string } | null>(null)
 
+  // Moodle Connection Validator
+  // Periodically pings the local_wsmanageactivities plugin to ensure
+  // the destination LMS is reachable and authenticated before allowing course submission.
   const checkMoodleConnection = useCallback(async () => {
     setMoodleStatus("checking")
     try {
@@ -95,7 +100,9 @@ export function UploadView() {
     }
   }, [])
 
-  // Fetch master prompt on mount
+  // Initial Data Hydration
+  // Fetches the Markdown Master Prompt template from the server filesystem
+  // and validates Moodle connectivity upon component mount.
   useEffect(() => {
     async function fetchMasterPrompt() {
       try {
@@ -112,11 +119,12 @@ export function UploadView() {
     checkMoodleConnection()
   }, [checkMoodleConnection])
 
-  // Update dynamic prompt when options change
+  // Dynamic Prompt Compilation
+  // Injects user-defined parameters (depth, difficulty, quiz size) into the Master Prompt.
+  // This compiled prompt is what gets sent to the AI Orchestrator in the Factory tab.
   useEffect(() => {
     if (!masterPrompt) return
 
-    // Substituir placeholders {{DURATION}}, {{DIFFICULTY}}, {{NUM_QUESTIONS}}, {{BANK_SIZE}}
     const bankSize = numberOfQuestions + 10;
     
     let finalPrompt = masterPrompt
@@ -127,7 +135,7 @@ export function UploadView() {
       .replace(/{{QUIZ_DURATION}}/g, quizDuration.toString())
       .replace(/{{QUIZ_DURATION_SECONDS}}/g, (quizDuration * 60).toString());
 
-    // Injeção de restrições negativas baseadas nas opções selecionadas
+    // Negative constraints injection based on UI toggles.
     let finalInstructions = "";
     if (!selectedOptions.includes("quizzes") || numberOfQuestions === 0) {
       finalInstructions += "\n- 🚫 **SEM QUIZ:** Estás PROIBIDO de gerar qualquer banco de questões (`question_banks`) ou atividade do tipo `quiz`. O curso deve ser apenas informativo.";
@@ -362,7 +370,10 @@ export function UploadView() {
     setGenerationState({ status: "extracting", progress: 5, message: "A enviar PDF para o servidor..." })
 
     try {
-      // 1. Extrair Imagens no Moodle primeiro para garantir que o Preview as mostra
+      // Phase 1: Moodle Image Pre-Extraction
+      // Before invoking the AI, we send the PDF to Moodle to physically extract images.
+      // This is crucial because the AI needs to know exactly which images exist (Ground Truth)
+      // to avoid hallucinating image placeholders that will result in broken <img> tags.
       let imageFolder = "";
       let pagesWithImages: number[] = [];
       try {
@@ -377,7 +388,7 @@ export function UploadView() {
           body: JSON.stringify({ 
             course: { course_name: courseName, course_shortname: "TEMP_EXTRACT" }, 
             pdfFile: { name: file.name, content: base64Content },
-            onlyExtract: true // Nova flag para indicar que só queremos a extração
+            onlyExtract: true // Flag indicating we only want extraction, not course creation
           })
         });
         const imgData = await imgResponse.json();
@@ -387,14 +398,15 @@ export function UploadView() {
         console.warn("Falha na extração de imagens prévia:", imgErr);
       }
 
-      // 2. Gerar o curso com a IA
+      // Phase 2: AI Course Generation (SSE Streaming)
+      // We initialize the heavy Map-Reduce pipeline on the server.
       setGenerationState({ status: "generating", progress: 25, message: "A iniciar motor de IA..." })
       
       const formData = new FormData()
       files.forEach(f => formData.append("files", f.file))
       formData.append("config", JSON.stringify(config))
-      formData.append("pagesWithImages", JSON.stringify(pagesWithImages)) // Injetar lista de páginas reais
-      formData.append("imageFolder", imageFolder) // Injetar nome real da pasta
+      formData.append("pagesWithImages", JSON.stringify(pagesWithImages)) // Injecting Ground Truth pages
+      formData.append("imageFolder", imageFolder) // Injecting the real extracted folder name
       if (dynamicPrompt) {
         formData.append("customPrompt", dynamicPrompt)
       }
@@ -410,6 +422,10 @@ export function UploadView() {
         throw new Error(errorData.error || "Failed to generate course");
       }
 
+      // Server-Sent Events (SSE) Consumer
+      // We read the stream chunk by chunk. The server yields structural JSON events
+      // (like progress updates or the final compiled course) rather than raw AI text.
+      // This prevents UI freezing and HTTP timeouts during massive PDF analyses.
       const reader = response.body?.getReader();
       if (!reader) throw new Error("Stream not available");
 
@@ -443,7 +459,7 @@ export function UploadView() {
                   setGeneratedCourse(finalCourse);
                   setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
                   setShowPreview(true);
-                  return; // Saímos do loop e da função em sucesso
+                  return; // Exit loop on success
                 }
               } catch (e) {
                 console.warn("Error parsing SSE chunk:", line, e);
