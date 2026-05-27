@@ -388,7 +388,7 @@ export function UploadView() {
       }
 
       // 2. Gerar o curso com a IA
-      setGenerationState({ status: "generating", progress: 40, message: "IA a analisar conteúdo e a desenhar curso..." })
+      setGenerationState({ status: "generating", progress: 25, message: "A iniciar motor de IA..." })
       
       const formData = new FormData()
       files.forEach(f => formData.append("files", f.file))

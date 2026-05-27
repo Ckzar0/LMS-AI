@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
         };
 
         try {
-          sendEvent({ status: "progress", message: "A ler documento PDF...", progress: 5 });
+          sendEvent({ status: "progress", message: "A estruturar conteúdo do documento PDF...", progress: 30 });
           
           let combinedText = "";
           for (const file of files) {
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
           let courseModules = [];
 
           if (isLargeCourse) {
-            sendEvent({ status: "progress", message: "A planear a estrutura pedagógica...", progress: 15 });
+            sendEvent({ status: "progress", message: "A planear a estrutura pedagógica...", progress: 40 });
             const plannerPrompt = `Cria um plano de formação (3 a 5 módulos) para este conteúdo. Responde APENAS JSON: { "plan": [{ "title": "...", "summary": "..." }] }. CONTEÚDO: ${combinedText.substring(0, 80000)}`;
             const plannerRes = await callAI(plannerPrompt, envModelFlash, 4096);
             try {
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
               const moduleNum = index + 1;
               const nextModule = courseModules[index + 1];
               
-              const baseProgress = 15 + Math.floor((index / courseModules.length) * 75);
+              const baseProgress = 40 + Math.floor((index / courseModules.length) * 55);
               sendEvent({ 
                 status: "progress", 
                 message: `A gerar Módulo ${moduleNum} de ${courseModules.length}: ${module.title}...`, 
@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
           }
 
           if (!finalCourse) {
-            sendEvent({ status: "progress", message: "A gerar curso (Modo Standard)...", progress: 40 });
+            sendEvent({ status: "progress", message: "A gerar curso (Modo Standard)...", progress: 60 });
             const prompt = generatePrompt(basePrompt, config, combinedText, fileName);
             const content = await callAI(prompt, selectedModel, maxTokensLimit);
             finalCourse = JSON.parse(cleanJsonString(content));
