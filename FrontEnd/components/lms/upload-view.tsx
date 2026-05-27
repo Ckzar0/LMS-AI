@@ -406,22 +406,54 @@ export function UploadView() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to generate course")
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate course");
       }
 
-      const data = await response.json();
-      if (data.course) {
-        const finalCourse = {
-          ...data.course,
-          image_folder: imageFolder || data.course?.image_folder || ""
-        };
-        setGeneratedCourse(finalCourse);
-        setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
-        setShowPreview(true);
-      } else {
-        throw new Error("Resposta da IA não contém dados do curso.");
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("Stream not available");
+
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.substring(6));
+                
+                if (data.status === "progress") {
+                  setGenerationState(prev => ({
+                    ...prev,
+                    progress: data.progress || prev.progress,
+                    message: data.message || prev.message
+                  }));
+                } else if (data.status === "error") {
+                  throw new Error(data.error || "Erro no processamento da IA");
+                } else if (data.status === "complete" && data.course) {
+                  const finalCourse = {
+                    ...data.course,
+                    image_folder: imageFolder || data.course?.image_folder || ""
+                  };
+                  setGeneratedCourse(finalCourse);
+                  setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
+                  setShowPreview(true);
+                  return; // Saímos do loop e da função em sucesso
+                }
+              } catch (e) {
+                console.warn("Error parsing SSE chunk:", line, e);
+              }
+            }
+          }
+        }
       }
+
+      throw new Error("Stream terminou sem dados do curso.");
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log("Geração cancelada pelo utilizador.");
