@@ -290,6 +290,9 @@ class ActivityCreator {
             $module = $DB->get_record('modules', ['name' => 'feedback'], '*', MUST_EXIST);
             $course = $DB->get_record('course', ['id' => $course_id], '*', MUST_EXIST);
             
+            $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+            file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 📋 Attempting to create feedback for course $course_id\n", FILE_APPEND);
+
             $moduleinfo = new \stdClass();
             $moduleinfo->modulename = 'feedback';
             $moduleinfo->module = (int)$module->id;
@@ -408,6 +411,8 @@ class ActivityCreator {
             // 1. Localizar o Template Mestre pelo nome
             $master_template_rec = $DB->get_record('customcert_templates', ['name' => $template_name], '*', IGNORE_MULTIPLE);
             if (!$master_template_rec) {
+                $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+                file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] ❌ Certificate Template '$template_name' NOT FOUND in DB!\n", FILE_APPEND);
                 error_log("ActivityCreator: Template de certificado '$template_name' não encontrado.");
                 return null;
             }

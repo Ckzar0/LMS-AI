@@ -401,14 +401,15 @@ export async function POST(request: NextRequest) {
                 pass_grade: 15.0, question_banks: ["Banco Global de Questões"], random_questions: config.numberOfQuestions 
             });
         }
-        if (config.generateEvaluation) activities.push({ name: "📋 Avaliação da Formação", type: "feedback" });
-        if (config.generateCertificate) activities.push({ name: "🎓 Certificado de Conclusão", type: "customcert" });
 
         finalCourse = { 
             course_name: courseMetadata?.course_name || config.courseName, 
             course_shortname: "AI-COURSE", source_file: fileName, 
             course_summary: "Gerado com IA.", image_folder: realImageFolder, 
-            activities, question_banks: aggregatedQuestionBanks 
+            activities, 
+            question_banks: aggregatedQuestionBanks,
+            generate_evaluation: config.generateEvaluation,
+            generate_certificate: config.generateCertificate
         };
       }
     }
@@ -417,6 +418,10 @@ export async function POST(request: NextRequest) {
       const prompt = generatePrompt(basePrompt, config, combinedText, fileName);
       const content = await callAI(prompt, selectedModel, maxTokensLimit);
       finalCourse = JSON.parse(cleanJsonString(content));
+      if (finalCourse) {
+        finalCourse.generate_evaluation = config.generateEvaluation;
+        finalCourse.generate_certificate = config.generateCertificate;
+      }
     }
 
     return NextResponse.json({ course: finalCourse });

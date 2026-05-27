@@ -46,6 +46,12 @@ class create_course_with_content extends external_api {
             throw new \invalid_parameter_exception('Invalid JSON data');
         }
 
+        // DEBUG FLAGS
+        $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+        $eval_flag = isset($data['generate_evaluation']) ? ($data['generate_evaluation'] ? 'true' : 'false') : 'not set';
+        $cert_flag = isset($data['generate_certificate']) ? ($data['generate_certificate'] ? 'true' : 'false') : 'not set';
+        file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🚩 RECEIVED FLAGS: Eval=$eval_flag, Cert=$cert_flag\n", FILE_APPEND);
+
         // 1. Create Course
         $category = $DB->get_record('course_categories', [], '*', IGNORE_MULTIPLE);
         $course_data = new \stdClass();
