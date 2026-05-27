@@ -117,7 +117,6 @@ function sliceContext(fullText: string, currentTitle: string, nextTitle?: string
   // FALLBACK PROPORCIONAL: Se a keyword não for encontrada, estima a posição pelo index
   if (startIndex === -1) {
     startIndex = Math.floor((index / total) * fullText.length);
-    console.log(`⚠️ KEYWORD NOT FOUND ("${startKeyword}"). FALLBACK POSITION: ${startIndex}`);
   } else {
     startIndex = Math.max(0, startIndex - 800);
   }

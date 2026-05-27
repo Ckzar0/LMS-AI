@@ -50,10 +50,8 @@ class create_course_with_content extends external_api {
 
         // Feature Flags Logging
         // Records whether the frontend requested Certification and Evaluation generation.
-        $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
         $eval_flag = isset($data['generate_evaluation']) ? ($data['generate_evaluation'] ? 'true' : 'false') : 'not set';
         $cert_flag = isset($data['generate_certificate']) ? ($data['generate_certificate'] ? 'true' : 'false') : 'not set';
-        file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🚩 RECEIVED FLAGS: Eval=$eval_flag, Cert=$cert_flag\n", FILE_APPEND);
 
         // Phase 1: Core Course Creation
         // Creates the Moodle course container and enforces completion tracking requirements.
