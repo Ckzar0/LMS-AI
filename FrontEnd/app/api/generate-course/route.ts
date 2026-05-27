@@ -77,6 +77,7 @@ async function callAI(prompt: string, model: string, maxTokens: number, retries:
     } catch (error: any) {
        if (i === retries - 1) throw error;
        const delay = Math.pow(2, i) * 5000;
+       console.warn(`[AI] Tentativa ${i + 1} falhou. Retrying in ${delay/1000}s...`);
        await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -109,18 +110,31 @@ function cleanJsonString(content: string): string {
   return trimmed;
 }
 
-function sliceContext(fullText: string, currentTitle: string, nextTitle?: string): string {
+function sliceContext(fullText: string, currentTitle: string, nextTitle?: string, index: number = 0, total: number = 1): string {
   const cleanKeyword = (t: string) => t.split(':').pop()?.trim() || t;
   const startKeyword = cleanKeyword(currentTitle);
   let startIndex = fullText.indexOf(startKeyword);
-  if (startIndex === -1) startIndex = 0;
-  else startIndex = Math.max(0, startIndex - 800);
+  
+  // FALLBACK PROPORCIONAL: Se a keyword não for encontrada, estima a posição pelo index
+  if (startIndex === -1) {
+    startIndex = Math.floor((index / total) * fullText.length);
+    console.log(`⚠️ KEYWORD NOT FOUND ("${startKeyword}"). FALLBACK POSITION: ${startIndex}`);
+  } else {
+    startIndex = Math.max(0, startIndex - 800);
+  }
+
   let endIndex = fullText.length;
   if (nextTitle) {
     const endKeyword = cleanKeyword(nextTitle);
     const foundEnd = fullText.indexOf(endKeyword, startIndex + 1000);
-    if (foundEnd !== -1) endIndex = foundEnd + 800;
+    if (foundEnd !== -1) {
+        endIndex = foundEnd + 800;
+    } else {
+        // Fallback para o final do módulo atual
+        endIndex = Math.min(fullText.length, startIndex + Math.floor(fullText.length / total) + 2000);
+    }
   }
+  
   return fullText.substring(startIndex, endIndex);
 }
 
@@ -163,27 +177,34 @@ export async function POST(request: NextRequest) {
       throw new Error("O PDF não contém texto legível ou a extração falhou.");
     }
 
+    // Injetar informação de sistema sobre imagens para a IA seguir a Regra 3
+    const systemImageInfo = `\n[SISTEMA: As seguintes páginas do PDF contêm imagens reais extraídas: ${pagesWithImages.length > 0 ? pagesWithImages.join(", ") : "Nenhuma"}]\n`;
+    combinedText = systemImageInfo + combinedText;
+
     const isLargeCourse = combinedText.length > 15000 || config.divideInModules || config.depth === "Especialista Técnico";
     const fileName = files[0]?.name || "documento.pdf";
     const promptPath = path.join(process.cwd(), "..", "Prompts", "PROMPT_GERACAO_CURSO.md");
     let basePrompt = "";
     if (fs.existsSync(promptPath)) basePrompt = fs.readFileSync(promptPath, "utf-8");
 
-    const envModelPro = process.env.PORTKEY_MODEL_PRO || "@gemini-3-prod/gemini-3-pro-preview";
+    const envModelPro = process.env.PORTKEY_MODEL_PRO || "@gemini-3-prod/gemini-3.1-pro-preview";
     const envModelFlash = process.env.PORTKEY_MODEL_FLASH || "@gemini-3-prod/gemini-3-flash-preview";
-    const selectedModel = envModelPro;
+    const selectedModel = envModelPro; 
+    console.log("🚀 SELECTED MODEL:", selectedModel);
+    console.log("📂 IMAGE FOLDER FROM FE:", realImageFolder);
+    console.log("🖼️ PAGES WITH IMAGES:", pagesWithImages);
     const maxTokensLimit = 65536;
 
     let finalCourse: MoodleCourse | null = null;
     let courseModules = [];
 
     if (isLargeCourse) {
-      const plannerPrompt = `Cria um plano de formação (3 a 5 módulos) para este conteúdo. Responde APENAS JSON: { \"plan\": [{ \"title\": \"...\", \"summary\": \"...\" }] }. CONTEÚDO: ${combinedText.substring(0, 80000)}`;
+      const plannerPrompt = `Cria um plano de formação (3 a 5 módulos) para este conteúdo. Responde APENAS JSON: { "plan": [{ "title": "...", "summary": "..." }] }. CONTEÚDO: ${combinedText.substring(0, 80000)}`;
       const plannerRes = await callAI(plannerPrompt, envModelFlash, 4096);
       try {
         const planData = JSON.parse(cleanJsonString(plannerRes));
         courseModules = planData.plan || planData.modules || planData.plano || [];
-        if (courseModules.length === 0) throw new Error(\"Plano vazio\");
+        if (courseModules.length === 0) throw new Error("Plano vazio");
       } catch (e) {
         courseModules = [
           { title: "Parte 1: Fundamentos", summary: "Introdução ao tema." },
@@ -196,6 +217,7 @@ export async function POST(request: NextRequest) {
     if (courseModules.length > 0) {
       const aggregatedActivities: any[] = [];
       const aggregatedQuestionBanks: any[] = [];
+      const globalUsedImages = new Set<string>();
       let courseMetadata: any = null;
       let globalQuestionCounter = 1;
       const targetTotalQuestions = config.numberOfQuestions + 10;
@@ -204,31 +226,68 @@ export async function POST(request: NextRequest) {
       for (const [index, module] of courseModules.entries()) {
         const moduleNum = index + 1;
         const nextModule = courseModules[index + 1];
-        const relevantText = sliceContext(combinedText, module.title, nextModule?.title);
+        const relevantText = sliceContext(combinedText, module.title, nextModule?.title, index, courseModules.length);
         
         const modularPrompt = `
           ${basePrompt}
           
           ⚠️ ESTÁS EM MODO MODULAR (PARTE ${moduleNum}/${courseModules.length}).
-          FOCA-TE APENAS NO CONTEÚDO RELEVANTE FORNECIDO ABAIXO.
+          O teu objetivo é gerar APENAS o conteúdo para o módulo: "${module.title}".
           
-          OBJETIVOS OBRIGATÓRIOS PARA ESTE MÓDULO:
-          1. CONTEÚDO TÉCNICO: Gera no mínimo 2 a 3 páginas (activities type: \"page\") de conteúdo denso e exaustivo.
-          2. EXAME: Gera exatamente ${questionsPerModule} questões para o banco de perguntas.
-          3. NOMEAÇÃO: As atividades devem seguir o padrão: \"Módulo ${moduleNum}.X: [Título]\".
-          4. DESIGN: Usa obrigatoriamente as classes CSS (ailms-dica, ailms-atencao, etc.) conforme o Master Prompt.
+          🖼️ LISTA DE PÁGINAS COM IMAGENS REAIS NESTE DOCUMENTO: ${pagesWithImages.length > 0 ? pagesWithImages.join(", ") : "Nenhuma imagem detectada"}
+          🚫 IMAGENS JÁ UTILIZADAS EM MÓDULOS ANTERIORES: ${Array.from(globalUsedImages).join(", ") || "Nenhuma"}
+          (REGRA CRÍTICA: Só podes gerar [[IMG_Pxx_yy]] se o "xx" estiver na lista de permitidas e NÃO tiver sido usada antes!)
           
-          CONTEÚDO RELEVANTE:
+          🎯 FORMATO DE RESPOSTA OBRIGATÓRIO (JSON APENAS):
+          {
+            "activities": [
+              { "type": "page", "name": "Módulo ${moduleNum}.X: [Título]", "content": "HTML denso... [[IMG_Pxx_yy]] <div class=\"ailms-img-caption\">Figura: [Legenda]</div> ..." }
+            ],
+            "questions": [
+              { 
+                "qtype": "multichoice", 
+                "questiontext": "Enunciado da pergunta?", 
+                "answers": [
+                  { "text": "Opção Correta", "fraction": 1.0 },
+                  { "text": "Opção Errada", "fraction": 0.0 }
+                ] 
+              },
+              {
+                "qtype": "truefalse",
+                "questiontext": "Afirmação?",
+                "correctanswer": true
+              }
+            ]
+          }
+          
+          OBJETIVOS PARA ESTE MÓDULO:
+          1. CONTEÚDO TÉCNICO: Gera no mínimo 3 páginas exaustivas e ricas.
+          2. IMAGENS: Insere placeholders [[IMG_Pxx_yy]] APENAS se o conteúdo visual for indispensável. Coloca a legenda SEMPRE imediatamente após o placeholder usando <div class=\"ailms-img-caption\">...</div>.
+          3. EXAME: Gera exatamente ${questionsPerModule} questões inéditas.
+          
+          CONTEÚDO RELEVANTE (Módulo ${moduleNum}):
           ${relevantText}
         `;
 
-        const moduleResponse = await callAI(modularPrompt, selectedModel, maxTokensLimit);
+        let moduleResponse = "";
         try {
+          moduleResponse = await callAI(modularPrompt, selectedModel, maxTokensLimit);
+          
+          // RETRY SE A RESPOSTA FOR DEMASIADO CURTA (falha provável da IA)
+          if (moduleResponse.length < 500) {
+            console.warn(`⚠️ MODULE ${moduleNum} RESPONSE TOO SHORT. RETRYING WITH FLASH...`);
+            moduleResponse = await callAI(modularPrompt, envModelFlash, 4096);
+          }
+
+          console.log(`📦 MODULE ${moduleNum} RESPONSE LENGTH:`, moduleResponse?.length);
+          
           const cleaned = cleanJsonString(moduleResponse);
           let moduleData = JSON.parse(cleaned);
           
           let moduleActivities: any[] = [];
           let moduleQuestions: any[] = [];
+
+          // ... (Resto da lógica de extração de atividades e questões)
 
           if (Array.isArray(moduleData)) {
             moduleActivities = moduleData.filter(item => (item.content || item.html || item.text || item.conteudo || (item.texto && String(item.texto).length > 50)) && !item.qtype);
@@ -251,31 +310,58 @@ export async function POST(request: NextRequest) {
           }
 
           if (moduleActivities.length > 0) {
+            console.log(`✅ MODULE ${moduleNum} FOUND ${moduleActivities.length} ACTIVITIES`);
             moduleActivities.forEach((p: any) => {
-                const textContent = p.content || p.html || p.text || p.conteudo || p.texto || \"\";
+                const textContent = p.content || p.html || p.text || p.conteudo || p.texto || "";
+                
+                // RASTREAR IMAGENS UTILIZADAS
+                const imageMatches = textContent.match(/\[\[IMG_P?(\d+)_(\d+)(?:_[^\]]+)?\]\]/g);
+                if (imageMatches) {
+                    imageMatches.forEach(img => globalUsedImages.add(img));
+                    console.log(`🖼️ REGISTERED IMAGES FROM MODULE ${moduleNum}:`, imageMatches);
+                }
+
                 if (textContent.length < 50) return;
                 p.type = 'page';
                 p.content = textContent;
-                const prefix = `Módulo ${moduleNum}.${aggregatedActivities.length + 1}:`;
-                if (!String(p.name || p.title || p.titulo || \"\").includes(`Módulo ${moduleNum}`)) {
-                    p.name = `${prefix} ${String(p.name || p.title || p.titulo || \"Página\").replace(/^[^:]+:/, \"\").trim()}`;
+                const prefix = `Módulo ${moduleNum}.${aggregatedActivities.filter(a => a.name.includes(`Módulo ${moduleNum}`)).length + 1}:`;
+                if (!String(p.name || p.title || p.titulo || "").includes(`Módulo ${moduleNum}`)) {
+                    p.name = `${prefix} ${String(p.name || p.title || p.titulo || "Página").replace(/^[^:]+:/, "").trim()}`;
                 } else {
-                    p.name = p.name || p.title || p.titulo || \"Página\";
+                    p.name = p.name || p.title || p.titulo || "Página";
                 }
                 aggregatedActivities.push(p);
             });
           }
 
           if (moduleQuestions.length > 0) {
-            const bankName = \"Banco Global de Questões\";
+            console.log(`❓ MODULE ${moduleNum} FOUND ${moduleQuestions.length} QUESTIONS`);
+            const bankName = "Banco Global de Questões";
             let existingBank = aggregatedQuestionBanks.find(b => b.name === bankName);
             if (!existingBank) {
                 existingBank = { name: bankName, questions: [] };
                 aggregatedQuestionBanks.push(existingBank);
             }
             moduleQuestions.forEach((q: any) => {
-              const qText = q.questiontext || q.text || q.pergunta || \"\";
+              const qText = q.questiontext || q.text || q.pergunta || "";
               if (!qText && !q.qtype) return;
+
+              // NORMALIZAÇÃO DE QUESTÕES (Resiliência contra variações da IA)
+              if (q.answers && Array.isArray(q.answers)) {
+                q.answers = q.answers.map((a: any) => {
+                   if (typeof a === 'string') return { text: a, fraction: 0 };
+                   return { 
+                     text: a.text || a.answer || a.opcao || "", 
+                     fraction: a.fraction !== undefined ? parseFloat(a.fraction) : (a.correct ? 1.0 : 0.0)
+                   };
+                });
+              }
+              
+              // Suporte para True/False
+              if (q.qtype === 'truefalse' || q.type === 'truefalse') {
+                q.correctanswer = q.correctanswer !== undefined ? q.correctanswer : (q.answer === 'true' || q.correct === true);
+              }
+
               q.name = `Pergunta ${globalQuestionCounter++}: ${q.name || q.title || q.titulo || qText.substring(0, 30)}`;
               existingBank.questions.push(q);
             });
@@ -284,18 +370,18 @@ export async function POST(request: NextRequest) {
           if (index === 0 && !courseMetadata) {
             courseMetadata = {
               course_name: (moduleData as any).course_name || config.courseName,
-              course_shortname: (moduleData as any).course_shortname || \"AI-COURSE\",
+              course_shortname: (moduleData as any).course_shortname || "AI-COURSE",
               source_file: fileName,
-              course_summary: (moduleData as any).course_summary || \"Gerado com IA.\",
-              image_folder: realImageFolder || (moduleData as any).image_folder || \"\"
+              course_summary: (moduleData as any).course_summary || "Gerado com IA.",
+              image_folder: realImageFolder || (moduleData as any).image_folder || ""
             };
           }
         } catch (e) {
           if (moduleResponse && moduleResponse.length > 200) {
             aggregatedActivities.push({
-              type: \"page\",
+              type: "page",
               name: `Módulo ${moduleNum}: Recuperação de Conteúdo`,
-              content: `<div class=\"ailms-page-container\"><h2>Módulo ${moduleNum}</h2>${moduleResponse}</div>`
+              content: `<div class="ailms-page-container"><h2>Módulo ${moduleNum}</h2>${moduleResponse}</div>`
             });
           }
         }
@@ -303,25 +389,25 @@ export async function POST(request: NextRequest) {
 
       if (aggregatedActivities.length > 0) {
         const activities = [
-          { name: \"📘 Introdução ao Curso\", type: \"page\", content: `<div class=\\\"ailms-page-container\\\"><h1>Bem-vindo</h1><p>${courseMetadata?.course_summary || ''}</p></div>` },
+          { name: "📘 Introdução ao Curso", type: "page", content: `<div class="ailms-page-container"><h1>Bem-vindo</h1><p>${courseMetadata?.course_summary || ''}</p></div>` },
           ...aggregatedActivities,
-          { name: \"✅ Encerramento\", type: \"page\", content: \"<div class=\\\"ailms-page-container\\\"><h1>Concluído!</h1></div>\" }
+          { name: "✅ Encerramento", type: "page", content: '<div class="ailms-page-container"><h1>Concluído!</h1></div>' }
         ];
 
         if (config.generateQuizzes) {
             activities.push({ 
-                name: \"🎯 Exame Final\", type: \"quiz\", intro: \"Avaliação final.\", 
+                name: "🎯 Exame Final", type: "quiz", intro: "Avaliação final.", 
                 questions_per_page: 5, time_limit: config.quizDuration * 60, 
-                pass_grade: 15.0, question_banks: [\"Banco Global de Questões\"], random_questions: config.numberOfQuestions 
+                pass_grade: 15.0, question_banks: ["Banco Global de Questões"], random_questions: config.numberOfQuestions 
             });
         }
-        if (config.generateEvaluation) activities.push({ name: \"📋 Avaliação da Formação\", type: \"feedback\" });
-        if (config.generateCertificate) activities.push({ name: \"🎓 Certificado de Conclusão\", type: \"customcert\" });
+        if (config.generateEvaluation) activities.push({ name: "📋 Avaliação da Formação", type: "feedback" });
+        if (config.generateCertificate) activities.push({ name: "🎓 Certificado de Conclusão", type: "customcert" });
 
         finalCourse = { 
             course_name: courseMetadata?.course_name || config.courseName, 
-            course_shortname: \"AI-COURSE\", source_file: fileName, 
-            course_summary: \"Gerado com IA.\", image_folder: realImageFolder, 
+            course_shortname: "AI-COURSE", source_file: fileName, 
+            course_summary: "Gerado com IA.", image_folder: realImageFolder, 
             activities, question_banks: aggregatedQuestionBanks 
         };
       }
