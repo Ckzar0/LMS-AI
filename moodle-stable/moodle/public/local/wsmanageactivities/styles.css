@@ -1,60 +1,117 @@
-/* Design Global para Cursos Gerados por IA */
-
-.ailms-img-caption {
-    font-size: 0.95em !important;
-    color: #222 !important;
-    font-style: italic !important;
-    margin-top: 12px !important;
-    display: block !important;
-}
-
-.ailms-figure-hidden {
-    display: none !important;
-}
+/* 🎨 AI LMS Moodle - Design Global de Atividades (v1.2.5) */
 
 /* Layout do Contentor de Página */
 .ailms-page-container {
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.7;
-    color: #333;
-    max-width: 1000px;
+    line-height: 1.8;
+    color: #1a202c;
+    max-width: 900px;
     margin: 20px auto;
-    padding: 30px;
+    padding: 40px;
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    border: 1px solid #eee;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
 }
 
-/* Tabelas e Boxes Auxiliares */
+.ailms-page-container h2 {
+    color: #2b6cb0;
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 3px solid #ebf8ff;
+    padding-bottom: 10px;
+}
+
+.ailms-page-container p {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+    color: #4a5568;
+}
+
+/* --- MODERN SEMANTIC BLOCKS --- */
+
+/* 1. Conceitos-Chave (Blue) */
 .ailms-info-box {
-    background: #f8f9fa;
-    border-left: 5px solid #6B46C1;
-    padding: 20px;
-    margin: 20px 0;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+    border-color: #bae6fd;
+    border-left: 8px solid #0284c7;
+    margin: 2.5rem 0;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
+.ailms-info-box h3 { color: #0369a1; margin-top: 0; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.ailms-info-box h3::before { content: "💡"; }
 
-.ailms-atencao {
-    background: #fff5f5;
-    border-left: 5px solid #e53e3e;
-    padding: 20px;
-    margin: 20px 0;
-    border-radius: 4px;
-}
-
+/* 2. Dicas Rápidas (Emerald) */
 .ailms-dica {
-    background: #f0fff4;
-    border-left: 5px solid #38a169;
-    padding: 20px;
-    margin: 20px 0;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+    border-color: #a7f3d0;
+    border-left: 8px solid #10b981;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.ailms-dica strong { color: #047857; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+.ailms-dica strong::before { content: "✨"; }
+
+/* 3. Pontos Críticos (Rose) */
+.ailms-atencao {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
+    border-color: #fecdd3;
+    border-left: 8px solid #e11d48;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.ailms-atencao strong { color: #be123c; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+.ailms-atencao strong::before { content: "⚠️"; }
+
+/* 4. Verificações Rápidas (Amber) */
+.ailms-quick-check {
+    background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+    border-color: #fde68a;
+    border-left: 8px solid #f59e0b;
+    margin: 2.5rem 0;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+.ailms-quick-check strong { color: #b45309; display: block; margin-bottom: 10px; font-size: 1.2rem; text-transform: uppercase; }
+.ailms-quick-check strong::before { content: "🤔 "; }
+
+/* --- Media --- */
+.ailms-img-caption {
+    font-size: 0.9rem !important;
+    color: #718096 !important;
+    font-style: italic !important;
+    margin-top: 12px !important;
+    text-align: center;
+    display: block !important;
 }
 
-.ailms-quick-check {
-    background: #ebf8ff;
-    border-left: 5px solid #3182ce;
-    padding: 20px;
-    margin: 20px 0;
-    border-radius: 4px;
+.ailms-figure {
+    margin: 3rem 0;
+    background: #f7fafc;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    text-align: center;
 }
+
+.ailms-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    background: white;
+}
+.ailms-table th, .ailms-table td {
+    border: 1px solid #e2e8f0;
+    padding: 12px 15px;
+    text-align: left;
+}
+.ailms-table th { background: #f8fafc; font-weight: 700; }

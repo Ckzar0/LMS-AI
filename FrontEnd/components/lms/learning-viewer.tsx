@@ -526,64 +526,46 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         .ailms-case-study h3 { color: #065f46; }
         .ailms-case-study h3::before { content: "📋"; font-size: 1.5rem; }
 
-        /* Dicas Práticas - Emerald Theme */
+        /* 2. Dicas Rápidas (Emerald) */
         .ailms-dica {
           background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
           border-color: #a7f3d0;
           border-left: 8px solid #10b981;
           margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .ailms-dica strong { color: #047857; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
+        .ailms-dica strong::before { content: "✨"; }
 
-        /* Atenção/Pontos Críticos - Rose/Red Theme */
+        /* 3. Pontos Críticos (Rose) */
         .ailms-atencao {
           background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
           border-color: #fecdd3;
           border-left: 8px solid #e11d48;
           margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .ailms-atencao strong { color: #be123c; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
+        .ailms-atencao strong::before { content: "⚠️"; }
 
-        /* Quick Check - Yellow Theme */
+        /* 4. Verificações Rápidas (Amber) */
         .ailms-quick-check {
           background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
           border-color: #fde68a;
           border-left: 8px solid #f59e0b;
-          margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-        }
-        .ailms-quick-check strong { color: #b45309; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
-
-        /* Further Reading - Purple Theme */
-        .ailms-further-reading {
-          background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%);
-          border-color: #f3e8ff;
-          border-left: 8px solid #9333ea;
-        }
-        .ailms-further-reading h3 { color: #6b21a8; }
-        .ailms-further-reading h3::before { content: "🔗"; font-size: 1.5rem; }
-
-        /* Quick Check - Interactive Card */
-        .ailms-quick-check {
-          background: #1e293b;
-          color: #f8fafc;
-          padding: 2rem;
-          border-radius: 1.5rem;
-          margin: 4rem 0;
+          margin: 2.5rem 0; padding: 1.5rem; border-radius: 1rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
           text-align: center;
-          border: 4px solid #334155;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        .ailms-quick-check strong {
-          display: block;
-          color: #38bdf8;
-          font-size: 1.4rem;
-          margin-bottom: 0.75rem;
+        .ailms-quick-check strong { 
+          color: #b45309; 
+          display: block; 
+          margin-bottom: 0.75rem; 
+          font-size: 1.25rem; 
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.05em;
         }
+        .ailms-quick-check strong::before { content: "🤔 "; }
 
         /* --- Images --- */
         .ailms-figure {

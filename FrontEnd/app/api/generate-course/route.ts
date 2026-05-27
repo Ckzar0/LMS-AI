@@ -262,8 +262,13 @@ export async function POST(request: NextRequest) {
           
           OBJETIVOS PARA ESTE MÓDULO:
           1. CONTEÚDO TÉCNICO: Gera no mínimo 3 páginas exaustivas e ricas.
-          2. IMAGENS: Insere placeholders [[IMG_Pxx_yy]] APENAS se o conteúdo visual for indispensável. Coloca a legenda SEMPRE imediatamente após o placeholder usando <div class=\"ailms-img-caption\">...</div>.
-          3. EXAME: Gera exatamente ${questionsPerModule} questões inéditas.
+          2. SEMÂNTICA OBRIGATÓRIA: Cada página deve incluir pelo menos:
+             - <div class="ailms-info-box"><h3>🔑 Conceitos-Chave</h3><ul>...</ul></div>
+             - <div class="ailms-dica"><strong>💡 Dica Prática:</strong> ...</div>
+             - <div class="ailms-atencao"><strong>⚠️ Ponto Crítico:</strong> ...</div>
+             - <div class="ailms-quick-check"><strong>🤔 Verificação Rápida:</strong> [Pergunta de reflexão]</div>
+          3. IMAGENS: Insere placeholders [[IMG_Pxx_yy]] APENAS se o conteúdo visual for indispensável. Coloca a legenda SEMPRE imediatamente após o placeholder usando <div class=\"ailms-img-caption\">...</div>.
+          4. EXAME: Gera exatamente ${questionsPerModule} questões inéditas.
           
           CONTEÚDO RELEVANTE (Módulo ${moduleNum}):
           ${relevantText}
