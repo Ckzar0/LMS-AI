@@ -16,6 +16,7 @@ use local_wsmanageactivities\importer\QuestionCreator;
 
 /**
  * External function to create a complete course with sections, pages and quizzes in one call.
+ * This class acts as the main entry point for the Next.js FrontEnd to inject AI-generated courses into Moodle.
  */
 class create_course_with_content extends external_api {
 
@@ -28,7 +29,8 @@ class create_course_with_content extends external_api {
     public static function execute($coursedata) {
         global $CFG, $DB;
 
-        // Impedir que Warnings/Notices sujem o JSON
+        // Output Buffering & Error Suppression
+        // Prevents PHP Warnings/Notices from corrupting the JSON response sent back to the Next.js frontend.
         @error_reporting(0);
         @ini_set('display_errors', 0);
         while (ob_get_level()) ob_end_clean();
@@ -46,7 +48,15 @@ class create_course_with_content extends external_api {
             throw new \invalid_parameter_exception('Invalid JSON data');
         }
 
-        // 1. Create Course
+        // Feature Flags Logging
+        // Records whether the frontend requested Certification and Evaluation generation.
+        $log_file = dirname(dirname(dirname(__FILE__))) . "/debug_log.txt";
+        $eval_flag = isset($data['generate_evaluation']) ? ($data['generate_evaluation'] ? 'true' : 'false') : 'not set';
+        $cert_flag = isset($data['generate_certificate']) ? ($data['generate_certificate'] ? 'true' : 'false') : 'not set';
+        file_put_contents($log_file, "[" . date('Y-m-d H:i:s') . "] 🚩 RECEIVED FLAGS: Eval=$eval_flag, Cert=$cert_flag\n", FILE_APPEND);
+
+        // Phase 1: Core Course Creation
+        // Creates the Moodle course container and enforces completion tracking requirements.
         $category = $DB->get_record('course_categories', [], '*', IGNORE_MULTIPLE);
         $course_data = new \stdClass();
         $course_data->fullname = $data['course_name'];
@@ -54,14 +64,16 @@ class create_course_with_content extends external_api {
         $course_data->category = $category->id;
         $course_data->summary = $data['course_summary'];
         $course_data->format = 'topics';
-        $course_data->newsitems = 0; // DESATIVAR ANÚNCIOS
+        $course_data->newsitems = 0; // Disable announcements to keep the course linear
         $course_data->numsections = 1;
-        $course_data->enablecompletion = 1; // ATIVAR VISTOS VERDES NO CURSO
+        $course_data->enablecompletion = 1; // Mandatory for Quiz tracking
         
         $course = create_course($course_data);
         $courseid = $course->id;
 
-        // 1.1 Remover Fórum de Anúncios se existir (para garantir 100% de conclusão)
+        // Phase 1.1: Cleanup Defaults
+        // Automatically removes the default 'Announcements' forum.
+        // If left intact, Moodle expects the user to view it to reach 100% completion, which breaks our flow.
         try {
             $forum_module = $DB->get_record('modules', ['name' => 'forum']);
             if ($forum_module) {
@@ -74,16 +86,16 @@ class create_course_with_content extends external_api {
                 }
             }
         } catch (\Throwable $e) {
-            // Log silencioso se não conseguir apagar
+            // Silent catch to prevent breaking the transaction if deletion fails
         }
 
-        // 2. Process Question Banks
+        // Phase 2: Question Bank Initialization
+        // Iterates through AI-generated banks and registers them securely in Moodle's question engine.
         $bank_mapping = [];
         if (!empty($data['question_banks'])) {
             foreach ($data['question_banks'] as $bank) {
                 $course_context = \context_course::instance($courseid);
                 
-                // Verificar se a categoria já existe neste contexto para evitar erros de duplicado
                 $existing = $DB->get_record('question_categories', [
                     'contextid' => $course_context->id,
                     'name' => $bank['name']
@@ -92,45 +104,44 @@ class create_course_with_content extends external_api {
                 if ($existing) {
                     $catid = $existing->id;
                 } else {
-                    // Create category with unique stamp (CRÍTICO para evitar Duplicate Entry)
+                    // Unique Category Creation
+                    // Moodle strictly requires a unique 'stamp' string for each question category to prevent corruption.
                     $cat = new \stdClass();
                     $cat->name = $bank['name'];
                     $cat->contextid = $course_context->id;
                     $cat->info = "Automated bank for " . $data['course_name'];
-                    $cat->stamp = make_unique_id_code(); // Gera identidade única exigida pelo Moodle
+                    $cat->stamp = make_unique_id_code(); 
                     $cat->parent = 0;
                     $catid = $DB->insert_record('question_categories', $cat);
                 }
                 
                 $bank_mapping[$bank['name']] = $catid;
 
-                // Add questions
                 foreach ($bank['questions'] as $q) {
                     QuestionCreator::create_question($catid, $course_context->id, $q);
                 }
             }
         }
 
-        // 3. Process Activities
+        // Phase 3: Activity Pipeline (Pages, Quizzes, Certificates)
+        // Orchestrates the chronological creation of course elements, managing strict access restrictions
+        // (e.g., locking the Quiz until all pages are read, locking the Certificate until the Quiz is passed).
         $importer = new ActivityCreator($courseid);
         
-        // Robust way to get global folder
         $global_folder = !empty($data['image_folder']) ? $data['image_folder'] : 
                          (!empty($data['source_file']) ? $data['source_file'] : '');
         
-        $current_prerequisites = []; // IDs das páginas antes do quiz
-        $after_quiz_prerequisites = []; // IDs para atividades depois do quiz (apenas o quiz cmid)
+        $current_prerequisites = []; 
+        $after_quiz_prerequisites = []; 
         $has_passed_quiz = false;
         $created_activities = [];
 
         foreach ($data['activities'] as $index => $activity) {
-            // Injetar pasta global se a atividade não tiver uma local (handling empty strings)
             if (empty($activity['image_folder']) && empty($activity['source_file'])) {
                 $activity['image_folder'] = $global_folder;
             }
 
             if ($activity['type'] === 'page') {
-                // Se já passámos pelo quiz, as próximas páginas dependem do quiz
                 $prereqs = $has_passed_quiz ? $after_quiz_prerequisites : [];
                 $res = $importer->create_page($courseid, $activity, 1, $prereqs);
                 $cmid = $res['cmid'];
@@ -143,11 +154,13 @@ class create_course_with_content extends external_api {
                     'url' => $CFG->wwwroot . '/mod/page/view.php?id=' . $cmid
                 ];
 
+
                 if (!$has_passed_quiz) {
                     $current_prerequisites[] = $cmid;
                 }
             } else if ($activity['type'] === 'quiz') {
-                // O Quiz depende de todas as páginas criadas até agora
+                // Dependency Injection for Quizzes
+                // Locks the quiz module until the user has successfully viewed all preceding HTML pages.
                 $quiz_cmid = $importer->create_quiz($courseid, $activity, $data, 1, $current_prerequisites);
                 
                 $created_activities[] = [
@@ -164,13 +177,14 @@ class create_course_with_content extends external_api {
             }
         }
 
-        // 4. Create Feedback/Evaluation if requested
+        // Phase 4: Feedback/Evaluation Module
+        // Triggered only if requested by the FrontEnd. Always locks behind the successful completion of the Quiz.
         $evaluation_cmid = null;
         $evaluation_enabled = !empty($data['generate_evaluation']) || !empty($data['evaluation']);
         if ($evaluation_enabled) {
             $evaluation_cmid = ActivityCreator::create_feedback($courseid);
             if ($evaluation_cmid) {
-                // Determine which activity should unlock the feedback (Quiz)
+                // Discover the Quiz CMID to set as a prerequisite
                 $quiz_cmid = null;
                 foreach ($created_activities as $act) {
                     if ($act['type'] === 'quiz') {
@@ -180,7 +194,7 @@ class create_course_with_content extends external_api {
                 }
                 
                 if ($quiz_cmid) {
-                    // Bloquear Avaliação até PASSAR no Quiz (require_grade = true)
+                    // Strict grading requirement: User must PASS the quiz (100% of required grade) to unlock evaluation.
                     ActivityCreator::add_completion_restriction($evaluation_cmid, $quiz_cmid, true, true);
                 }
 
@@ -194,13 +208,13 @@ class create_course_with_content extends external_api {
             }
         }
 
-        // 5. Create Certificate if requested
+        // Phase 5: Custom Certificate Generation
+        // Triggered only if requested. It locates the Master Template and clones it privately for this course.
+        // It locks behind either the Evaluation (if it exists) or the Quiz.
         $certificate_enabled = !empty($data['generate_certificate']) || !empty($data['certificate']);
         if ($certificate_enabled) {
             $cert_cmid = ActivityCreator::create_certificate($courseid, 'LMS-AI_Certificate');
             if ($cert_cmid) {
-                // O Certificado deve ser a ÚLTIMA coisa. 
-                // Se houver Avaliação, depende da Avaliação. Se não, depende do Quiz.
                 $unlock_cmid = null;
                 if ($evaluation_cmid) {
                     $unlock_cmid = $evaluation_cmid;
@@ -214,7 +228,7 @@ class create_course_with_content extends external_api {
                 }
 
                 if ($unlock_cmid) {
-                    // Se for desbloqueado pelo Quiz, exigir nota. Se for pela Avaliação, apenas conclusão.
+                    // If unlocking via Quiz, a passing grade is required. If via Evaluation, just completion is enough.
                     $is_quiz = $evaluation_cmid ? false : true;
                     ActivityCreator::add_completion_restriction($cert_cmid, $unlock_cmid, true, $is_quiz);
                 }

@@ -128,7 +128,7 @@ Escreve com autoridade científica. Cada parágrafo deve ser denso em informaç�
 - ✅ **CAMPO source_file:** No topo do JSON, deves obrigatoriamente incluir o campo `"source_file": "[NOME_DO_FICHEIRO_PDF_ORIGINAL].pdf"`.
 - ✅ **EXEMPLO:** Se o documento se chama "Manual_Redes_v2.pdf", o JSON deve começar com `"source_file": "Manual_Redes_v2.pdf"`.
 
-### **REGRA 3: PROTOCOLO DE IMAGENS REAIS (STRICT EVIDENCE)**
+### **REGRA 3: PROTOCOLO DE IMAGENS E TABELAS (v10.5 STABLE)**
 
 #### **A) DIRETRIZ DE VERIFICAÇÃO VISUAL**
 - 🚫 **PROIBIDO INVENTAR ILUSTRAÇÕES:** Estás expressamente proibido de criar placeholders `[[IMG_...]]` ou legendas para diagramas, fluxogramas, esquemas lógicos ou conceitos que sejam explicados de forma puramente textual no manual.

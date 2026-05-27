@@ -41,7 +41,9 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
   const [downloadingCert, setDownloadingCert] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  // 0. Auto-enrol user
+  // Initialization: Auto-enrol user
+  // Silently enrols the authenticated user into the Moodle course immediately upon viewing.
+  // This is required for Moodle to track completion events and grade submissions.
   useEffect(() => {
     async function autoEnrol() {
       try {
@@ -57,7 +59,8 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
     autoEnrol();
   }, [courseId])
 
-  // 1. Fetch Course Structure (Index)
+  // Lifecycle: Fetch Course Structure
+  // Retrieves the Table of Contents (modules, pages, quizzes) and their completion status.
   const fetchCourse = useCallback(async () => {
     try {
       const response = await fetch(`/api/course/${courseId}`)
@@ -73,18 +76,20 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
     fetchCourse()
   }, [fetchCourse])
 
-  // 2. Fetch Activity Content & Mark Viewed
+  // Content Engine: Activity Loader
+  // Fetches the specific HTML content or Quiz/Feedback data based on the requested activity ID.
+  // Also triggers Moodle's completion WebService to mark the page as "Viewed".
   const loadActivity = async (id: string) => {
     setLoadingContent(true)
-    setQuizData(null) // Reset quiz data
-    setFeedbackData(null) // Reset feedback data
+    setQuizData(null) // Reset state for safe transitions
+    setFeedbackData(null) 
     try {
       const response = await fetch(`/api/activity/${id}`)
       if (!response.ok) throw new Error("Falha ao carregar conteúdo")
       const data = await response.json()
       setCurrentActivity(data)
       
-      // If it's a quiz, fetch full quiz data
+      // Dynamic Data Fetching based on semantic type
       if (data.type === 'quiz') {
         const quizRes = await fetch(`/api/quiz/${id}`)
         const qData = await quizRes.json()
@@ -95,7 +100,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         setFeedbackData(fData)
       }
 
-      // Mark as viewed in Moodle
+      // Tracking: Mark activity as completed by viewing
       const markRes = await fetch('/api/activity/mark-viewed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,6 +108,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
       })
       
       if (markRes.ok) {
+        // Refresh sidebar to reflect the new green checkmark
         setTimeout(fetchCourse, 1000)
       }
 
@@ -114,6 +120,9 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
     }
   }
 
+  // File Handling: Certificate PDF Download
+  // Fetches the generated PDF as a Base64 string from Moodle,
+  // converts it to a binary Blob, and forces an automatic client-side download.
   const handleDownloadCertificate = async () => {
     if (!currentActivity || downloadingCert) return;
     
@@ -123,7 +132,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
       const data = await res.json();
       
       if (data.filecontent) {
-        // Converter Base64 para Blob
+        // Base64 to Blob conversion
         const byteCharacters = atob(data.filecontent);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -132,7 +141,7 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
         
-        // Criar link de download
+        // Emulate an anchor click to trigger the download prompt
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -526,64 +535,46 @@ export function LearningViewer({ courseId, initialActivityId, onBack }: Learning
         .ailms-case-study h3 { color: #065f46; }
         .ailms-case-study h3::before { content: "📋"; font-size: 1.5rem; }
 
-        /* Dicas Práticas - Emerald Theme */
+        /* 2. Dicas Rápidas (Emerald) */
         .ailms-dica {
           background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
           border-color: #a7f3d0;
           border-left: 8px solid #10b981;
           margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .ailms-dica strong { color: #047857; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
+        .ailms-dica strong::before { content: "✨"; }
 
-        /* Atenção/Pontos Críticos - Rose/Red Theme */
+        /* 3. Pontos Críticos (Rose) */
         .ailms-atencao {
           background: linear-gradient(135deg, #fff1f2 0%, #ffffff 100%);
           border-color: #fecdd3;
           border-left: 8px solid #e11d48;
           margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .ailms-atencao strong { color: #be123c; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
+        .ailms-atencao strong::before { content: "⚠️"; }
 
-        /* Quick Check - Yellow Theme */
+        /* 4. Verificações Rápidas (Amber) */
         .ailms-quick-check {
           background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
           border-color: #fde68a;
           border-left: 8px solid #f59e0b;
-          margin: 2rem 0; padding: 1.5rem; border-radius: 1rem;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-        }
-        .ailms-quick-check strong { color: #b45309; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.15rem; }
-
-        /* Further Reading - Purple Theme */
-        .ailms-further-reading {
-          background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%);
-          border-color: #f3e8ff;
-          border-left: 8px solid #9333ea;
-        }
-        .ailms-further-reading h3 { color: #6b21a8; }
-        .ailms-further-reading h3::before { content: "🔗"; font-size: 1.5rem; }
-
-        /* Quick Check - Interactive Card */
-        .ailms-quick-check {
-          background: #1e293b;
-          color: #f8fafc;
-          padding: 2rem;
-          border-radius: 1.5rem;
-          margin: 4rem 0;
+          margin: 2.5rem 0; padding: 1.5rem; border-radius: 1rem;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
           text-align: center;
-          border: 4px solid #334155;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        .ailms-quick-check strong {
-          display: block;
-          color: #38bdf8;
-          font-size: 1.4rem;
-          margin-bottom: 0.75rem;
+        .ailms-quick-check strong { 
+          color: #b45309; 
+          display: block; 
+          margin-bottom: 0.75rem; 
+          font-size: 1.25rem; 
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.05em;
         }
+        .ailms-quick-check strong::before { content: "🤔 "; }
 
         /* --- Images --- */
         .ailms-figure {

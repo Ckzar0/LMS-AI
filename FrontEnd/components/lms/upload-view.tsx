@@ -69,7 +69,9 @@ export function UploadView() {
   const [showPreview, setShowPreview] = useState(false)
   const progressRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll para o progresso quando o estado muda
+  // UI Auto-Scrolling Mechanism
+  // Automatically scrolls the user's viewport to the progress indicator
+  // whenever the generation state transitions out of idle or completion phases.
   useEffect(() => {
     if (generationState.status !== "idle" && generationState.status !== "complete" && progressRef.current) {
       progressRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -79,6 +81,9 @@ export function UploadView() {
   const [moodleStatus, setMoodleStatus] = useState<"checking" | "connected" | "disconnected" | "error">("checking")
   const [moodleInfo, setMoodleInfo] = useState<{ siteName?: string; username?: string } | null>(null)
 
+  // Moodle Connection Validator
+  // Periodically pings the local_wsmanageactivities plugin to ensure
+  // the destination LMS is reachable and authenticated before allowing course submission.
   const checkMoodleConnection = useCallback(async () => {
     setMoodleStatus("checking")
     try {
@@ -95,7 +100,9 @@ export function UploadView() {
     }
   }, [])
 
-  // Fetch master prompt on mount
+  // Initial Data Hydration
+  // Fetches the Markdown Master Prompt template from the server filesystem
+  // and validates Moodle connectivity upon component mount.
   useEffect(() => {
     async function fetchMasterPrompt() {
       try {
@@ -112,11 +119,12 @@ export function UploadView() {
     checkMoodleConnection()
   }, [checkMoodleConnection])
 
-  // Update dynamic prompt when options change
+  // Dynamic Prompt Compilation
+  // Injects user-defined parameters (depth, difficulty, quiz size) into the Master Prompt.
+  // This compiled prompt is what gets sent to the AI Orchestrator in the Factory tab.
   useEffect(() => {
     if (!masterPrompt) return
 
-    // Substituir placeholders {{DURATION}}, {{DIFFICULTY}}, {{NUM_QUESTIONS}}, {{BANK_SIZE}}
     const bankSize = numberOfQuestions + 10;
     
     let finalPrompt = masterPrompt
@@ -127,7 +135,7 @@ export function UploadView() {
       .replace(/{{QUIZ_DURATION}}/g, quizDuration.toString())
       .replace(/{{QUIZ_DURATION_SECONDS}}/g, (quizDuration * 60).toString());
 
-    // Injeção de restrições negativas baseadas nas opções selecionadas
+    // Negative constraints injection based on UI toggles.
     let finalInstructions = "";
     if (!selectedOptions.includes("quizzes") || numberOfQuestions === 0) {
       finalInstructions += "\n- 🚫 **SEM QUIZ:** Estás PROIBIDO de gerar qualquer banco de questões (`question_banks`) ou atividade do tipo `quiz`. O curso deve ser apenas informativo.";
@@ -352,16 +360,20 @@ export function UploadView() {
       depth,
       quizDuration,
       numberOfQuestions,
-      generateVideos: selectedOptions.includes("modules"),
+      generateVideos: selectedOptions.includes("videos"),
       generateQuizzes: selectedOptions.includes("quizzes"),
       generateCertificate: selectedOptions.includes("certificate"),
+      generateEvaluation: selectedOptions.includes("evaluation"),
       divideInModules: selectedOptions.includes("modules")
     }
 
     setGenerationState({ status: "extracting", progress: 5, message: "A enviar PDF para o servidor..." })
 
     try {
-      // 1. Extrair Imagens no Moodle primeiro para garantir que o Preview as mostra
+      // Phase 1: Moodle Image Pre-Extraction
+      // Before invoking the AI, we send the PDF to Moodle to physically extract images.
+      // This is crucial because the AI needs to know exactly which images exist (Ground Truth)
+      // to avoid hallucinating image placeholders that will result in broken <img> tags.
       let imageFolder = "";
       let pagesWithImages: number[] = [];
       try {
@@ -376,7 +388,7 @@ export function UploadView() {
           body: JSON.stringify({ 
             course: { course_name: courseName, course_shortname: "TEMP_EXTRACT" }, 
             pdfFile: { name: file.name, content: base64Content },
-            onlyExtract: true // Nova flag para indicar que só queremos a extração
+            onlyExtract: true // Flag indicating we only want extraction, not course creation
           })
         });
         const imgData = await imgResponse.json();
@@ -386,14 +398,15 @@ export function UploadView() {
         console.warn("Falha na extração de imagens prévia:", imgErr);
       }
 
-      // 2. Gerar o curso com a IA
-      setGenerationState({ status: "generating", progress: 40, message: "IA a analisar conteúdo e a desenhar curso..." })
+      // Phase 2: AI Course Generation (SSE Streaming)
+      // We initialize the heavy Map-Reduce pipeline on the server.
+      setGenerationState({ status: "generating", progress: 25, message: "A iniciar motor de IA..." })
       
       const formData = new FormData()
       files.forEach(f => formData.append("files", f.file))
       formData.append("config", JSON.stringify(config))
-      formData.append("pagesWithImages", JSON.stringify(pagesWithImages)) // Injetar lista de páginas reais
-      formData.append("imageFolder", imageFolder) // Injetar nome real da pasta
+      formData.append("pagesWithImages", JSON.stringify(pagesWithImages)) // Injecting Ground Truth pages
+      formData.append("imageFolder", imageFolder) // Injecting the real extracted folder name
       if (dynamicPrompt) {
         formData.append("customPrompt", dynamicPrompt)
       }
@@ -405,52 +418,58 @@ export function UploadView() {
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to generate course")
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate course");
       }
 
-      // --- CONSUMO DE STREAM (SSE) ---
+      // Server-Sent Events (SSE) Consumer
+      // We read the stream chunk by chunk. The server yields structural JSON events
+      // (like progress updates or the final compiled course) rather than raw AI text.
+      // This prevents UI freezing and HTTP timeouts during massive PDF analyses.
       const reader = response.body?.getReader();
+      if (!reader) throw new Error("Stream not available");
+
       const decoder = new TextDecoder();
-      let streamBuffer = "";
+      let done = false;
 
-      if (!reader) throw new Error("Falha ao iniciar leitura do stream.");
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        streamBuffer += decoder.decode(value, { stream: true });
-        const lines = streamBuffer.split("\n");
-        streamBuffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const data = JSON.parse(line);
-            
-            if (data.status === "error") throw new Error(data.message);
-            
-            if (data.status === "complete" && data.course) {
-              const finalCourse = {
-                ...data.course,
-                image_folder: imageFolder || data.course?.image_folder || ""
-              };
-              setGeneratedCourse(finalCourse);
-              setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
-              setShowPreview(true);
-            } else {
-              setGenerationState({
-                status: data.status,
-                progress: data.progress,
-                message: data.message
-              });
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.substring(6));
+                
+                if (data.status === "progress") {
+                  setGenerationState(prev => ({
+                    ...prev,
+                    progress: data.progress || prev.progress,
+                    message: data.message || prev.message
+                  }));
+                } else if (data.status === "error") {
+                  throw new Error(data.error || "Erro no processamento da IA");
+                } else if (data.status === "complete" && data.course) {
+                  const finalCourse = {
+                    ...data.course,
+                    image_folder: imageFolder || data.course?.image_folder || ""
+                  };
+                  setGeneratedCourse(finalCourse);
+                  setGenerationState({ status: "complete", progress: 100, message: "Curso gerado com sucesso!", course: finalCourse });
+                  setShowPreview(true);
+                  return; // Exit loop on success
+                }
+              } catch (e) {
+                console.warn("Error parsing SSE chunk:", line, e);
+              }
             }
-          } catch (e) {
-            console.error("Erro ao processar chunk do stream:", e);
           }
         }
       }
+
+      throw new Error("Stream terminou sem dados do curso.");
     } catch (error: any) {
       if (error.name === 'AbortError') {
         return;
